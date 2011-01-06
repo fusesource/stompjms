@@ -107,7 +107,8 @@ public class JmsTestSupport extends CombinationTestSupport {
 
         broker = createBroker();
         ServiceControl.start(broker,"Starting Apollo Broker");
-        this.port = broker.getConnectorPort();
+        Thread.sleep(2999);
+        this.port = broker.getFirstConnectorAddress().getPort();
         factory = createConnectionFactory();
         connection = (StompJmsConnection) factory.createConnection(userName, password);
         connections.add(connection);
