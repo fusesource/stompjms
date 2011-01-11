@@ -17,24 +17,24 @@
 package org.fusesource.stompjms.util;
 
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.fusesource.stompjms.channel.StompFrame;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * state on a request
- *
  */
 public class SendRequest {
     private final AtomicBoolean done = new AtomicBoolean();
     private StompFrame response;
-    
+
     public StompFrame get(long timeout) {
         synchronized (this.done) {
             if (this.done.get() == false && this.response == null) {
                 try {
                     this.done.wait(timeout);
                 } catch (InterruptedException e) {
-                   e.printStackTrace();
+                    e.printStackTrace();
                 }
             }
         }

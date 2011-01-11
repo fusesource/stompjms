@@ -26,8 +26,11 @@ import java.util.HashMap;
 public class ClassLoadingAwareObjectInputStream extends ObjectInputStream {
 
     private static final ClassLoader FALLBACK_CLASS_LOADER = ClassLoadingAwareObjectInputStream.class.getClassLoader();
-    /** <p>Maps primitive type names to corresponding class objects.</p> */
+    /**
+     * <p>Maps primitive type names to corresponding class objects.</p>
+     */
     private static final HashMap<String, Class> primClasses = new HashMap<String, Class>(8, 1.0F);
+
     public ClassLoadingAwareObjectInputStream(InputStream in) throws IOException {
         super(in);
     }
@@ -64,9 +67,8 @@ public class ClassLoadingAwareObjectInputStream extends ObjectInputStream {
             }
         }
     }
-    
-    
-    
+
+
     static {
         primClasses.put("boolean", boolean.class);
         primClasses.put("byte", byte.class);

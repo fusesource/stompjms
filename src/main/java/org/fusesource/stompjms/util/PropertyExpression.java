@@ -17,23 +17,23 @@
 
 package org.fusesource.stompjms.util;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.jms.DeliveryMode;
-import javax.jms.JMSException;
 import org.fusesource.stompjms.StompJmsDestination;
 import org.fusesource.stompjms.StompJmsExceptionSupport;
 import org.fusesource.stompjms.message.StompJmsMessage;
 
+import javax.jms.DeliveryMode;
+import javax.jms.JMSException;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
 
 /**
  * Represents a property expression
- * 
+ *
  * @version $Revision: 1.5 $
  */
-public class PropertyExpression  {
+public class PropertyExpression {
 
     private static final Map<String, SubExpression> JMS_PROPERTY_EXPRESSIONS = new HashMap<String, SubExpression>();
 
@@ -128,7 +128,6 @@ public class PropertyExpression  {
         jmsPropertyExpression = JMS_PROPERTY_EXPRESSIONS.get(name);
     }
 
-    
 
     public Object evaluate(StompJmsMessage message) throws JMSException {
         if (jmsPropertyExpression != null) {
@@ -167,7 +166,7 @@ public class PropertyExpression  {
         if (o == null || !this.getClass().equals(o.getClass())) {
             return false;
         }
-        return name.equals(((PropertyExpression)o).name);
+        return name.equals(((PropertyExpression) o).name);
 
     }
 

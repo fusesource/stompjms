@@ -21,19 +21,19 @@ import javax.jms.TemporaryQueue;
 
 /**
  * TemporaryQueue
- *
  */
 public class StompJmsTempQueue extends StompJmsDestination implements TemporaryQueue {
-      
+
     /**
      * Constructor
+     *
      * @param name
      */
-    public StompJmsTempQueue(String name){
+    public StompJmsTempQueue(String name) {
         super(name);
-        this.topic=false;
+        this.topic = false;
     }
-    
+
     protected String getType() {
         return StompJmsDestination.TEMP_QUEUE_QUALIFED_PREFIX;
     }
@@ -43,7 +43,7 @@ public class StompJmsTempQueue extends StompJmsDestination implements TemporaryQ
      */
     public void delete() {
         // TODO Auto-generated method stub
-        
+
     }
 
     /**

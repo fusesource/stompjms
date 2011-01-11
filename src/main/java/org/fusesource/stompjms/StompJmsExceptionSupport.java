@@ -17,11 +17,11 @@
 package org.fusesource.stompjms;
 
 import javax.jms.JMSException;
-import javax.jms.*;
+import javax.jms.MessageEOFException;
+import javax.jms.MessageFormatException;
 
 /**
  * Create those nice, old fashioned JMS Exceptions
- *
  */
 public final class StompJmsExceptionSupport {
 
@@ -43,7 +43,7 @@ public final class StompJmsExceptionSupport {
 
     public static JMSException create(Throwable cause) {
         if (cause instanceof JMSException) {
-            return (JMSException)cause;
+            return (JMSException) cause;
         }
         String msg = cause.getMessage();
         if (msg == null || msg.length() == 0) {
@@ -56,7 +56,7 @@ public final class StompJmsExceptionSupport {
 
     public static JMSException create(Exception cause) {
         if (cause instanceof JMSException) {
-            return (JMSException)cause;
+            return (JMSException) cause;
         }
         String msg = cause.getMessage();
         if (msg == null || msg.length() == 0) {

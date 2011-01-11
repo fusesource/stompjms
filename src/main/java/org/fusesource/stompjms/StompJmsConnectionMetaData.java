@@ -16,11 +16,11 @@
  */
 package org.fusesource.stompjms;
 
+import javax.jms.ConnectionMetaData;
 import java.util.Enumeration;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.jms.ConnectionMetaData;
 
 /**
  * A <CODE>ConnectionMetaData</CODE> object provides information describing
@@ -62,7 +62,7 @@ public final class StompJmsConnectionMetaData implements ConnectionMetaData {
 
     /**
      * Gets the JMS API version.
-     * 
+     *
      * @return the JMS API version
      */
 
@@ -72,7 +72,7 @@ public final class StompJmsConnectionMetaData implements ConnectionMetaData {
 
     /**
      * Gets the JMS major version number.
-     * 
+     *
      * @return the JMS API major version number
      */
 
@@ -82,7 +82,7 @@ public final class StompJmsConnectionMetaData implements ConnectionMetaData {
 
     /**
      * Gets the JMS minor version number.
-     * 
+     *
      * @return the JMS API minor version number
      */
 
@@ -92,7 +92,7 @@ public final class StompJmsConnectionMetaData implements ConnectionMetaData {
 
     /**
      * Gets the JMS provider name.
-     * 
+     *
      * @return the JMS provider name
      */
 
@@ -102,7 +102,7 @@ public final class StompJmsConnectionMetaData implements ConnectionMetaData {
 
     /**
      * Gets the JMS provider version.
-     * 
+     *
      * @return the JMS provider version
      */
 
@@ -112,7 +112,7 @@ public final class StompJmsConnectionMetaData implements ConnectionMetaData {
 
     /**
      * Gets the JMS provider major version number.
-     * 
+     *
      * @return the JMS provider major version number
      */
 
@@ -122,7 +122,7 @@ public final class StompJmsConnectionMetaData implements ConnectionMetaData {
 
     /**
      * Gets the JMS provider minor version number.
-     * 
+     *
      * @return the JMS provider minor version number
      */
 
@@ -132,7 +132,7 @@ public final class StompJmsConnectionMetaData implements ConnectionMetaData {
 
     /**
      * Gets an enumeration of the JMSX property names.
-     * 
+     *
      * @return an Enumeration of JMSX property names
      */
 
@@ -140,6 +140,6 @@ public final class StompJmsConnectionMetaData implements ConnectionMetaData {
         Vector<String> jmxProperties = new Vector<String>();
         return jmxProperties.elements();
     }
-    
-    
+
+
 }

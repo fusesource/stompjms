@@ -16,30 +16,24 @@
  */
 package org.fusesource.stompjms;
 
-import javax.jms.Destination;
-import javax.jms.IllegalStateException;
-import javax.jms.JMSException;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageProducer;
-import javax.jms.TemporaryTopic;
-import javax.jms.Topic;
-import javax.jms.TopicPublisher;
-import javax.jms.TopicSubscriber;
 import org.fusesource.stompjms.channel.StompChannel;
+
+import javax.jms.*;
+import javax.jms.IllegalStateException;
 
 
 /**
  * Jms QueueSession implementation
- * 
  */
 public class StompJmsQueueSession extends StompJmsTopicSession {
     /**
      * Constructor
+     *
      * @param connection
      * @param acknowledgementMode
      */
-    protected StompJmsQueueSession(StompJmsConnection connection, StompChannel channel,int acknowledgementMode) {
-        super(connection, channel,acknowledgementMode);
+    protected StompJmsQueueSession(StompJmsConnection connection, StompChannel channel, int acknowledgementMode) {
+        super(connection, channel, acknowledgementMode);
     }
 
     public MessageConsumer createConsumer(Destination destination) throws JMSException {

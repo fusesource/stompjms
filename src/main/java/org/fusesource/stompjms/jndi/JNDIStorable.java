@@ -16,15 +16,15 @@
  */
 package org.fusesource.stompjms.jndi;
 
+import javax.naming.NamingException;
+import javax.naming.Reference;
+import javax.naming.Referenceable;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.HashMap;
 import java.util.Map;
-import javax.naming.NamingException;
-import javax.naming.Reference;
-import javax.naming.Referenceable;
 
 /**
  * Facilitates objects to be stored in JNDI as properties
@@ -32,43 +32,43 @@ import javax.naming.Referenceable;
 
 public abstract class JNDIStorable implements Referenceable, Externalizable {
 
-    private Map<String,String> properties;
+    private Map<String, String> properties;
 
     /**
      * Set the properties that will represent the instance in JNDI
-     * 
+     *
      * @param props
      */
-    protected abstract void buildFromProperties(Map<String,String> props);
+    protected abstract void buildFromProperties(Map<String, String> props);
 
     /**
      * Initialize the instance from properties stored in JNDI
-     * 
+     *
      * @param props
      */
 
-    protected abstract void populateProperties(Map<String,String> props);
+    protected abstract void populateProperties(Map<String, String> props);
 
     /**
      * set the properties for this instance as retrieved from JNDI
-     * 
+     *
      * @param props
      */
 
-    public synchronized void setProperties(Map<String,String> props) {
+    public synchronized void setProperties(Map<String, String> props) {
         this.properties = props;
         buildFromProperties(props);
     }
 
     /**
      * Get the properties from this instance for storing in JNDI
-     * 
+     *
      * @return the properties
      */
 
-    public synchronized Map<String,String> getProperties() {
+    public synchronized Map<String, String> getProperties() {
         if (this.properties == null) {
-            this.properties = new HashMap<String,String>();
+            this.properties = new HashMap<String, String>();
         }
         populateProperties(this.properties);
         return this.properties;
@@ -76,7 +76,7 @@ public abstract class JNDIStorable implements Referenceable, Externalizable {
 
     /**
      * Retrive a Reference for this instance to store in JNDI
-     * 
+     *
      * @return the built Reference
      * @throws NamingException if error on building Reference
      */
@@ -91,7 +91,7 @@ public abstract class JNDIStorable implements Referenceable, Externalizable {
      * @see java.io.Externalizable#readExternal(java.io.ObjectInput)
      */
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        Map<String,String> props = (Map<String,String>)in.readObject();
+        Map<String, String> props = (Map<String, String>) in.readObject();
         if (props != null) {
             setProperties(props);
         }
@@ -107,8 +107,8 @@ public abstract class JNDIStorable implements Referenceable, Externalizable {
         out.writeObject(getProperties());
 
     }
-    
-    protected String getProperty(Map<String,String>map,String key, String defaultValue) {
+
+    protected String getProperty(Map<String, String> map, String key, String defaultValue) {
         String value = map.get(key);
         if (value != null) {
             return value;

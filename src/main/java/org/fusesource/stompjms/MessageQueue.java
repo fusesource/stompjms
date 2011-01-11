@@ -195,7 +195,7 @@ public class MessageQueue {
         synchronized (mutex) {
             if (transactionId != null && transactionId.isEmpty() == false) {
                 List<StompJmsMessage> tmp = new ArrayList<StompJmsMessage>(this.list);
-                for (StompJmsMessage message:tmp){
+                for (StompJmsMessage message : tmp) {
                     String tid = message.getTransactionId();
                     if (tid != null && tid.equals(transactionId)) {
                         this.list.remove(message);

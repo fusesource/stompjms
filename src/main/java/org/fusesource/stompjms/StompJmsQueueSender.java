@@ -17,19 +17,15 @@
 package org.fusesource.stompjms;
 
 import javax.jms.IllegalStateException;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.Queue;
-import javax.jms.QueueSender;
+import javax.jms.*;
 
 /**
  * Implementation of a Queue Sender
- * 
  */
 public class StompJmsQueueSender extends StompJmsMessageProducer implements QueueSender {
     /**
      * Constructor
-     * 
+     *
      * @param s
      * @param dest
      */
@@ -39,7 +35,7 @@ public class StompJmsQueueSender extends StompJmsMessageProducer implements Queu
 
     /**
      * @return the Queue
-     * @throws IllegalStateException 
+     * @throws IllegalStateException
      * @see javax.jms.QueueSender#getQueue()
      */
     public Queue getQueue() throws IllegalStateException {

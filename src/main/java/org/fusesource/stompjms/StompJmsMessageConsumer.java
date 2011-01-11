@@ -46,6 +46,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
         this.messageSelector = selector;
     }
 
+
     /**
      * @throws JMSException
      * @see javax.jms.MessageConsumer#close()
@@ -56,11 +57,6 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
     }
 
 
-    /**
-     * @return the MessageListener
-     * @throws JMSException
-     * @see javax.jms.MessageConsumer#getMessageListener()
-     */
     public MessageListener getMessageListener() throws JMSException {
         checkClosed();
         return this.messageListener;
@@ -190,17 +186,21 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
         this.messageQueue.rollback(transactionId);
     }
 
-    private void drainMessageQueueToListener(){
+    private void drainMessageQueueToListener() {
         MessageListener listener = this.messageListener;
-        if (listener != null){
-        if (!this.messageQueue.isEmpty()) {
-            List<StompJmsMessage> drain = this.messageQueue.removeAll();
-            for (StompJmsMessage m : drain) {
-                listener.onMessage(m);
+        if (listener != null) {
+            if (!this.messageQueue.isEmpty()) {
+                List<StompJmsMessage> drain = this.messageQueue.removeAll();
+                for (StompJmsMessage m : drain) {
+                    listener.onMessage(m);
+                }
+                drain.clear();
             }
-            drain.clear();
         }
-        }
+    }
+
+    protected int getMessageQueueSize() {
+        return this.messageQueue.size();
     }
 
 }

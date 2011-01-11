@@ -32,10 +32,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * JMS Session implementation
- * 
  */
 public class StompJmsSession implements Session, QueueSession, TopicSession, StompJmsMessageListener {
-    private final String messageIdSeed = "ID:" + UUID.randomUUID().toString() +".";
+    private final String messageIdSeed = "ID:" + UUID.randomUUID().toString() + ".";
     private long nextMessageSwquence = 0;
     private final StompJmsConnection connection;
     private final StompChannel channel;
@@ -50,7 +49,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
 
     /**
      * Constructor
-     * 
+     *
      * @param connection
      * @param acknowledgementMode
      */
@@ -71,7 +70,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             this.connection.removeSession(this);
             for (StompJmsMessageConsumer c : this.consumers.values()) {
                 if (this.channel.isStarted()) {
-                    this.channel.unsubscribe(c.getDestination(), c.getId());
+                    this.channel.unsubscribe(c.getDestination(), c.getId(), false, false);
                 }
                 c.close();
             }
@@ -136,7 +135,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         checkClosed();
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(destination);
         StompJmsMessageConsumer result = new StompJmsMessageConsumer(UUID.randomUUID().toString(), this, dest, "");
-        add(result);
+        add(result, false);
         return result;
     }
 
@@ -153,7 +152,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(destination);
         StompJmsMessageConsumer result = new StompJmsMessageConsumer(UUID.randomUUID().toString(), this, dest,
                 messageSelector);
-        add(result);
+        add(result, false);
         return result;
     }
 
@@ -170,9 +169,9 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             throws JMSException {
         checkClosed();
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(destination);
-        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(UUID.randomUUID().toString(), this, dest, "", NoLocal,
+        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(UUID.randomUUID().toString(), this, dest, NoLocal,
                 messageSelector);
-        add(result);
+        add(result, false);
         return result;
     }
 
@@ -186,7 +185,11 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public TopicSubscriber createDurableSubscriber(Topic topic, String name) throws JMSException {
         checkClosed();
-        throw new JMSException("DurableSubscribers are not supported by STOMP");
+        String id = this.connection.getClientID() + ":" + name;
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(topic);
+        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(id, this, dest, false, "");
+        add(result, true);
+        return result;
     }
 
     /**
@@ -202,7 +205,11 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public TopicSubscriber createDurableSubscriber(Topic topic, String name, String messageSelector, boolean noLocal)
             throws JMSException {
         checkClosed();
-        throw new JMSException("DurableSubscribers are not supported by STOMP");
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(topic);
+        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(UUID.randomUUID().toString(), this, dest, noLocal,
+                messageSelector);
+        add(result, true);
+        return result;
     }
 
     /**
@@ -392,7 +399,6 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     }
 
     /**
-     * 
      * @see javax.jms.Session#run()
      */
     public void run() {
@@ -416,6 +422,13 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public void unsubscribe(String name) throws JMSException {
         checkClosed();
+        String id = this.connection.getClientID() + ":" + name;
+        StompJmsMessageConsumer consumer = this.consumers.remove(id);
+        if (consumer != null) {
+            consumer.close();
+        }
+        this.channel.unsubscribe(null, id, true, false);
+
     }
 
     /**
@@ -428,7 +441,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         checkClosed();
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(queue);
         StompJmsQueueReceiver result = new StompJmsQueueReceiver(UUID.randomUUID().toString(), this, dest, "");
-        add(result);
+        add(result, false);
         return result;
     }
 
@@ -444,7 +457,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         checkClosed();
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(queue);
         StompJmsQueueReceiver result = new StompJmsQueueReceiver(UUID.randomUUID().toString(), this, dest, messageSelector);
-        add(result);
+        add(result, false);
         return result;
     }
 
@@ -484,9 +497,8 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public TopicSubscriber createSubscriber(Topic topic) throws JMSException {
         checkClosed();
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(topic);
-        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(UUID.randomUUID().toString(), this, dest, "", false,
-                "");
-        add(result);
+        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(UUID.randomUUID().toString(), this, dest, false, "");
+        add(result, false);
         return result;
     }
 
@@ -502,16 +514,16 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public TopicSubscriber createSubscriber(Topic topic, String messageSelector, boolean noLocal) throws JMSException {
         checkClosed();
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(topic);
-        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(UUID.randomUUID().toString(), this, dest, "", noLocal,
+        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(UUID.randomUUID().toString(), this, dest, noLocal,
                 messageSelector);
         return result;
     }
 
-    protected void add(StompJmsMessageConsumer consumer) throws JMSException {
+    protected void add(StompJmsMessageConsumer consumer, boolean persistent) throws JMSException {
         this.consumers.put(consumer.getId(), consumer);
         this.channel.subscribe(consumer.getDestination(), consumer.getId(), consumer.getMessageSelector(),
-                this.acknowledgementMode == Session.CLIENT_ACKNOWLEDGE);
-        if (started.get()){
+                this.acknowledgementMode == Session.CLIENT_ACKNOWLEDGE, persistent);
+        if (started.get()) {
             consumer.start();
         }
     }
@@ -545,7 +557,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     }
 
     private void send(StompJmsDestination destination, StompJmsMessage message, int deliveryMode, int priority,
-            long timeToLive) throws JMSException {
+                      long timeToLive) throws JMSException {
         message.setJMSMessageID(getNextMessageId());
         message.setJMSDestination(destination);
         message.setJMSDeliveryMode(deliveryMode);
@@ -586,21 +598,29 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             if (getTransacted()) {
                 this.currentTransactionId = this.channel.startTransaction();
             }
-            for (StompJmsMessageConsumer consumer:consumers.values()){
-            consumer.start();
-        }
+            for (StompJmsMessageConsumer consumer : consumers.values()) {
+                consumer.start();
+            }
         }
     }
 
     protected void stop() throws JMSException {
         started.set(false);
-        for (StompJmsMessageConsumer consumer:consumers.values()){
+        for (StompJmsMessageConsumer consumer : consumers.values()) {
             consumer.stop();
         }
     }
 
+    protected boolean isStarted() {
+        return this.started.get();
+    }
+
     protected StompChannel getChannel() {
         return this.channel;
+    }
+
+    protected StompJmsConnection getConnection() {
+        return this.connection;
     }
 
     private void dispatch(StompJmsMessage message) {
@@ -618,8 +638,8 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         }
     }
 
-    private String getNextMessageId(){
-        StringBuilder buffer = new StringBuilder(this.messageIdSeed.length()+64);
+    private String getNextMessageId() {
+        StringBuilder buffer = new StringBuilder(this.messageIdSeed.length() + 64);
         buffer.append(this.messageIdSeed);
         buffer.append(this.nextMessageSwquence++);
         return buffer.toString();

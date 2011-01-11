@@ -20,15 +20,15 @@ import javax.jms.Queue;
 
 /**
  * Queue implementation
- *
  */
 public class StompJmsQueue extends StompJmsDestination implements Queue {
-       
+
     /**
      * Constructor
+     *
      * @param name
      */
-    public StompJmsQueue(String name){
+    public StompJmsQueue(String name) {
         super(name);
     }
 

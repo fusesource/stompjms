@@ -23,7 +23,6 @@ import javax.jms.IllegalStateException;
 
 /**
  * Implementation of a Jms MessageProducer
- * 
  */
 public class StompJmsMessageProducer implements MessageProducer {
     protected final StompJmsSession session;
@@ -44,7 +43,7 @@ public class StompJmsMessageProducer implements MessageProducer {
 
     /**
      * Close the producer
-     * 
+     *
      * @see javax.jms.MessageProducer#close()
      */
     public void close() {
@@ -209,8 +208,7 @@ public class StompJmsMessageProducer implements MessageProducer {
     }
 
     /**
-     * @param destination
-     *            the destination to set
+     * @param destination the destination to set
      * @throws JMSException
      * @throws InvalidDestinationException
      */

@@ -17,6 +17,6 @@
 package org.fusesource.stompjms.channel;
 
 public interface StompFrameListener {
-   
+
     public void onFrame(StompFrame frame);
 }

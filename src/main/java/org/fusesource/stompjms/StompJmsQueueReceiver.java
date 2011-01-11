@@ -22,25 +22,25 @@ import javax.jms.QueueReceiver;
 
 /**
  * Implementation of a Jms QueueReceiver
- *
  */
 public class StompJmsQueueReceiver extends StompJmsMessageConsumer implements QueueReceiver {
 
     /**
      * Constructor
+     *
      * @param s
      */
-    protected StompJmsQueueReceiver(String id,StompJmsSession s,StompJmsDestination d,String selector) {
-        super(id,s,d,selector);
+    protected StompJmsQueueReceiver(String id, StompJmsSession s, StompJmsDestination d, String selector) {
+        super(id, s, d, selector);
     }
 
     /**
      * @return the Queue
-     * @throws IllegalStateException 
+     * @throws IllegalStateException
      * @see javax.jms.QueueReceiver#getQueue()
      */
     public Queue getQueue() throws IllegalStateException {
         checkClosed();
-       return (Queue) this.destination;
+        return (Queue) this.destination;
     }
 }

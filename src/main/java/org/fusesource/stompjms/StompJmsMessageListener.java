@@ -20,12 +20,12 @@ import org.fusesource.stompjms.message.StompJmsMessage;
 
 /**
  * A listener for BlazeMessages
- *
  */
 public interface StompJmsMessageListener {
-    
+
     /**
      * Called when a Message is available to be processes
+     *
      * @param message
      */
     public void onMessage(StompJmsMessage message);

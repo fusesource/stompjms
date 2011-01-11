@@ -18,15 +18,17 @@ package org.fusesource.stompjms.util;
 
 
 /**
- * A simple callback object 
+ * A simple callback object
+ *
+ * @param <T>
  * @version $Revision: 1.2 $
- * @param <T> 
  */
 public interface Callback<T> {
 
     /**
-     * Executes some piece of code 
-     * @param t 
+     * Executes some piece of code
+     *
+     * @param t
      */
     void execute(T t);
 }

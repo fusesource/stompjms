@@ -16,30 +16,23 @@
  */
 package org.fusesource.stompjms;
 
-import javax.jms.Destination;
-import javax.jms.IllegalStateException;
-import javax.jms.JMSException;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageProducer;
-import javax.jms.Queue;
-import javax.jms.QueueBrowser;
-import javax.jms.QueueReceiver;
-import javax.jms.QueueSender;
-import javax.jms.TemporaryQueue;
 import org.fusesource.stompjms.channel.StompChannel;
+
+import javax.jms.*;
+import javax.jms.IllegalStateException;
 
 /**
  * Implementation of a TopicSession
- * 
  */
 public class StompJmsTopicSession extends StompJmsSession {
     /**
      * Constructor
+     *
      * @param connection
      * @param acknowledgementMode
      */
-    protected StompJmsTopicSession(StompJmsConnection connection,StompChannel channel, int acknowledgementMode) {
-        super(connection,channel, acknowledgementMode);
+    protected StompJmsTopicSession(StompJmsConnection connection, StompChannel channel, int acknowledgementMode) {
+        super(connection, channel, acknowledgementMode);
     }
 
     /**

@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
  * Small burn test moves sends a moderate amount of messages through the broker,
  * to checking to make sure that the broker does not lock up after a while of
  * sustained messaging.
- * 
+ *
  * @version $Revision$
  */
 public class LoadTestBurnIn extends JmsTestSupport {
@@ -65,16 +65,13 @@ public class LoadTestBurnIn extends JmsTestSupport {
     }
 
 
-
-
-
     public void initCombosForTestSendReceive() {
-        addCombinationValues("deliveryMode", new Object[] {Integer.valueOf(DeliveryMode.NON_PERSISTENT),Integer.valueOf(DeliveryMode.PERSISTENT),
-                                                           });
-        addCombinationValues("messageSize", new Object[] {Integer.valueOf(101), Integer.valueOf(102),
-                                                          Integer.valueOf(103), Integer.valueOf(104),
-                                                          Integer.valueOf(105), Integer.valueOf(106),
-                                                          Integer.valueOf(107), Integer.valueOf(108)});
+        addCombinationValues("deliveryMode", new Object[]{Integer.valueOf(DeliveryMode.NON_PERSISTENT), Integer.valueOf(DeliveryMode.PERSISTENT),
+        });
+        addCombinationValues("messageSize", new Object[]{Integer.valueOf(101), Integer.valueOf(102),
+                Integer.valueOf(103), Integer.valueOf(104),
+                Integer.valueOf(105), Integer.valueOf(106),
+                Integer.valueOf(107), Integer.valueOf(108)});
     }
 
     public void testSendReceive() throws Exception {

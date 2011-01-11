@@ -16,11 +16,7 @@
  */
 package org.fusesource.stompjms.util;
 
-import java.beans.BeanInfo;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
-import java.beans.PropertyEditor;
-import java.beans.PropertyEditorManager;
+import java.beans.*;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URLDecoder;
@@ -30,16 +26,14 @@ import java.util.Map;
 
 /**
  * Utilities for properties
- * 
  */
 public class PropertyUtil {
     /**
      * Get properties from a URI
-     * 
+     *
      * @param uri
      * @return <Code>Map</Code> of properties
      * @throws Exception
-     * 
      */
     public static Map<String, String> parseParameters(URI uri) throws Exception {
         return uri.getQuery() == null ? Collections.EMPTY_MAP : parseQuery(stripPrefix(uri.getQuery(), "?"));
@@ -47,11 +41,10 @@ public class PropertyUtil {
 
     /**
      * Parse properties from a named resource -eg. a URI or a simple name e.g. foo?name="fred"&size=2
-     * 
+     *
      * @param uri
      * @return <Code>Map</Code> of properties
      * @throws Exception
-     * 
      */
     public static Map<String, String> parseParameters(String uri) throws Exception {
         return uri == null ? Collections.EMPTY_MAP : parseQuery(stripUpto(uri, '?'));
@@ -59,7 +52,7 @@ public class PropertyUtil {
 
     /**
      * Get properties from a uri
-     * 
+     *
      * @param uri
      * @return <Code>Map</Code> of properties
      * @throws Exception
@@ -87,7 +80,7 @@ public class PropertyUtil {
 
     /**
      * Add bean properties to a URI
-     * 
+     *
      * @param uri
      * @param bean
      * @return <Code>Map</Code> of properties
@@ -100,12 +93,11 @@ public class PropertyUtil {
 
     /**
      * Add properties to a URI
-     * 
+     *
      * @param uri
      * @param props
      * @return uri with properties on
      * @throws Exception
-     * 
      */
     public static String addPropertiesToURI(String uri, Map<String, String> props) throws Exception {
         String result = uri;
@@ -133,7 +125,7 @@ public class PropertyUtil {
 
     /**
      * Set properties on an object
-     * 
+     *
      * @param target
      * @param props
      */
@@ -152,7 +144,7 @@ public class PropertyUtil {
 
     /**
      * Get properties from an object
-     * 
+     *
      * @param object
      * @return <Code>Map</Code> of properties
      * @throws Exception
@@ -165,7 +157,7 @@ public class PropertyUtil {
         if (propertyDescriptors != null) {
             for (int i = 0; i < propertyDescriptors.length; i++) {
                 PropertyDescriptor pd = propertyDescriptors[i];
-                if (pd.getReadMethod() != null && !pd.getName().equals("class") && !pd.getName().equals("properties") &&!pd.getName().equals("reference") ) {
+                if (pd.getReadMethod() != null && !pd.getName().equals("class") && !pd.getName().equals("properties") && !pd.getName().equals("reference")) {
                     props.put(pd.getName(), ("" + pd.getReadMethod().invoke(object, NULL_ARG)));
                 }
             }
@@ -175,7 +167,7 @@ public class PropertyUtil {
 
     /**
      * Set a property
-     * 
+     *
      * @param target
      * @param name
      * @param value
@@ -191,10 +183,10 @@ public class PropertyUtil {
             // If the type is null or it matches the needed type, just use the
             // value directly
             if (value == null || value.getClass() == setter.getParameterTypes()[0]) {
-                setter.invoke(target, new Object[] { value });
+                setter.invoke(target, new Object[]{value});
             } else {
                 // We need to convert it
-                setter.invoke(target, new Object[] { convert(value, setter.getParameterTypes()[0]) });
+                setter.invoke(target, new Object[]{convert(value, setter.getParameterTypes()[0])});
             }
             return true;
         } catch (Throwable ignore) {
@@ -204,7 +196,7 @@ public class PropertyUtil {
 
     /**
      * Return a String past a prefix
-     * 
+     *
      * @param value
      * @param prefix
      * @return stripped
@@ -218,7 +210,7 @@ public class PropertyUtil {
 
     /**
      * Return a String from to a character
-     * 
+     *
      * @param value
      * @param c
      * @return stripped
@@ -234,7 +226,7 @@ public class PropertyUtil {
 
     /**
      * Return a String up to and including character
-     * 
+     *
      * @param value
      * @param c
      * @return stripped

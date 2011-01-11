@@ -31,12 +31,13 @@ import java.io.UnsupportedEncodingException;
 import java.util.*;
 
 public class StompJmsMessage implements javax.jms.Message {
-  
+
     private static final Map<String, PropertySetter> JMS_PROPERTY_SETERS = new HashMap<String, PropertySetter>();
 
-    public static enum JmsMsgType{
-        MESSAGE,BYTES,MAP,OBJECT,STREAM,TEXT
+    public static enum JmsMsgType {
+        MESSAGE, BYTES, MAP, OBJECT, STREAM, TEXT
     }
+
     protected transient Callback<StompJmsMessage> acknowledgeCallback;
     protected StompJmsDestination destination;
     protected StompJmsDestination replyTo;
@@ -55,36 +56,36 @@ public class StompJmsMessage implements javax.jms.Message {
     protected String transactionId;
     protected StompFrame frame = new StompFrame();
     private Buffer content;
-    
+
     public StompJmsMessage copy() throws JMSException {
         StompJmsMessage copy = new StompJmsMessage();
         copy(copy);
         return copy;
     }
-    
+
     public JmsMsgType getMsgType() {
         return JmsMsgType.MESSAGE;
     }
 
     protected void copy(StompJmsMessage copy) {
-        copy.destination=this.destination;
-        copy.replyTo=this.replyTo;
-        copy.messageId=this.messageId;
-        copy.correlationId=this.correlationId;
-        copy.timestamp=this.timestamp;
-        copy.expiration=this.expiration;
-        copy.type=this.type;
-        copy.priority=this.priority;
-        copy.persistent=this.persistent;
-        copy.readOnlyBody=this.readOnlyBody;
-        copy.readOnlyProperties=this.readOnlyBody;
+        copy.destination = this.destination;
+        copy.replyTo = this.replyTo;
+        copy.messageId = this.messageId;
+        copy.correlationId = this.correlationId;
+        copy.timestamp = this.timestamp;
+        copy.expiration = this.expiration;
+        copy.type = this.type;
+        copy.priority = this.priority;
+        copy.persistent = this.persistent;
+        copy.readOnlyBody = this.readOnlyBody;
+        copy.readOnlyProperties = this.readOnlyBody;
         if (this.properties != null) {
-            copy.properties=new HashMap<String,Object>(this.properties);
+            copy.properties = new HashMap<String, Object>(this.properties);
         }
-        copy.frame=this.frame;
-        copy.content=this.content;
+        copy.frame = this.frame;
+        copy.content = this.content;
         copy.acknowledgeCallback = this.acknowledgeCallback;
-        copy.transactionId=this.transactionId;
+        copy.transactionId = this.transactionId;
         //don't copy redilveryCounter
     }
 
@@ -122,13 +123,13 @@ public class StompJmsMessage implements javax.jms.Message {
             }
         }
     }
-    
+
     public Buffer getContent() {
         return this.content;
     }
-    
+
     public void setContent(Buffer content) {
-        this.content=content;
+        this.content = content;
     }
 
     public void clearBody() throws JMSException {
@@ -138,16 +139,16 @@ public class StompJmsMessage implements javax.jms.Message {
         setContent(null);
         readOnlyBody = false;
     }
-    
+
     public void setReadOnlyBody(boolean readOnlyBody) {
         this.readOnlyBody = readOnlyBody;
     }
-    
+
     public void setReadOnlyProperties(boolean readOnlyProperties) {
         this.readOnlyProperties = readOnlyProperties;
     }
-    
-    
+
+
     public String getJMSMessageID() {
         return this.messageId;
     }
@@ -159,17 +160,17 @@ public class StompJmsMessage implements javax.jms.Message {
      * @param value
      * @throws JMSException
      */
-    public void setJMSMessageID(String value){
-        this.messageId=value;
+    public void setJMSMessageID(String value) {
+        this.messageId = value;
     }
 
-    
+
     public long getJMSTimestamp() {
         return this.timestamp;
     }
 
     public void setJMSTimestamp(long timestamp) {
-        this.timestamp=timestamp;
+        this.timestamp = timestamp;
     }
 
     public String getJMSCorrelationID() {
@@ -177,7 +178,7 @@ public class StompJmsMessage implements javax.jms.Message {
     }
 
     public void setJMSCorrelationID(String correlationId) {
-        this.correlationId=correlationId;
+        this.correlationId = correlationId;
     }
 
     public byte[] getJMSCorrelationIDAsBytes() throws JMSException {
@@ -191,11 +192,11 @@ public class StompJmsMessage implements javax.jms.Message {
     public String getJMSXMimeType() {
         return "jms/message";
     }
-    
+
     public boolean isPersistent() {
         return persistent;
     }
-    
+
     public void setPersistent(boolean value) {
         this.persistent = value;
     }
@@ -227,13 +228,13 @@ public class StompJmsMessage implements javax.jms.Message {
     }
 
     public void setJMSReplyTo(Destination destination) throws JMSException {
-        this.replyTo=StompJmsMessageTransformation.transformDestination(destination);
+        this.replyTo = StompJmsMessageTransformation.transformDestination(destination);
     }
-    
+
     public void setJMSReplyTo(StompJmsDestination destination) {
-        this.replyTo=destination;
+        this.replyTo = destination;
     }
-    
+
     public StompJmsDestination getStompJmsReplyTo() {
         return this.replyTo;
     }
@@ -241,17 +242,17 @@ public class StompJmsMessage implements javax.jms.Message {
     public Destination getJMSDestination() {
         return this.destination;
     }
-    
+
     public StompJmsDestination getStompJmsDestination() {
         return this.destination;
     }
 
     public void setJMSDestination(Destination destination) throws JMSException {
-        this.destination=StompJmsMessageTransformation.transformDestination(destination);
+        this.destination = StompJmsMessageTransformation.transformDestination(destination);
     }
-    
-    public void setJMSDestination(StompJmsDestination destination)  {
-        this.destination=destination;
+
+    public void setJMSDestination(StompJmsDestination destination) {
+        this.destination = destination;
     }
 
     public int getJMSDeliveryMode() {
@@ -261,7 +262,7 @@ public class StompJmsMessage implements javax.jms.Message {
     public void setJMSDeliveryMode(int mode) {
         this.setPersistent(mode == DeliveryMode.PERSISTENT);
     }
-    
+
     public boolean isRedelivered() {
         return redeliveryCounter > 0;
     }
@@ -281,7 +282,7 @@ public class StompJmsMessage implements javax.jms.Message {
     public void incrementRedeliveryCounter() {
         redeliveryCounter++;
     }
-    
+
     public int getRedeliveryCounter() {
         return redeliveryCounter;
     }
@@ -303,7 +304,7 @@ public class StompJmsMessage implements javax.jms.Message {
     }
 
     public void setJMSType(String type) {
-        this.type=type;
+        this.type = type;
     }
 
     public long getJMSExpiration() {
@@ -311,7 +312,7 @@ public class StompJmsMessage implements javax.jms.Message {
     }
 
     public void setJMSExpiration(long expiration) {
-        this.expiration=expiration;
+        this.expiration = expiration;
     }
 
     public int getJMSPriority() {
@@ -319,12 +320,12 @@ public class StompJmsMessage implements javax.jms.Message {
     }
 
     public void setJMSPriority(int priority) {
-        this.priority=priority;
+        this.priority = priority;
     }
 
     public Map<String, Object> getProperties() throws IOException {
         if (properties == null) {
-            if (this.frame== null) {
+            if (this.frame == null) {
                 return Collections.emptyMap();
             }
             properties = StompTranslator.getJmsHeaders(this.frame);
@@ -336,14 +337,14 @@ public class StompJmsMessage implements javax.jms.Message {
         if (this.frame != null) {
             this.frame.getHeaders().clear();
         }
-        properties=null;
+        properties = null;
     }
 
     public void setProperty(String name, Object value) throws IOException {
         lazyCreateProperties();
         properties.put(name, value);
     }
-    
+
     public void removeProperty(String name) throws IOException {
         lazyCreateProperties();
         properties.remove(name);
@@ -358,9 +359,10 @@ public class StompJmsMessage implements javax.jms.Message {
             }
         }
     }
+
     public boolean propertyExists(String name) throws JMSException {
         try {
-            return (this.getProperties().containsKey(name) || getObjectProperty(name)!= null);
+            return (this.getProperties().containsKey(name) || getObjectProperty(name) != null);
         } catch (IOException e) {
             throw StompJmsExceptionSupport.create(e);
         }
@@ -377,7 +379,8 @@ public class StompJmsMessage implements javax.jms.Message {
 
     /**
      * return all property names, including standard JMS properties and JMSX properties
-     * @return  Enumeration of all property names on this message
+     *
+     * @return Enumeration of all property names on this message
      * @throws JMSException
      */
     public Enumeration getAllPropertyNames() throws JMSException {
@@ -405,7 +408,7 @@ public class StompJmsMessage implements javax.jms.Message {
                 message.setRedeliveryCounter(rc.intValue() - 1);
             }
         });
-       
+
         JMS_PROPERTY_SETERS.put("JMSCorrelationID", new PropertySetter() {
             public void set(StompJmsMessage message, Object value) throws MessageFormatException {
                 String rc = (String) TypeConversionSupport.convert(value, String.class);
@@ -422,8 +425,7 @@ public class StompJmsMessage implements javax.jms.Message {
                     Boolean bool = (Boolean) TypeConversionSupport.convert(value, Boolean.class);
                     if (bool == null) {
                         throw new MessageFormatException("Property JMSDeliveryMode cannot be set from a " + value.getClass().getName() + ".");
-                    }
-                    else {
+                    } else {
                         rc = bool.booleanValue() ? DeliveryMode.PERSISTENT : DeliveryMode.NON_PERSISTENT;
                     }
                 }
@@ -513,9 +515,9 @@ public class StompJmsMessage implements javax.jms.Message {
         }
     }
 
-    public void setProperties(Map<String,Object> properties) throws JMSException  {
-        for (Iterator<Map.Entry<String,Object>> iter = properties.entrySet().iterator(); iter.hasNext();) {
-            Map.Entry<String,Object> entry = iter.next();
+    public void setProperties(Map<String, Object> properties) throws JMSException {
+        for (Iterator<Map.Entry<String, Object>> iter = properties.entrySet().iterator(); iter.hasNext();) {
+            Map.Entry<String, Object> entry = iter.next();
             setObjectProperty((String) entry.getKey(), entry.getValue());
         }
     }
@@ -535,10 +537,7 @@ public class StompJmsMessage implements javax.jms.Message {
 
         }
     }
-    
-    
-    
-    
+
 
     public Object getObjectProperty(String name) throws JMSException {
         if (name == null) {
@@ -704,19 +703,21 @@ public class StompJmsMessage implements javax.jms.Message {
 
     /**
      * Send operation event listener. Used to get the message ready to be sent.
-     * @throws JMSException 
+     *
+     * @throws JMSException
      */
     public void onSend() throws JMSException {
         setReadOnlyBody(true);
         setReadOnlyProperties(true);
         storeContent();
     }
-    
+
     /**
      * serialize the payload
+     *
      * @throws JMSException
      */
-    public void storeContent() throws JMSException{
+    public void storeContent() throws JMSException {
     }
 
     /**

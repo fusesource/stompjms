@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Test cases used to test the JMS message consumer.
- * 
+ *
  * @version $Revision$
  */
 public class JmsTestSupport extends CombinationTestSupport {
@@ -56,12 +56,12 @@ public class JmsTestSupport extends CombinationTestSupport {
     // /////////////////////////////////////////////////////////////////
     protected StompJmsDestination createDestination(String type) throws JMSException {
         String testMethod = getName();
-        if( testMethod.indexOf(" ")>0 ) {
+        if (testMethod.indexOf(" ") > 0) {
             testMethod = testMethod.substring(0, testMethod.indexOf(" "));
         }
-        String name = type + "TEST." + getClass().getName() + "." +testMethod+"."+TEST_COUNTER.getAndIncrement();
-        return   StompJmsDestination.createDestination(name);
-        }
+        String name = type + "TEST." + getClass().getName() + "." + testMethod + "." + TEST_COUNTER.getAndIncrement();
+        return StompJmsDestination.createDestination(name);
+    }
 
 
     protected void sendMessages(Destination destination, int count) throws Exception {
@@ -81,14 +81,14 @@ public class JmsTestSupport extends CombinationTestSupport {
     protected void sendMessages(Session session, Destination destination, int count) throws JMSException {
         MessageProducer producer = session.createProducer(destination);
         for (int i = 0; i < count; i++) {
-            producer.send(session.createTextMessage(messageTextPrefix  + i));
+            producer.send(session.createTextMessage(messageTextPrefix + i));
         }
         producer.close();
     }
 
     protected ConnectionFactory createConnectionFactory() throws Exception {
         StompJmsConnectionFactory result = new StompJmsConnectionFactory();
-        result.setBrokerURI("tcp://localhost:"+this.port);
+        result.setBrokerURI("tcp://localhost:" + this.port);
         return result;
     }
 
@@ -106,8 +106,7 @@ public class JmsTestSupport extends CombinationTestSupport {
         }
 
         broker = createBroker();
-        ServiceControl.start(broker,"Starting Apollo Broker");
-        Thread.sleep(2999);
+        ServiceControl.start(broker, "Starting Apollo Broker");
         this.port = broker.getFirstConnectorAddress().getPort();
         factory = createConnectionFactory();
         connection = (StompJmsConnection) factory.createConnection(userName, password);
@@ -116,13 +115,14 @@ public class JmsTestSupport extends CombinationTestSupport {
 
     protected void tearDown() throws Exception {
         for (Iterator iter = connections.iterator(); iter.hasNext();) {
-            Connection conn = (Connection)iter.next();
+            Connection conn = (Connection) iter.next();
             try {
                 conn.close();
             } catch (Throwable e) {
             }
             iter.remove();
         }
+        ServiceControl.stop(broker, "Stopped Apollo Broker");
         broker.stop();
         super.tearDown();
     }

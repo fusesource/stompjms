@@ -22,7 +22,7 @@ import java.io.InputStream;
 
 /**
  * An optimized buffered input stream for Tcp
- * 
+ *
  * @version $Revision: 1.1.1.1 $
  */
 public class TcpBufferedInputStream extends FilterInputStream {
@@ -88,7 +88,7 @@ public class TcpBufferedInputStream extends FilterInputStream {
             return 0;
         }
         int n = 0;
-        for (;;) {
+        for (; ;) {
             int nread = readStream(b, off + n, len - n);
             if (nread <= 0) {
                 return (n == 0) ? nread : n;

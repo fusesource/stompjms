@@ -22,20 +22,20 @@ import javax.jms.TopicSubscriber;
 
 /**
  * Implementation of a TopicSubscriber
- * 
  */
 public class StompJmsTopicSubscriber extends StompJmsMessageConsumer implements TopicSubscriber {
     private boolean noLocal;
+
     /**
      * Constructor
-     * 
+     *
      * @param s
      * @param destination
      */
-    protected StompJmsTopicSubscriber(String id,StompJmsSession s, StompJmsDestination destination, String name, 
-            boolean noLocal,String selector) {
-        super(id,s, destination,selector);
-        this.noLocal=noLocal;
+    protected StompJmsTopicSubscriber(String id, StompJmsSession s, StompJmsDestination destination,
+                                      boolean noLocal, String selector) {
+        super(id, s, destination, selector);
+        this.noLocal = noLocal;
     }
 
     /**

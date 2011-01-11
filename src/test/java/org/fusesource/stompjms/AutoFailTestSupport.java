@@ -16,19 +16,19 @@
  */
 package org.fusesource.stompjms;
 
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import junit.framework.TestCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
  * Enforces a test case to run for only an allotted time to prevent them from
  * hanging and breaking the whole testing.
- * 
+ *
  * @version $Revision: 1.0 $
  */
 
@@ -117,7 +117,7 @@ public abstract class AutoFailTestSupport extends TestCase {
      * Sets the auto fail value. As a rule, this should be used only before any
      * setup methods is called to automatically enable the auto fail thread in
      * the setup method of the test case.
-     * 
+     *
      * @param val
      */
     public void setAutoFail(boolean val) {
@@ -131,7 +131,7 @@ public abstract class AutoFailTestSupport extends TestCase {
     /**
      * The assigned value will only be reflected when the auto fail thread has
      * started its run. Value is in milliseconds.
-     * 
+     *
      * @param val
      */
     public void setMaxTestTime(long val) {
@@ -141,13 +141,13 @@ public abstract class AutoFailTestSupport extends TestCase {
     public long getMaxTestTime() {
         return this.maxTestTime;
     }
-    
-    
+
+
     public static void dumpAllThreads(String prefix) {
         Map<Thread, StackTraceElement[]> stacks = Thread.getAllStackTraces();
         for (Entry<Thread, StackTraceElement[]> stackEntry : stacks.entrySet()) {
             System.err.println(prefix + " " + stackEntry.getKey());
-            for(StackTraceElement element : stackEntry.getValue()) {
+            for (StackTraceElement element : stackEntry.getValue()) {
                 System.err.println("     " + element);
             }
         }

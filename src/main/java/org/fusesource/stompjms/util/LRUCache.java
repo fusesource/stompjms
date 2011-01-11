@@ -21,10 +21,10 @@ import java.util.Map;
 
 /**
  * A Simple LRU Cache
- * 
- * @version $Revision$
+ *
  * @param <K>
  * @param <V>
+ * @version $Revision$
  */
 
 public class LRUCache<K, V> extends LinkedHashMap<K, V> {
@@ -35,12 +35,12 @@ public class LRUCache<K, V> extends LinkedHashMap<K, V> {
      * Default constructor for an LRU Cache The default capacity is 10000
      */
     public LRUCache() {
-        this(0,10000, 0.75f, true);
+        this(0, 10000, 0.75f, true);
     }
 
     /**
      * Constructs a LRUCache with a maximum capacity
-     * 
+     *
      * @param maximumCacheSize
      */
     public LRUCache(int maximumCacheSize) {
@@ -50,14 +50,14 @@ public class LRUCache<K, V> extends LinkedHashMap<K, V> {
     /**
      * Constructs an empty <tt>LRUCache</tt> instance with the specified
      * initial capacity, maximumCacheSize,load factor and ordering mode.
-     * 
-     * @param initialCapacity the initial capacity.
+     *
+     * @param initialCapacity  the initial capacity.
      * @param maximumCacheSize
-     * @param loadFactor the load factor.
-     * @param accessOrder the ordering mode - <tt>true</tt> for access-order,
-     *                <tt>false</tt> for insertion-order.
+     * @param loadFactor       the load factor.
+     * @param accessOrder      the ordering mode - <tt>true</tt> for access-order,
+     *                         <tt>false</tt> for insertion-order.
      * @throws IllegalArgumentException if the initial capacity is negative or
-     *                 the load factor is non-positive.
+     *                                  the load factor is non-positive.
      */
 
     public LRUCache(int initialCapacity, int maximumCacheSize, float loadFactor, boolean accessOrder) {
@@ -79,7 +79,7 @@ public class LRUCache<K, V> extends LinkedHashMap<K, V> {
         this.maxCacheSize = maxCacheSize;
     }
 
-    protected boolean removeEldestEntry(Map.Entry<K,V> eldest) {
+    protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
         return size() > this.maxCacheSize;
     }
 }

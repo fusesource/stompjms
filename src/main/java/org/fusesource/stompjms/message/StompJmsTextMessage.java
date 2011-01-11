@@ -25,14 +25,13 @@ import javax.jms.TextMessage;
 import java.io.UnsupportedEncodingException;
 
 
-
 public class StompJmsTextMessage extends StompJmsMessage implements TextMessage {
     protected String text;
 
     public JmsMsgType getMsgType() {
         return JmsMsgType.TEXT;
     }
-    
+
     public StompJmsMessage copy() throws JMSException {
         StompJmsTextMessage copy = new StompJmsTextMessage();
         copy(copy);
@@ -44,7 +43,7 @@ public class StompJmsTextMessage extends StompJmsMessage implements TextMessage 
         copy.text = text;
     }
 
-    
+
     public String getJMSXMimeType() {
         return "jms/text-message";
     }
@@ -58,38 +57,38 @@ public class StompJmsTextMessage extends StompJmsMessage implements TextMessage 
     public String getText() throws JMSException {
         Buffer buffer = getContent();
         if (text == null && buffer != null) {
-            this.text = new String(buffer.getData(),buffer.getOffset(),buffer.getLength());
+            this.text = new String(buffer.getData(), buffer.getOffset(), buffer.getLength());
             setContent(null);
         }
         return text;
     }
-    
+
     public void storeContent() throws JMSException {
         try {
             setContent(new Buffer(text.getBytes("UTF-8")));
         } catch (UnsupportedEncodingException e) {
-           throw StompJmsExceptionSupport.create(e.getMessage(), e);
+            throw StompJmsExceptionSupport.create(e.getMessage(), e);
         }
-    }   
-    
+    }
+
     /**
      * Clears out the message body. Clearing a message's body does not clear its
      * header values or property entries. <p/>
-     * <P>
+     * <p/>
      * If this message body was read-only, calling this method leaves the
      * message body in the same state as an empty body in a newly created
      * message.
-     * 
+     *
      * @throws JMSException if the JMS provider fails to clear the message body
-     *                 due to some internal error.
+     *                      due to some internal error.
      */
     public void clearBody() throws JMSException {
         super.clearBody();
         this.text = null;
     }
 
-        
+
     public String toString() {
-        return super.toString() + ":text="+text;
+        return super.toString() + ":text=" + text;
     }
 }

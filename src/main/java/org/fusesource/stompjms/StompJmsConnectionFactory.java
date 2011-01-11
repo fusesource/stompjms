@@ -29,10 +29,9 @@ import java.util.Properties;
 
 /**
  * Jms ConnectionFactory implementation
- * 
  */
 public class StompJmsConnectionFactory extends JNDIStorable implements ConnectionFactory, QueueConnectionFactory,
-TopicConnectionFactory {
+        TopicConnectionFactory {
     private URI brokerURI;
     private URI localURI;
     private String username;
@@ -44,15 +43,15 @@ TopicConnectionFactory {
     public StompJmsConnectionFactory() {
     }
 
-   
-    
+
     /**
      * Set properties
+     *
      * @param props
      */
     public void setProperties(Properties props) {
-        Map<String,String> map = new HashMap<String, String>();
-        for (Map.Entry<Object,Object> entry: props.entrySet()) {
+        Map<String, String> map = new HashMap<String, String>();
+        for (Map.Entry<Object, Object> entry : props.entrySet()) {
             map.put(entry.getKey().toString(), entry.getValue().toString());
         }
         setProperties(map);
@@ -75,15 +74,15 @@ TopicConnectionFactory {
      * @param map
      */
     @Override
-    protected void populateProperties(Map<String, String> map) {        
-            try {
-                Map<String, String> result = PropertyUtil.getProperties(this);
-                map.putAll(result);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-           
-       
+    protected void populateProperties(Map<String, String> map) {
+        try {
+            Map<String, String> result = PropertyUtil.getProperties(this);
+            map.putAll(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
     }
 
     /**
@@ -93,8 +92,8 @@ TopicConnectionFactory {
      */
     public TopicConnection createTopicConnection() throws JMSException {
         try {
-            TopicConnection result = new StompJmsConnection(this.brokerURI,this.localURI,getUsername(),getPassword());
-            Map <String,String>map = PropertyUtil.getProperties(this);
+            TopicConnection result = new StompJmsConnection(this.brokerURI, this.localURI, getUsername(), getPassword());
+            Map<String, String> map = PropertyUtil.getProperties(this);
             PropertyUtil.setProperties(result, map);
             return result;
         } catch (Exception e) {
@@ -111,7 +110,7 @@ TopicConnectionFactory {
      */
     public TopicConnection createTopicConnection(String userName, String password) throws JMSException {
         try {
-            TopicConnection result = new StompJmsConnection(this.brokerURI,this.localURI,userName,password);
+            TopicConnection result = new StompJmsConnection(this.brokerURI, this.localURI, userName, password);
             PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
             return result;
         } catch (Exception e) {
@@ -126,7 +125,7 @@ TopicConnectionFactory {
      */
     public Connection createConnection() throws JMSException {
         try {
-            Connection result = new StompJmsConnection(this.brokerURI,this.localURI,getUsername(),getPassword());
+            Connection result = new StompJmsConnection(this.brokerURI, this.localURI, getUsername(), getPassword());
             PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
             return result;
         } catch (Exception e) {
@@ -143,7 +142,7 @@ TopicConnectionFactory {
      */
     public Connection createConnection(String userName, String password) throws JMSException {
         try {
-            Connection result = new StompJmsConnection(this.brokerURI,this.localURI,getUsername(),getPassword());
+            Connection result = new StompJmsConnection(this.brokerURI, this.localURI, getUsername(), getPassword());
             PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
             return result;
         } catch (Exception e) {
@@ -158,7 +157,7 @@ TopicConnectionFactory {
      */
     public QueueConnection createQueueConnection() throws JMSException {
         try {
-            QueueConnection result = new StompJmsConnection(this.brokerURI,this.localURI,getUsername(),getPassword());
+            QueueConnection result = new StompJmsConnection(this.brokerURI, this.localURI, getUsername(), getPassword());
             PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
             return result;
         } catch (Exception e) {
@@ -175,14 +174,13 @@ TopicConnectionFactory {
      */
     public QueueConnection createQueueConnection(String userName, String password) throws JMSException {
         try {
-            QueueConnection result = new StompJmsConnection(this.brokerURI,this.localURI,userName,password);
+            QueueConnection result = new StompJmsConnection(this.brokerURI, this.localURI, userName, password);
             PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
             return result;
         } catch (Exception e) {
             throw StompJmsExceptionSupport.create(e);
         }
     }
-
 
 
     /**
@@ -193,14 +191,12 @@ TopicConnectionFactory {
     }
 
 
-
     /**
      * @param brokerURI the brokerURI to set
      */
     public void setBrokerURI(String brokerURI) {
         this.brokerURI = createURI(brokerURI);
     }
-
 
 
     /**
@@ -211,25 +207,23 @@ TopicConnectionFactory {
     }
 
 
-
     /**
      * @param localURI the localURI to set
      */
     public void setLocalURI(String localURI) {
         this.localURI = createURI(localURI);
     }
-    
+
     private URI createURI(String name) {
-        if (name != null && name.trim().isEmpty()==false) {
-        try {
-            return new URI(name);
-        } catch (URISyntaxException e) {
-            throw (IllegalArgumentException)new IllegalArgumentException("Invalid broker URI: " + name).initCause(e);
-        }
+        if (name != null && name.trim().isEmpty() == false) {
+            try {
+                return new URI(name);
+            } catch (URISyntaxException e) {
+                throw (IllegalArgumentException) new IllegalArgumentException("Invalid broker URI: " + name).initCause(e);
+            }
         }
         return null;
     }
-
 
 
     /**
@@ -240,7 +234,6 @@ TopicConnectionFactory {
     }
 
 
-
     /**
      * @param username the username to set
      */
@@ -249,14 +242,12 @@ TopicConnectionFactory {
     }
 
 
-
     /**
      * @return the password
      */
     public String getPassword() {
         return this.password;
     }
-
 
 
     /**

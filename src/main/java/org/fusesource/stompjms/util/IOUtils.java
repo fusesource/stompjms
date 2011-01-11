@@ -17,25 +17,21 @@
 package org.fusesource.stompjms.util;
 
 import org.fusesource.hawtbuf.*;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+
 /**
  * Utilities for ByteBuffers
- * 
  */
 public class IOUtils {
     /**
      * Create an InputStream to read a ByteBuffer
-     * 
+     *
      * @param buf
      * @return the InputStream
      */
@@ -58,7 +54,7 @@ public class IOUtils {
 
     /**
      * Create an OutputStream for a ByteBuffer
-     * 
+     *
      * @param buf
      * @return
      */
@@ -76,7 +72,7 @@ public class IOUtils {
 
     /**
      * Create a Buffer from an Object
-     * 
+     *
      * @param object
      * @return
      * @throws Exception
@@ -142,7 +138,7 @@ public class IOUtils {
 
     /**
      * Create an Object from a Buffer
-     * 
+     *
      * @param buffer
      * @return the Object
      * @throws IOException
@@ -163,10 +159,10 @@ public class IOUtils {
         return null;
     }
 
-   
+
     /**
      * Compress the buffer
-     * 
+     *
      * @param buffer
      * @return compressed Buffer
      * @throws IOException
@@ -186,7 +182,7 @@ public class IOUtils {
 
     /**
      * Inflate a compressed buffer
-     * 
+     *
      * @param buffer
      * @return inflated buffer
      * @throws IOException

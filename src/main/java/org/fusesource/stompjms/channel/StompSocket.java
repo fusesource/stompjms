@@ -36,7 +36,7 @@ public class StompSocket implements Runnable {
     private static final int MAX_DATA_LENGTH = 1024 * 1024 * 32;
     private static final int MAX_HEADER_LENGTH = 1024 * 10;
     private static final int MAX_HEADERS = 1024;
-    
+
     private SocketFactory socketFactory;
     private final URI remoteLocation;
     private final URI localLocation;
@@ -59,7 +59,7 @@ public class StompSocket implements Runnable {
 
     /**
      * Connect to a Broker
-     * 
+     *
      * @param factory
      * @param localLocation
      * @param remoteLocation
@@ -86,7 +86,7 @@ public class StompSocket implements Runnable {
     public void setStompFrameListener(StompFrameListener l) {
         this.stompListener = l;
     }
-    
+
     /**
      * @return true if this Socket is started
      */
@@ -115,16 +115,16 @@ public class StompSocket implements Runnable {
         return stopped.get();
     }
 
-    
+
     /**
      * A one way asynchronous send
-     * 
+     *
      * @param frame
      * @throws IOException
      */
     public synchronized void sendFrame(StompFrame frame) throws IOException {
         Buffer b = frame.toBuffer();
-        String str = new String(b.getData(),b.getOffset(),b.getLength(),"UTF-8");
+        String str = new String(b.getData(), b.getOffset(), b.getLength(), "UTF-8");
         dataOut.write(b.getData(), b.getOffset(), b.getLength());
         dataOut.flush();
     }
@@ -136,7 +136,7 @@ public class StompSocket implements Runnable {
     public String toString() {
         return ""
                 + (socket.isConnected() ? "tcp://" + socket.getInetAddress() + ":" + socket.getPort()
-                        : (localLocation != null ? localLocation : remoteLocation));
+                : (localLocation != null ? localLocation : remoteLocation));
     }
 
     /**
@@ -151,7 +151,7 @@ public class StompSocket implements Runnable {
             onException(e);
         } catch (Throwable e) {
             e.printStackTrace();
-            IOException ioe = new IOException("Unexpected error occurred: "+ e.getMessage(),e);
+            IOException ioe = new IOException("Unexpected error occurred: " + e.getMessage(), e);
             onException(ioe);
         }
     }
@@ -177,7 +177,7 @@ public class StompSocket implements Runnable {
 
     /**
      * Sets the buffer size to use on the socket
-     * 
+     *
      * @param socketBufferSize
      */
     public void setSocketBufferSize(int socketBufferSize) {
@@ -190,7 +190,7 @@ public class StompSocket implements Runnable {
 
     /**
      * Sets the socket timeout
-     * 
+     *
      * @param soTimeout
      */
     public void setSoTimeout(int soTimeout) {
@@ -203,7 +203,7 @@ public class StompSocket implements Runnable {
 
     /**
      * Sets the timeout used to connect to the socket
-     * 
+     *
      * @param connectionTimeout
      */
     public void setConnectionTimeout(int connectionTimeout) {
@@ -216,7 +216,7 @@ public class StompSocket implements Runnable {
 
     /**
      * Enable/disable TCP KEEP_ALIVE mode
-     * 
+     *
      * @param keepAlive
      */
     public void setKeepAlive(Boolean keepAlive) {
@@ -229,7 +229,7 @@ public class StompSocket implements Runnable {
 
     /**
      * Enable/disable the TCP_NODELAY option on the socket
-     * 
+     *
      * @param tcpNoDelay
      */
     public void setTcpNoDelay(Boolean tcpNoDelay) {
@@ -244,8 +244,7 @@ public class StompSocket implements Runnable {
     }
 
     /**
-     * @param ioBufferSize
-     *            the ioBufferSize to set
+     * @param ioBufferSize the ioBufferSize to set
      */
     public void setIoBufferSize(int ioBufferSize) {
         this.ioBufferSize = ioBufferSize;
@@ -276,40 +275,40 @@ public class StompSocket implements Runnable {
 
     /**
      * Configures the socket for use
-     * 
+     *
      * @param userName
      * @param password
      * @param clientId
-     * @throws IOException 
+     * @throws IOException
      */
 
     public void connect(String userName, String password, String clientId) throws IOException {
-            if (connected.get()) {
-                String host = resolveHostName(remoteLocation.getHost());
-                // Now send the connect Frame
-                HashMap<String, String> headers = new HashMap<String, String>();
-                headers.put("accept-version", "1.1");
-                headers.put("host", host);
-                if (userName != null && userName.isEmpty() == false) {
-                    headers.put("login", userName);
-                    headers.put("passcode", password);
-                }
-                if (clientId != null && clientId.isEmpty() == false) {
-                    headers.put("client-id", clientId);
-                }
-                StompFrame frame = new StompFrame("CONNECT", headers);
-                sendFrame(frame);
+        if (connected.get()) {
+            String host = resolveHostName(remoteLocation.getHost());
+            // Now send the connect Frame
+            HashMap<String, String> headers = new HashMap<String, String>();
+            headers.put("accept-version", "1.1");
+            headers.put("host", host);
+            if (userName != null && userName.isEmpty() == false) {
+                headers.put("login", userName);
+                headers.put("passcode", password);
+            }
+            if (clientId != null && clientId.isEmpty() == false) {
+                headers.put("client-id", clientId);
+            }
+            StompFrame frame = new StompFrame("CONNECT", headers);
+            sendFrame(frame);
 
-                StompFrame connect = readFrame(this.dataIn);
-                if (!connect.getAction().equals(Stomp.Responses.CONNECTED)) {
-                    throw new IOException("Not connected: " + connect.getBody());
-                }
-            }else {
-                throw new IOException("Not initialized");
-       
+            StompFrame connect = readFrame(this.dataIn);
+            if (!connect.getAction().equals(Stomp.Responses.CONNECTED)) {
+                throw new IOException("Not connected: " + connect.getBody());
+            }
+        } else {
+            throw new IOException("Not initialized");
+
         }
     }
-    
+
     public void initialize() throws IOException {
 
         if (socket == null) {
@@ -365,7 +364,7 @@ public class StompSocket implements Runnable {
             this.connected.set(true);
         }
     }
-    
+
     public void close() throws IOException {
         if (started.get()) {
             StompFrame frame = new StompFrame();
@@ -378,7 +377,7 @@ public class StompSocket implements Runnable {
 
     /**
      * Start receiving messages
-     * 
+     *
      * @throws IOException
      */
     public void start() throws IOException {
@@ -399,7 +398,7 @@ public class StompSocket implements Runnable {
 
     /**
      * stop and close the socket
-     * 
+     *
      * @throws IOException
      */
 

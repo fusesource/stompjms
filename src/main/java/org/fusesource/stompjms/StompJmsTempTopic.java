@@ -21,21 +21,21 @@ import javax.jms.TemporaryTopic;
 
 /**
  * Temporary Topic
- *
  */
-public class StompJmsTempTopic  extends StompJmsDestination implements TemporaryTopic{
-       
+public class StompJmsTempTopic extends StompJmsDestination implements TemporaryTopic {
+
     /**
      * Constructor
+     *
      * @param name
      */
-    public StompJmsTempTopic(String name){
+    public StompJmsTempTopic(String name) {
         super(name);
-        this.topic=true;
+        this.topic = true;
     }
-    
+
     protected String getType() {
-         return StompJmsDestination.TEMP_TOPIC_QUALIFED_PREFIX;
+        return StompJmsDestination.TEMP_TOPIC_QUALIFED_PREFIX;
     }
 
     /**
@@ -43,7 +43,7 @@ public class StompJmsTempTopic  extends StompJmsDestination implements Temporary
      */
     public void delete() {
         // TODO Auto-generated method stub
-        
+
     }
 
     /**
@@ -51,6 +51,6 @@ public class StompJmsTempTopic  extends StompJmsDestination implements Temporary
      * @see javax.jms.Topic#getTopicName()
      */
     public String getTopicName() {
-       return getPhysicalName();
+        return getPhysicalName();
     }
 }

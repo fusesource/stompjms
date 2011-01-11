@@ -16,19 +16,15 @@
  */
 package org.fusesource.stompjms.jndi;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.naming.*;
+import javax.naming.spi.ObjectFactory;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
-import javax.naming.Context;
-import javax.naming.Name;
-import javax.naming.NamingException;
-import javax.naming.RefAddr;
-import javax.naming.Reference;
-import javax.naming.StringRefAddr;
-import javax.naming.spi.ObjectFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 /**
@@ -40,18 +36,13 @@ public class JNDIReferenceFactory implements ObjectFactory {
     /**
      * This will be called by a JNDIprovider when a Reference is retrieved from a JNDI store - and generates the orignal
      * instance
-     * 
-     * @param object
-     *            the Reference object
-     * @param name
-     *            the JNDI name
-     * @param nameCtx
-     *            the context
-     * @param environment
-     *            the environment settings used by JNDI
+     *
+     * @param object      the Reference object
+     * @param name        the JNDI name
+     * @param nameCtx     the context
+     * @param environment the environment settings used by JNDI
      * @return the instance built from the Reference object
-     * @throws Exception
-     *             if building the instance from Reference fails (usually class not found)
+     * @throws Exception if building the instance from Reference fails (usually class not found)
      */
     public Object getObjectInstance(Object object, Name name, Context nameCtx, Hashtable<?, ?> environment)
             throws Exception {
@@ -81,7 +72,7 @@ public class JNDIReferenceFactory implements ObjectFactory {
 
     /**
      * Create a Reference instance from a JNDIStorable object
-     * 
+     *
      * @param instanceClassName
      * @param po
      * @return Reference
@@ -107,7 +98,7 @@ public class JNDIReferenceFactory implements ObjectFactory {
 
     /**
      * Retrieve the class loader for a named class
-     * 
+     *
      * @param thisObj
      * @param className
      * @return the class

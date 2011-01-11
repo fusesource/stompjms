@@ -17,19 +17,16 @@
 package org.fusesource.stompjms;
 
 import javax.jms.IllegalStateException;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.Topic;
-import javax.jms.TopicPublisher;
+import javax.jms.*;
 
 /**
  * Implementation of a TopicPublisher
- *
  */
 public class StompJmsTopicPublisher extends StompJmsMessageProducer implements TopicPublisher {
 
     /**
      * Constructor
+     *
      * @param s
      * @param destination
      */
@@ -39,7 +36,7 @@ public class StompJmsTopicPublisher extends StompJmsMessageProducer implements T
 
     /**
      * @return the Topic
-     * @throws IllegalStateException 
+     * @throws IllegalStateException
      * @see javax.jms.TopicPublisher#getTopic()
      */
     public Topic getTopic() throws IllegalStateException {
@@ -54,7 +51,7 @@ public class StompJmsTopicPublisher extends StompJmsMessageProducer implements T
      */
     public void publish(Message message) throws JMSException {
         super.send(message);
-        
+
     }
 
     /**
@@ -64,8 +61,8 @@ public class StompJmsTopicPublisher extends StompJmsMessageProducer implements T
      * @see javax.jms.TopicPublisher#publish(javax.jms.Topic, javax.jms.Message)
      */
     public void publish(Topic topic, Message message) throws JMSException {
-        super.send(topic,message);
-        
+        super.send(topic, message);
+
     }
 
     /**
@@ -77,8 +74,8 @@ public class StompJmsTopicPublisher extends StompJmsMessageProducer implements T
      * @see javax.jms.TopicPublisher#publish(javax.jms.Message, int, int, long)
      */
     public void publish(Message message, int deliveryMode, int priority, long timeToLive) throws JMSException {
-       super.send(message, deliveryMode, priority, timeToLive);
-        
+        super.send(message, deliveryMode, priority, timeToLive);
+
     }
 
     /**
@@ -93,8 +90,8 @@ public class StompJmsTopicPublisher extends StompJmsMessageProducer implements T
     public void publish(Topic topic, Message message, int deliveryMode, int priority, long timeToLive)
             throws JMSException {
         super.send(topic, message, deliveryMode, priority, timeToLive);
-        
+
     }
 
-    
+
 }

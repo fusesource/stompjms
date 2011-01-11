@@ -31,17 +31,17 @@ import java.io.Serializable;
  * single reference to an object. Only <CODE>Serializable</CODE> Java objects
  * can be used.
  * <p/>
- * <P>
+ * <p/>
  * If a collection of Java objects must be sent, one of the
  * <CODE>Collection</CODE> classes provided since JDK 1.2 can be used.
  * <p/>
- * <P>
+ * <p/>
  * When a client receives an <CODE>ObjectMessage</CODE>, it is in read-only
  * mode. If a client attempts to write to the message at this point, a
  * <CODE>MessageNotWriteableException</CODE> is thrown. If
  * <CODE>clearBody</CODE> is called, the message can now be both read from and
  * written to.
- * 
+ *
  * @openwire:marshaller code="26"
  * @see javax.jms.Session#createObjectMessage()
  * @see javax.jms.Session#createObjectMessage(Serializable)
@@ -57,8 +57,8 @@ public class StompJmsObjectMessage extends StompJmsMessage implements ObjectMess
     public JmsMsgType getMsgType() {
         return JmsMsgType.OBJECT;
     }
-    
-    public StompJmsMessage copy() throws JMSException{
+
+    public StompJmsMessage copy() throws JMSException {
         StompJmsObjectMessage copy = new StompJmsObjectMessage();
         copy(copy);
         return copy;
@@ -70,14 +70,13 @@ public class StompJmsObjectMessage extends StompJmsMessage implements ObjectMess
         copy.object = null;
     }
 
-    public void storeContent() throws JMSException{
+    public void storeContent() throws JMSException {
         Buffer buffer = getContent();
         if (buffer == null && object != null) {
             setContent(StompTranslator.writeBufferFromObject(object));
         }
     }
 
-    
 
     public String getJMSXMimeType() {
         return "jms/object-message";
@@ -87,14 +86,13 @@ public class StompJmsObjectMessage extends StompJmsMessage implements ObjectMess
      * Clears out the message body. Clearing a message's body does not clear its
      * header values or property entries.
      * <p/>
-     * <P>
+     * <p/>
      * If this message body was read-only, calling this method leaves the
      * message body in the same state as an empty body in a newly created
      * message.
-     * 
-     * @throws JMSException
-     *             if the JMS provider fails to clear the message body due to
-     *             some internal error.
+     *
+     * @throws JMSException if the JMS provider fails to clear the message body due to
+     *                      some internal error.
      */
 
     public void clearBody() throws JMSException {
@@ -108,16 +106,14 @@ public class StompJmsObjectMessage extends StompJmsMessage implements ObjectMess
      * of the object at the time <CODE>setObject()</CODE> is called; subsequent
      * modifications of the object will have no effect on the
      * <CODE>ObjectMessage</CODE> body.
-     * 
-     * @param newObject
-     *            the message's data
-     * @throws JMSException
-     *             if the JMS provider fails to set the object due to some
-     *             internal error.
+     *
+     * @param newObject the message's data
+     * @throws JMSException if the JMS provider fails to set the object due to some
+     *                      internal error.
      * @throws javax.jms.MessageFormatException
-     *             if object serialization fails.
+     *                      if object serialization fails.
      * @throws javax.jms.MessageNotWriteableException
-     *             if the message is in read-only mode.
+     *                      if the message is in read-only mode.
      */
 
     public void setObject(Serializable newObject) throws JMSException {
@@ -130,7 +126,7 @@ public class StompJmsObjectMessage extends StompJmsMessage implements ObjectMess
     /**
      * Gets the serializable object containing this message's data. The default
      * value is null.
-     * 
+     *
      * @return the serializable object containing this message's data
      * @throws JMSException
      */
@@ -142,7 +138,7 @@ public class StompJmsObjectMessage extends StompJmsMessage implements ObjectMess
         return this.object;
     }
 
-    
+
     public String toString() {
         try {
             getObject();

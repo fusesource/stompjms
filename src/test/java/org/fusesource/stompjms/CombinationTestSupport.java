@@ -16,33 +16,25 @@
  */
 package org.fusesource.stompjms;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import junit.framework.Test;
 import junit.framework.TestSuite;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.*;
 
 /**
  * Poor mans way of getting JUnit to run a test case through a few different
  * combinations of options. Usage: If you have a test case called testFoo what
  * you want to run through a few combinations, of of values for the attributes
  * age and color, you would something like: <code>
- *    public void initCombosForTestFoo() {    
- *        addCombinationValues( "age", new Object[]{ new Integer(21), new Integer(30) } );
- *        addCombinationValues( "color", new Object[]{"blue", "green"} );
- *    }
+ * public void initCombosForTestFoo() {
+ * addCombinationValues( "age", new Object[]{ new Integer(21), new Integer(30) } );
+ * addCombinationValues( "color", new Object[]{"blue", "green"} );
+ * }
  * </code>
  * The testFoo test case would be run for each possible combination of age and
  * color that you setup in the initCombosForTestFoo method. Before each
@@ -50,11 +42,11 @@ import org.slf4j.LoggerFactory;
  * of the values defined. This is done before the normal setUp method is called.
  * If you want the test combinations to show up as separate test runs in the
  * JUnit reports, add a suite method to your test case similar to: <code>
- *     public static Test suite() {
- *         return suite(FooTest.class);
- *     }
+ * public static Test suite() {
+ * return suite(FooTest.class);
+ * }
  * </code>
- * 
+ *
  * @version $Revision: 1.5 $
  */
 public abstract class CombinationTestSupport extends AutoFailTestSupport {
@@ -101,7 +93,7 @@ public abstract class CombinationTestSupport extends AutoFailTestSupport {
     private void setOptions(Map options) throws NoSuchFieldException, IllegalAccessException {
         this.options = options;
         for (Iterator iterator = options.keySet().iterator(); iterator.hasNext();) {
-            String attribute = (String)iterator.next();
+            String attribute = (String) iterator.next();
             Object value = options.get(attribute);
             try {
                 Field field = getClass().getField(attribute);
@@ -114,16 +106,16 @@ public abstract class CombinationTestSupport extends AutoFailTestSupport {
 
     private CombinationTestSupport[] getCombinations() {
         try {
-            Method method = getClass().getMethod("initCombos", (Class[])null);
-            method.invoke(this, (Object[])null);
+            Method method = getClass().getMethod("initCombos", (Class[]) null);
+            method.invoke(this, (Object[]) null);
         } catch (Throwable e) {
         }
 
         String name = getName().split(" ")[0];
         String comboSetupMethodName = "initCombosFor" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
         try {
-            Method method = getClass().getMethod(comboSetupMethodName, (Class[])null);
-            method.invoke(this, (Object[])null);
+            Method method = getClass().getMethod(comboSetupMethodName, (Class[]) null);
+            method.invoke(this, (Object[]) null);
         } catch (Throwable e) {
         }
 
@@ -133,13 +125,13 @@ public abstract class CombinationTestSupport extends AutoFailTestSupport {
 
             if (expandedOptions.isEmpty()) {
                 combosEvaluated = true;
-                return new CombinationTestSupport[] {this};
+                return new CombinationTestSupport[]{this};
             } else {
 
                 ArrayList<CombinationTestSupport> result = new ArrayList<CombinationTestSupport>();
                 // Run the test case for each possible combination
                 for (Iterator<HashMap<String, Object>> iter = expandedOptions.iterator(); iter.hasNext();) {
-                    CombinationTestSupport combo = (CombinationTestSupport)TestSuite.createTest(getClass(), name);
+                    CombinationTestSupport combo = (CombinationTestSupport) TestSuite.createTest(getClass(), name);
                     combo.combosEvaluated = true;
                     combo.setOptions(iter.next());
                     result.add(combo);
@@ -151,7 +143,7 @@ public abstract class CombinationTestSupport extends AutoFailTestSupport {
             }
         } catch (Throwable e) {
             combosEvaluated = true;
-            return new CombinationTestSupport[] {this};
+            return new CombinationTestSupport[]{this};
         }
 
     }
@@ -195,7 +187,7 @@ public abstract class CombinationTestSupport extends AutoFailTestSupport {
             names.add(name);
             Test test = TestSuite.createTest(clazz, name);
             if (test instanceof CombinationTestSupport) {
-                CombinationTestSupport[] combinations = ((CombinationTestSupport)test).getCombinations();
+                CombinationTestSupport[] combinations = ((CombinationTestSupport) test).getCombinations();
                 for (int j = 0; j < combinations.length; j++) {
                     suite.addTest(combinations[j]);
                 }
@@ -218,9 +210,9 @@ public abstract class CombinationTestSupport extends AutoFailTestSupport {
     }
 
     public String getName() {
-    	return getName(false);
+        return getName(false);
     }
-    
+
     public String getName(boolean original) {
         if (options != null && !original) {
             return super.getName() + " " + options;

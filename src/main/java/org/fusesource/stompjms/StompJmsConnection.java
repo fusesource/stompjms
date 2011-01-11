@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Implementation of a JMS Connection
- * 
  */
 public class StompJmsConnection implements Connection, TopicConnection, QueueConnection {
 
@@ -45,7 +44,6 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     private AtomicBoolean started = new AtomicBoolean();
 
     /**
-     * 
      * @param brokerURI
      * @param localURI
      * @param userName
@@ -98,7 +96,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
      *      java.lang.String, javax.jms.ServerSessionPool, int)
      */
     public ConnectionConsumer createConnectionConsumer(Destination destination, String messageSelector,
-            ServerSessionPool sessionPool, int maxMessages) throws JMSException {
+                                                       ServerSessionPool sessionPool, int maxMessages) throws JMSException {
         checkClosed();
         connect();
         throw new JMSException("Not supported");
@@ -117,7 +115,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
      *      int)
      */
     public ConnectionConsumer createDurableConnectionConsumer(Topic topic, String subscriptionName,
-            String messageSelector, ServerSessionPool sessionPool, int maxMessages) throws JMSException {
+                                                              String messageSelector, ServerSessionPool sessionPool, int maxMessages) throws JMSException {
         checkClosed();
         connect();
         throw new JMSException("Not supported");
@@ -135,13 +133,14 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         connect();
         int ackMode = getSessionAcknowledgeMode(transacted, acknowledgeMode);
         StompChannel c = getChannel();
-        StompJmsSession result = new StompJmsSession(this,c, ackMode);
-        addSession(result,c);
+        StompJmsSession result = new StompJmsSession(this, c, ackMode);
+        addSession(result, c);
         if (started.get()) {
             result.start();
         }
         return result;
     }
+
     /**
      * @return clientId
      * @see javax.jms.Connection#getClientID()
@@ -198,13 +197,13 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         checkClosed();
         connect();
         if (this.started.compareAndSet(false, true)) {
-        try {
-            for (StompJmsSession s: this.sessions){
-                s.start();
+            try {
+                for (StompJmsSession s : this.sessions) {
+                    s.start();
+                }
+            } catch (Exception e) {
+                throw StompJmsExceptionSupport.create(e);
             }
-        } catch (Exception e) {
-            throw StompJmsExceptionSupport.create(e);
-        }
         }
     }
 
@@ -217,13 +216,13 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         connect();
         if (this.started.compareAndSet(true, false)) {
             try {
-                for (StompJmsSession s: this.sessions){
+                for (StompJmsSession s : this.sessions) {
                     s.stop();
                 }
             } catch (Exception e) {
                 throw StompJmsExceptionSupport.create(e);
             }
-            }
+        }
     }
 
     /**
@@ -237,7 +236,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
      *      java.lang.String, javax.jms.ServerSessionPool, int)
      */
     public ConnectionConsumer createConnectionConsumer(Topic topic, String messageSelector,
-            ServerSessionPool sessionPool, int maxMessages) throws JMSException {
+                                                       ServerSessionPool sessionPool, int maxMessages) throws JMSException {
         checkClosed();
         connect();
         return null;
@@ -255,8 +254,8 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         connect();
         int ackMode = getSessionAcknowledgeMode(transacted, acknowledgeMode);
         StompChannel c = getChannel();
-        StompJmsTopicSession result = new StompJmsTopicSession(this,c, ackMode);
-        addSession(result,c);
+        StompJmsTopicSession result = new StompJmsTopicSession(this, c, ackMode);
+        addSession(result, c);
         if (started.get()) {
             result.start();
         }
@@ -274,7 +273,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
      *      java.lang.String, javax.jms.ServerSessionPool, int)
      */
     public ConnectionConsumer createConnectionConsumer(Queue queue, String messageSelector,
-            ServerSessionPool sessionPool, int maxMessages) throws JMSException {
+                                                       ServerSessionPool sessionPool, int maxMessages) throws JMSException {
         checkClosed();
         connect();
         return null;
@@ -292,8 +291,8 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         connect();
         int ackMode = getSessionAcknowledgeMode(transacted, acknowledgeMode);
         StompChannel c = getChannel();
-        StompJmsQueueSession result = new StompJmsQueueSession(this,c, ackMode);
-        addSession(result,c);
+        StompJmsQueueSession result = new StompJmsQueueSession(this, c, ackMode);
+        addSession(result, c);
         if (started.get()) {
             result.start();
         }
@@ -356,7 +355,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         }
     }
 
-    protected void addSession(StompJmsSession s,StompChannel c) {
+    protected void addSession(StompJmsSession s, StompChannel c) {
         this.sessions.add(s);
         this.channelsMap.put(s, c);
     }
@@ -371,7 +370,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         if (connected.compareAndSet(false, true)) {
             this.mainChannel.connect();
             this.mainChannel.start();
-            for (StompChannel sc: this.channelsMap.values()){
+            for (StompChannel sc : this.channelsMap.values()) {
                 sc.connect();
                 sc.start();
             }

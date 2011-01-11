@@ -151,7 +151,7 @@ public class StompChannel implements StompFrameListener {
         }
     }
 
-    public void subscribe(StompJmsDestination destination, String consumerId, String selector, boolean clientAck) throws JMSException {
+    public void subscribe(StompJmsDestination destination, String consumerId, String selector, boolean clientAck, boolean persistent) throws JMSException {
         StompFrame frame = new StompFrame();
         frame.setAction(Stomp.Commands.SUBSCRIBE);
         frame.getHeaders().put(Stomp.Headers.Subscribe.DESTINATION, destination.toString());
@@ -164,6 +164,9 @@ public class StompChannel implements StompFrameListener {
         } else {
             frame.getHeaders().put(Stomp.Headers.Subscribe.ACK_MODE, Stomp.Headers.Subscribe.AckModeValues.AUTO);
         }
+        if (persistent) {
+            frame.getHeaders().put(Stomp.Headers.Subscribe.PERSISTENT, "true");
+        }
         try {
             sendRequest(consumerId, frame);
         } catch (IOException e) {
@@ -171,11 +174,19 @@ public class StompChannel implements StompFrameListener {
         }
     }
 
-    public void unsubscribe(StompJmsDestination destination, String consumerId) throws JMSException {
+    public void unsubscribe(StompJmsDestination destination, String consumerId, boolean persistent, boolean browser) throws JMSException {
         StompFrame frame = new StompFrame();
         frame.setAction(Stomp.Commands.UNSUBSCRIBE);
-        frame.getHeaders().put(Stomp.Headers.Unsubscribe.DESTINATION, destination.toString());
+        if (destination != null) {
+            frame.getHeaders().put(Stomp.Headers.Unsubscribe.DESTINATION, destination.toString());
+        }
         frame.getHeaders().put(Stomp.Headers.Unsubscribe.ID, consumerId);
+        if (persistent) {
+            frame.getHeaders().put(Stomp.Headers.Subscribe.PERSISTENT, "true");
+        }
+        if (browser) {
+            frame.getHeaders().put(Stomp.Headers.Subscribe.BROWSER, "true");
+        }
         try {
             sendFrame(frame);
         } catch (IOException e) {

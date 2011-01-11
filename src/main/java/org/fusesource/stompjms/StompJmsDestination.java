@@ -26,37 +26,35 @@ import java.io.ObjectOutput;
 import java.util.Map;
 
 
-
 /**
  * Jms Destination
- * 
  */
 public abstract class StompJmsDestination extends JNDIStorable implements Externalizable, javax.jms.Destination,
         Comparable<StompJmsDestination> {
     public static final String QUEUE_QUALIFIED_PREFIX = "/queue/";
-    public static final String TOPIC_QUALIFIED_PREFIX =  "/topic/";
+    public static final String TOPIC_QUALIFIED_PREFIX = "/topic/";
     public static final String TEMP_QUEUE_QUALIFED_PREFIX = "/temp-queue/";
-    public static final String TEMP_TOPIC_QUALIFED_PREFIX =  "/temp-topic/";
+    public static final String TEMP_TOPIC_QUALIFED_PREFIX = "/temp-topic/";
     protected transient String physicalName;
     protected transient boolean topic;
     protected transient boolean temporary;
     protected transient int hashValue;
     protected transient String toString;
 
-    
+
     protected StompJmsDestination(String name) {
         setPhysicalName(name);
     }
-    
+
     public String toString() {
-        if (toString==null) {
+        if (toString == null) {
             toString = getType() + getPhysicalName();
         }
         return toString;
     }
-    
+
     protected abstract String getType();
-    
+
 
     /**
      * @return name of destination
@@ -64,9 +62,9 @@ public abstract class StompJmsDestination extends JNDIStorable implements Extern
     public String getPhysicalName() {
         return this.physicalName;
     }
-    
+
     private void setPhysicalName(String physicalName) {
-        this.physicalName=physicalName;
+        this.physicalName = physicalName;
     }
 
     /**
@@ -94,29 +92,27 @@ public abstract class StompJmsDestination extends JNDIStorable implements Extern
      * @param props
      */
     @Override
-    protected void buildFromProperties(Map<String,String> props) {
-       
+    protected void buildFromProperties(Map<String, String> props) {
+
         setPhysicalName(getProperty(props, "name", ""));
-        Boolean bool = Boolean.valueOf(getProperty(props,"topic", Boolean.TRUE.toString()));
-        this.topic=bool.booleanValue();
-        bool = Boolean.valueOf(getProperty(props,"temporary", Boolean.FALSE.toString()));
-        this.temporary=bool.booleanValue();
+        Boolean bool = Boolean.valueOf(getProperty(props, "topic", Boolean.TRUE.toString()));
+        this.topic = bool.booleanValue();
+        bool = Boolean.valueOf(getProperty(props, "temporary", Boolean.FALSE.toString()));
+        this.temporary = bool.booleanValue();
     }
 
     /**
      * @param props
      */
     @Override
-    protected void populateProperties(Map<String,String> props) {
+    protected void populateProperties(Map<String, String> props) {
         props.put("name", getPhysicalName());
         props.put("topic", Boolean.toString(isTopic()));
         props.put("temporary", Boolean.toString(isTemporary()));
     }
 
     /**
-     * 
-     * @param other
-     *            the Object to be compared.
+     * @param other the Object to be compared.
      * @return a negative integer, zero, or a positive integer as this object is less than, equal to, or greater than
      *         the specified object.
      * @see java.lang.Comparable#compareTo(java.lang.Object)
@@ -130,7 +126,7 @@ public abstract class StompJmsDestination extends JNDIStorable implements Extern
         }
         return -1;
     }
-    
+
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -139,7 +135,7 @@ public abstract class StompJmsDestination extends JNDIStorable implements Extern
             return false;
         }
 
-        StompJmsDestination d = (StompJmsDestination)o;
+        StompJmsDestination d = (StompJmsDestination) o;
         return getPhysicalName().equals(d.getPhysicalName());
     }
 
@@ -149,7 +145,7 @@ public abstract class StompJmsDestination extends JNDIStorable implements Extern
         }
         return hashValue;
     }
-    
+
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeUTF(getPhysicalName());
         out.writeBoolean(isTopic());
@@ -158,10 +154,10 @@ public abstract class StompJmsDestination extends JNDIStorable implements Extern
 
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         setPhysicalName(in.readUTF());
-        this.topic=in.readBoolean();
-        this.temporary=in.readBoolean();
+        this.topic = in.readBoolean();
+        this.temporary = in.readBoolean();
     }
-    
+
     public static StompJmsDestination createDestination(String name) throws InvalidDestinationException {
 
         if (name.startsWith(QUEUE_QUALIFIED_PREFIX)) {
@@ -172,8 +168,8 @@ public abstract class StompJmsDestination extends JNDIStorable implements Extern
             return new StompJmsTempQueue(name.substring(TEMP_QUEUE_QUALIFED_PREFIX.length()));
         } else if (name.startsWith(TEMP_TOPIC_QUALIFED_PREFIX)) {
             return new StompJmsTempTopic(name.substring(TEMP_TOPIC_QUALIFED_PREFIX.length()));
-        }else {
-           throw new InvalidDestinationException("Invalid Destination name: " + name);
+        } else {
+            throw new InvalidDestinationException("Invalid Destination name: " + name);
         }
 
     }

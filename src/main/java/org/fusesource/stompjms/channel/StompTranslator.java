@@ -37,11 +37,9 @@ import java.util.Map;
 /**
  * Frame translator implementation that uses XStream to convert messages to and
  * from XML and JSON
- * 
  */
 public class StompTranslator {
 
-    
 
     public static StompJmsDestination getDestination(StompFrame frame) throws JMSException {
         final String destination = frame.getHeaders().remove(Stomp.Headers.Send.DESTINATION);
@@ -52,37 +50,37 @@ public class StompTranslator {
         final String destination = frame.getHeaders().remove(Stomp.Headers.Send.REPLY_TO);
         return StompJmsDestination.createDestination(destination);
     }
-    
-    public static Object readObjectFromString(String text){
+
+    public static Object readObjectFromString(String text) {
         HierarchicalStreamReader in = new JettisonMappedXmlDriver().createReader(new StringReader(text));
         XStream xs = new XStream();
         return xs.unmarshal(in);
     }
-    
-    public static Object readObjectFromBuffer(Buffer buffer){
+
+    public static Object readObjectFromBuffer(Buffer buffer) {
         BufferInputStream bufferIn = new BufferInputStream(buffer);
         HierarchicalStreamReader in = new JettisonMappedXmlDriver().createReader(bufferIn);
         XStream xs = new XStream();
         return xs.unmarshal(in);
     }
-    
-    public static String  writeStringFromObject(Object object){
+
+    public static String writeStringFromObject(Object object) {
         StringWriter buffer = new StringWriter();
-        HierarchicalStreamWriter out  = new JettisonMappedXmlDriver().createWriter(buffer); 
+        HierarchicalStreamWriter out = new JettisonMappedXmlDriver().createWriter(buffer);
         XStream xs = new XStream();
         xs.marshal(object, out);
         return buffer.toString();
     }
-    
-    public static Buffer writeBufferFromObject(Object object){
+
+    public static Buffer writeBufferFromObject(Object object) {
         DataByteArrayOutputStream buffer = new DataByteArrayOutputStream();
-        HierarchicalStreamWriter out  = new JettisonMappedXmlDriver().createWriter(buffer); 
+        HierarchicalStreamWriter out = new JettisonMappedXmlDriver().createWriter(buffer);
         XStream xs = new XStream();
         xs.marshal(object, out);
         return buffer.toBuffer();
     }
-    
-    public static StompFrame convert(StompJmsMessage message) throws JMSException{
+
+    public static StompFrame convert(StompJmsMessage message) throws JMSException {
         StompFrame command = new StompFrame();
         command.setAction(Stomp.Responses.MESSAGE);
         try {
@@ -96,11 +94,11 @@ public class StompTranslator {
         command.setContent(buffer);
         return command;
     }
-    
+
     public static StompJmsMessage convert(StompFrame frame) throws JMSException {
-        Map<String,String> headers = frame.getHeaders();
+        Map<String, String> headers = frame.getHeaders();
         StompJmsMessage result = null;
-        String type  = headers.get(Stomp.Headers.TRANSFORMATION);
+        String type = headers.get(Stomp.Headers.TRANSFORMATION);
         if (type != null) {
             switch (StompJmsMessage.JmsMsgType.valueOf(type)) {
                 case BYTES:
@@ -115,8 +113,8 @@ public class StompTranslator {
                 case STREAM:
                     result = new StompJmsStreamMessage();
                     break;
-                 case MESSAGE:
-                     result = new StompJmsMessage();
+                case MESSAGE:
+                    result = new StompJmsMessage();
                     break;
                 default:
                     result = new StompJmsTextMessage();
@@ -129,9 +127,8 @@ public class StompTranslator {
         result.setContent(frame.getContent());
         return result;
     }
-    
-    
-    
+
+
     public static void copyJmsHeaders(StompFrame from, StompJmsMessage to) throws JMSException {
         final Map<String, String> headers = new HashMap<String, String>(from.getHeaders());
         final String destination = headers.remove(Stomp.Headers.Send.DESTINATION);
@@ -180,16 +177,16 @@ public class StompTranslator {
 
         // Stomp specific headers
         headers.remove(Stomp.Headers.RECEIPT_REQUESTED);
-        
+
         o = headers.get(Stomp.Headers.Message.SUBSCRIPTION);
         if (o != null) {
             to.setConsumerId(o);
         }
-        
+
         //set the properties
         o = headers.remove(Stomp.Headers.Message.PROPERTIES);
         if (o != null) {
-            Map<String,Object> props = (Map<String, Object>) readObjectFromString(o);
+            Map<String, Object> props = (Map<String, Object>) readObjectFromString(o);
             to.setProperties(props);
         }
     }
@@ -210,7 +207,7 @@ public class StompTranslator {
         headers.remove(Stomp.Headers.RECEIPT_REQUESTED);
         return headers;
     }
-    
+
     public static void copyJmsHeaders(StompJmsMessage from, StompFrame to) throws IOException {
         final Map<String, String> headers = to.getHeaders();
         headers.put(Stomp.Headers.Message.DESTINATION, from.getJMSDestination().toString());
@@ -235,12 +232,12 @@ public class StompTranslator {
             headers.put(Stomp.Headers.Message.TYPE, from.getJMSType());
         }
 
-        headers.put(Stomp.Headers.CONTENT_TYPE,from.getJMSXMimeType());
+        headers.put(Stomp.Headers.CONTENT_TYPE, from.getJMSXMimeType());
 
-                
+
         // now lets add all the message headers
         final Map<String, Object> properties = from.getProperties();
-        if (properties != null && properties.isEmpty()==false) {
+        if (properties != null && properties.isEmpty() == false) {
             String str = writeStringFromObject(properties);
             headers.put(Stomp.Headers.Message.PROPERTIES, str);
         }
