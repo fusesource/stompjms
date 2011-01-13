@@ -8,6 +8,8 @@
 *.log
 
 #idea
+.idea
+.idea/*
 *.iml
 *.ipr
 *.iws
@@ -19,3 +21,9 @@
 *.settings
 *.project
 
+#maven
+target
+
+# OS Stuff
+*.swp
+.DS_Store
