@@ -385,9 +385,12 @@
           <groupId>org.apache.activemq</groupId>
           <artifactId>apollo-web</artifactId>
           <version>${apollo-version}</version>
+          <type>jar</type>
+          <classifier>slim</classifier>
           <scope>test</scope>
         </dependency>
         <dependency>
+          <!-- just to make sure it gets downloaded -->
           <groupId>org.apache.activemq</groupId>
           <artifactId>apollo-web</artifactId>
           <version>${apollo-version}</version>
@@ -395,12 +398,6 @@
           <classifier>slim</classifier>
           <scope>test</scope>
         </dependency>
-        <!--<dependency>-->
-          <!--<groupId>javax.servlet</groupId>-->
-          <!--<artifactId>servlet-api</artifactId>-->
-          <!--<version>${servlet-api-version}</version>-->
-          <!--<scope>test</scope>-->
-        <!--</dependency>-->
         <dependency>
             <groupId>org.eclipse.jetty.aggregate</groupId>
             <artifactId>jetty-all-server</artifactId>
