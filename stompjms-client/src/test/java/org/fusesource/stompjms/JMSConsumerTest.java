@@ -51,7 +51,8 @@ public class JMSConsumerTest extends JmsTestSupport {
 
     public void initCombosForTestMessageListenerWithConsumerCanBeStopped() {
         addCombinationValues("deliveryMode", new Object[]{Integer.valueOf(DeliveryMode.NON_PERSISTENT), Integer.valueOf(DeliveryMode.PERSISTENT)});
-        addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/", "/temp-queue/", "/temp-topic/"});
+//        addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/", "/temp-queue/", "/temp-topic/"});
+        addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/"});
     }
 
     public void testMessageListenerWithConsumerCanBeStopped() throws Exception {
@@ -100,7 +101,7 @@ public class JMSConsumerTest extends JmsTestSupport {
 
     public void initCombosForTestSendReceiveBytesMessage() {
         addCombinationValues("deliveryMode", new Object[]{Integer.valueOf(DeliveryMode.NON_PERSISTENT), Integer.valueOf(DeliveryMode.PERSISTENT)});
-        addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/", "/temp-queue/", "/temp-topic/"});
+        addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/"});
     }
 
 
@@ -129,7 +130,7 @@ public class JMSConsumerTest extends JmsTestSupport {
 
     public void initCombosForTestSetMessageListenerAfterStart() {
         addCombinationValues("deliveryMode", new Object[]{Integer.valueOf(DeliveryMode.NON_PERSISTENT), Integer.valueOf(DeliveryMode.PERSISTENT)});
-        addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/", "/temp-queue/", "/temp-topic/"});
+        addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/"});
     }
 
     public void testSetMessageListenerAfterStart() throws Exception {
@@ -164,13 +165,13 @@ public class JMSConsumerTest extends JmsTestSupport {
     }
 
     public void initCombosForTestPassMessageListenerIntoCreateConsumer() {
-        addCombinationValues("destinationType", new Object[]{"queue/", "topic/", "temp-queue/", "temp-topic/"});
+        addCombinationValues("destinationType", new Object[]{"queue/", "topic/"});
     }
 
 
     public void initCombosForTestMessageListenerWithConsumer() {
         addCombinationValues("deliveryMode", new Object[]{Integer.valueOf(DeliveryMode.NON_PERSISTENT), Integer.valueOf(DeliveryMode.PERSISTENT)});
-        addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/", "/temp-queue/", "/temp-topic/"});
+        addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/"});
     }
 
     public void testMessageListenerWithConsumer() throws Exception {
