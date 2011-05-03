@@ -39,7 +39,7 @@
     <junit-version>4.7</junit-version>
     <slf4j-version>1.6.1</slf4j-version>
     <hawtbuf-version>1.4</hawtbuf-version>
-    <apollo-version>1.0-SNAPSHOT</apollo-version>
+    <apollo-version>1.0-beta1</apollo-version>
     
   </properties>
   
@@ -194,6 +194,18 @@
         <repository>
           <id>Fusesource Snapshots</id>
           <url>http://repo.fusesource.com/nexus/content/repositories/snapshots</url>
+        </repository>
+        <repository>
+          <id>java.net.m2</id>
+          <url>http://download.java.net/maven/2</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+        <repository>
+          <id>glassfish-repo-archive</id>
+          <url>http://maven.glassfish.org/content/groups/glassfish</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
         </repository>
       </repositories>
     </profile>

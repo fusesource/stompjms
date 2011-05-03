@@ -68,7 +68,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.activemq</groupId>
-      <artifactId>apollo-hawtdb</artifactId>
+      <artifactId>apollo-jdbm2</artifactId>
       <version>${apollo-version}</version>
       <scope>test</scope>
     </dependency>
