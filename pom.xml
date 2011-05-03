@@ -128,8 +128,8 @@
         <extensions>true</extensions>
         <configuration>
           <instructions>
-            <Bundle-Name>${artifactId}</Bundle-Name>
-            <Bundle-SymbolicName>${groupId}.${artifactId}</Bundle-SymbolicName>
+            <Bundle-Name>${project.artifactId}</Bundle-Name>
+            <Bundle-SymbolicName>${project.groupId}.${project.artifactId}</Bundle-SymbolicName>
             <Export-Package>org.fusesource.${forge-project-id}.*</Export-Package>
             <Implementation-Title>${project.name}</Implementation-Title>
             <Implementation-Version>${project.version}</Implementation-Version>
