@@ -42,7 +42,7 @@
     
     <junit-version>4.7</junit-version>
     <slf4j-version>1.6.1</slf4j-version>
-    <hawtbuf-version>1.3-SNAPSHOT</hawtbuf-version>
+    <hawtbuf-version>1.5</hawtbuf-version>
     <apollo-version>1.0-SNAPSHOT</apollo-version>
     
   </properties>
