@@ -146,7 +146,7 @@ public class StompTranslator {
 
         o = headers.remove(Stomp.Headers.Message.TIMESTAMP);
         if (o != null) {
-            to.setJMSTimestamp(Integer.parseInt(o));
+            to.setJMSTimestamp(Long.parseLong(o));
         }
 
         o = headers.remove(Stomp.Headers.Message.PRIORITY);
