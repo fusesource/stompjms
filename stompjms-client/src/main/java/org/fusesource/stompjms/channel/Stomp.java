@@ -15,7 +15,10 @@ import static org.fusesource.hawtbuf.Buffer.*;
 
 public interface Stomp {
     AsciiBuffer NULL = ascii("\u0000");
+    byte NULL_BYTE = NULL.get(0);
+
     AsciiBuffer NEWLINE = ascii("\n");
+    byte NEWLINE_BYTE = NEWLINE.get(0);
 
     // Commands
     AsciiBuffer CONNECT = ascii("CONNECT");
@@ -40,6 +43,7 @@ public interface Stomp {
 
     // Headers
     AsciiBuffer SEPERATOR = ascii(":");
+    byte SEPERATOR_BYTE = SEPERATOR.get(0);
     AsciiBuffer RECEIPT_REQUESTED = ascii("receipt");
     AsciiBuffer TRANSACTION = ascii("transaction");
     AsciiBuffer CONTENT_LENGTH = ascii("content-length");

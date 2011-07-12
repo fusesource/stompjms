@@ -120,9 +120,7 @@ public class StompSocket implements Runnable {
      * @throws IOException
      */
     public synchronized void sendFrame(StompFrame frame) throws IOException {
-        Buffer b = frame.toBuffer();
-        String str = new String(b.getData(), b.getOffset(), b.getLength(), "UTF-8");
-        dataOut.write(b.getData(), b.getOffset(), b.getLength());
+        frame.write(dataOut);
         dataOut.flush();
     }
 

@@ -133,6 +133,7 @@ public class StompChannel implements StompFrameListener {
         copy.onSend();
         StompFrame frame = copy.getFrame();
         frame.setAction(SEND);
+        frame.headers.put(CONTENT_LENGTH, new AsciiBuffer(Integer.toString(frame.content.length)));
         addTransaction(frame);
         try {
             sendFrame(frame);
@@ -146,6 +147,7 @@ public class StompChannel implements StompFrameListener {
         copy.onSend();
         StompFrame frame = copy.getFrame();
         frame.setAction(SEND);
+        frame.headers.put(CONTENT_LENGTH, new AsciiBuffer(Integer.toString(frame.content.length)));
         addTransaction(frame);
         try {
             sendRequest(nextId(), frame);

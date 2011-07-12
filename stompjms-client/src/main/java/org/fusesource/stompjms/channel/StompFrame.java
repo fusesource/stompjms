@@ -15,6 +15,7 @@ import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtbuf.Buffer;
 import org.fusesource.hawtbuf.DataByteArrayOutputStream;
 
+import java.io.DataOutput;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
@@ -103,31 +104,33 @@ public class StompFrame {
     public Buffer toBuffer() {
         try {
             DataByteArrayOutputStream out = new DataByteArrayOutputStream();
-            out.write(getAction());
-            out.write(Stomp.NEWLINE);
-
-            for (Map.Entry<AsciiBuffer, AsciiBuffer> entry: headers.entrySet()){
-                out.write(entry.getKey());
-                out.write(SEPERATOR);
-                out.write(entry.getValue());
-                out.write(Stomp.NEWLINE);
-            }
-
-            //denotes end of headers with a new line
-            out.write(CONTENT_LENGTH);
-            out.write(SEPERATOR);
-            int contentLength = content != null ? content.length() : 0;
-            out.write(ascii(Integer.toString(contentLength)));
-            out.write(Stomp.NEWLINE);
-            out.write(Stomp.NEWLINE);
-            if (content != null) {
-                out.write(content);
-            }
-            out.write(Stomp.NULL);
+            write(out);
             return out.toBuffer();
         } catch (IOException e) {
             throw new RuntimeException(e); // not expected to occur.
         }
+    }
+
+    private void write(DataOutput out, Buffer buffer) throws IOException {
+        out.write(buffer.data, buffer.offset, buffer.length);
+    }
+
+    public void write(DataOutput out) throws IOException {
+        write(out,action);
+        out.writeByte(NEWLINE_BYTE);
+        for (Map.Entry<AsciiBuffer, AsciiBuffer> entry: headers.entrySet()){
+            write(out,entry.getKey());
+            out.writeByte(SEPERATOR_BYTE);
+            write(out,entry.getValue());
+            out.writeByte(NEWLINE_BYTE);
+        }
+
+        //denotes end of headers with a new line
+        out.writeByte(NEWLINE_BYTE);
+        if (content != null) {
+            write(out,content);
+        }
+        out.writeByte(NULL_BYTE);
     }
 
     public String toString() {

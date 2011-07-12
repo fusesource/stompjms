@@ -31,21 +31,22 @@ public class StompJmsMessage implements javax.jms.Message {
 
     private static final Map<String, PropertySetter> JMS_PROPERTY_SETERS = new HashMap<String, PropertySetter>();
 
-    private static HashSet<AsciiBuffer> JMS_FRAME_HEADERS = new HashSet<AsciiBuffer>();
+    private static HashSet<AsciiBuffer> RESERVED_HEADER_NAMES = new HashSet<AsciiBuffer>();
     static{
-        JMS_FRAME_HEADERS.add(DESTINATION);
-        JMS_FRAME_HEADERS.add(REPLY_TO);
-        JMS_FRAME_HEADERS.add(MESSAGE_ID);
-        JMS_FRAME_HEADERS.add(CORRELATION_ID);
-        JMS_FRAME_HEADERS.add(EXPIRATION_TIME);
-        JMS_FRAME_HEADERS.add(TIMESTAMP);
-        JMS_FRAME_HEADERS.add(PRIORITY);
-        JMS_FRAME_HEADERS.add(REDELIVERED);
-        JMS_FRAME_HEADERS.add(TYPE);
-        JMS_FRAME_HEADERS.add(PERSISTENT);
-        JMS_FRAME_HEADERS.add(RECEIPT_REQUESTED);
-        JMS_FRAME_HEADERS.add(TRANSFORMATION);
-        JMS_FRAME_HEADERS.add(SUBSCRIPTION);
+        RESERVED_HEADER_NAMES.add(DESTINATION);
+        RESERVED_HEADER_NAMES.add(REPLY_TO);
+        RESERVED_HEADER_NAMES.add(MESSAGE_ID);
+        RESERVED_HEADER_NAMES.add(CORRELATION_ID);
+        RESERVED_HEADER_NAMES.add(EXPIRATION_TIME);
+        RESERVED_HEADER_NAMES.add(TIMESTAMP);
+        RESERVED_HEADER_NAMES.add(PRIORITY);
+        RESERVED_HEADER_NAMES.add(REDELIVERED);
+        RESERVED_HEADER_NAMES.add(TYPE);
+        RESERVED_HEADER_NAMES.add(PERSISTENT);
+        RESERVED_HEADER_NAMES.add(RECEIPT_REQUESTED);
+        RESERVED_HEADER_NAMES.add(TRANSFORMATION);
+        RESERVED_HEADER_NAMES.add(SUBSCRIPTION);
+        RESERVED_HEADER_NAMES.add(CONTENT_LENGTH);
     }
 
     public static enum JmsMsgType {
@@ -433,7 +434,7 @@ public class StompJmsMessage implements javax.jms.Message {
     }
 
     public void setJMSExpiration(long expiration) {
-        setLongHeader(EXPIRATION_TIME, expiration==0 ? null : expiration);
+        setLongHeader(EXPIRATION_TIME, expiration == 0 ? null : expiration);
     }
 
     public int getJMSPriority() {
@@ -471,7 +472,7 @@ public class StompJmsMessage implements javax.jms.Message {
             if (this.frame != null) {
                 properties = new HashMap<String, Object>(this.frame.headers.size());
                 for (Map.Entry<AsciiBuffer, AsciiBuffer> entry: this.frame.headers.entrySet()){
-                    if( !JMS_FRAME_HEADERS.contains(entry.getKey()) ) {
+                    if( !RESERVED_HEADER_NAMES.contains(entry.getKey()) ) {
                         properties.put(entry.getKey().toString(), entry.getKey().toString());
                     }
                 }
