@@ -106,11 +106,6 @@ public class StompJmsBytesMessage extends StompJmsMessage implements BytesMessag
         }
     }
 
-
-    public String getJMSXMimeType() {
-        return "jms/bytes-message";
-    }
-
     /**
      * Clears out the message body. Clearing a message's body does not clear its
      * header values or property entries.

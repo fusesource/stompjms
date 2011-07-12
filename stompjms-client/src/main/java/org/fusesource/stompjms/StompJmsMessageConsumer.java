@@ -10,6 +10,7 @@
 
 package org.fusesource.stompjms;
 
+import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.stompjms.message.StompJmsMessage;
 
 import javax.jms.IllegalStateException;
@@ -24,7 +25,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessageListener {
     protected final StompJmsSession session;
     protected final StompJmsDestination destination;
-    private final String id;
+    private final AsciiBuffer id;
     private boolean closed;
     private boolean started;
     private MessageListener messageListener;
@@ -33,7 +34,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
     private final Lock lock = new ReentrantLock();
 
 
-    protected StompJmsMessageConsumer(String id, StompJmsSession s, StompJmsDestination destination, String selector) {
+    protected StompJmsMessageConsumer(AsciiBuffer id, StompJmsSession s, StompJmsDestination destination, String selector) {
         this.id = id;
         this.session = s;
         this.destination = destination;
@@ -144,7 +145,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
     /**
      * @return the id
      */
-    public String getId() {
+    public AsciiBuffer getId() {
         return this.id;
     }
 
@@ -176,7 +177,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
         }
     }
 
-    protected void rollback(String transactionId) {
+    protected void rollback(AsciiBuffer transactionId) {
         this.messageQueue.rollback(transactionId);
     }
 

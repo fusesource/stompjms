@@ -10,6 +10,7 @@
 
 package org.fusesource.stompjms;
 
+import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.stompjms.message.StompJmsMessage;
 
 import java.util.ArrayList;
@@ -185,12 +186,12 @@ public class MessageQueue {
         }
     }
 
-    public void rollback(String transactionId) {
+    public void rollback(AsciiBuffer transactionId) {
         synchronized (mutex) {
             if (transactionId != null && transactionId.isEmpty() == false) {
                 List<StompJmsMessage> tmp = new ArrayList<StompJmsMessage>(this.list);
                 for (StompJmsMessage message : tmp) {
-                    String tid = message.getTransactionId();
+                    AsciiBuffer tid = message.getTransactionId();
                     if (tid != null && tid.equals(transactionId)) {
                         this.list.remove(message);
                     }

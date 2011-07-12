@@ -137,10 +137,6 @@ public class StompJmsStreamMessage extends StompJmsMessage implements StreamMess
         }
     }
 
-    public String getJMSXMimeType() {
-        return "jms/stream-message";
-    }
-
     /**
      * Clears out the message body. Clearing a message's body does not clear its
      * header values or property entries.

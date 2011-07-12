@@ -37,11 +37,6 @@ public class StompJmsTextMessage extends StompJmsMessage implements TextMessage 
         copy.text = text;
     }
 
-
-    public String getJMSXMimeType() {
-        return "jms/text-message";
-    }
-
     public void setText(String text) throws MessageNotWriteableException {
         checkReadOnlyBody();
         this.text = text;

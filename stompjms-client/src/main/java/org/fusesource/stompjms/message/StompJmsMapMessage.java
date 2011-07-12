@@ -120,11 +120,6 @@ public class StompJmsMapMessage extends StompJmsMessage implements MapMessage {
         }
     }
 
-
-    public String getJMSXMimeType() {
-        return "jms/map-message";
-    }
-
     /**
      * Clears out the message body. Clearing a message's body does not clear its
      * header values or property entries.

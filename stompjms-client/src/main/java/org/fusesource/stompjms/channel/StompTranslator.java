@@ -14,6 +14,7 @@ import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
+import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtbuf.Buffer;
 import org.fusesource.hawtbuf.BufferInputStream;
 import org.fusesource.hawtbuf.DataByteArrayOutputStream;
@@ -27,6 +28,9 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
+import static org.fusesource.stompjms.channel.Stomp.*;
+import static org.fusesource.hawtbuf.Buffer.*;
+
 
 /**
  * Frame translator implementation that uses XStream to convert messages to and
@@ -35,15 +39,15 @@ import java.util.Map;
 public class StompTranslator {
 
 
-    public static StompJmsDestination getDestination(StompFrame frame) throws JMSException {
-        final String destination = frame.getHeaders().remove(Stomp.Headers.Send.DESTINATION);
-        return StompJmsDestination.createDestination(destination);
-    }
-
-    public static StompJmsDestination getReplyTo(StompFrame frame) throws JMSException {
-        final String destination = frame.getHeaders().remove(Stomp.Headers.Send.REPLY_TO);
-        return StompJmsDestination.createDestination(destination);
-    }
+//    public static StompJmsDestination getDestination(StompFrame frame) throws JMSException {
+//        final AsciiBuffer destination = frame.headers.remove(DESTINATION);
+//        return StompJmsDestination.createDestination(destination.toString());
+//    }
+//
+//    public static StompJmsDestination getReplyTo(StompFrame frame) throws JMSException {
+//        final AsciiBuffer destination = frame.headers.remove(REPLY_TO);
+//        return StompJmsDestination.createDestination(destination.toString());
+//    }
 
     public static Object readObjectFromString(String text) {
         HierarchicalStreamReader in = new JettisonMappedXmlDriver().createReader(new StringReader(text));
@@ -74,27 +78,20 @@ public class StompTranslator {
         return buffer.toBuffer();
     }
 
-    public static StompFrame convert(StompJmsMessage message) throws JMSException {
-        StompFrame command = new StompFrame();
-        command.setAction(Stomp.Responses.MESSAGE);
-        try {
-            copyJmsHeaders(message, command);
-        } catch (IOException e) {
-            throw StompJmsExceptionSupport.create(e);
-        }
-        command.getHeaders().put(Stomp.Headers.TRANSFORMATION, message.getMsgType().toString());
-        message.storeContent();
-        Buffer buffer = message.getContent();
-        command.setContent(buffer);
-        return command;
-    }
+//    public static StompFrame convert(StompJmsMessage message) throws JMSException {
+//        message.storeContent();
+////        StompFrame command = message.getFrame().clone();
+////        command.setAction(MESSAGE);
+////        command.headers.put(TRANSFORMATION, message.getMsgType().buffer);
+//        return command;
+//    }
 
     public static StompJmsMessage convert(StompFrame frame) throws JMSException {
-        Map<String, String> headers = frame.getHeaders();
+        Map<AsciiBuffer, AsciiBuffer> headers = frame.headers;
         StompJmsMessage result = null;
-        String type = headers.get(Stomp.Headers.TRANSFORMATION);
+        AsciiBuffer type = headers.get(TRANSFORMATION);
         if (type != null) {
-            switch (StompJmsMessage.JmsMsgType.valueOf(type)) {
+            switch (StompJmsMessage.JmsMsgType.valueOf(type.toString())) {
                 case BYTES:
                     result = new StompJmsBytesMessage();
                     break;
@@ -117,124 +114,130 @@ public class StompTranslator {
         if (result == null) {
             result = new StompJmsMessage();
         }
-        copyJmsHeaders(frame, result);
-        result.setContent(frame.getContent());
+        result.setFrame(frame);
         return result;
     }
 
-
-    public static void copyJmsHeaders(StompFrame from, StompJmsMessage to) throws JMSException {
-        final Map<String, String> headers = new HashMap<String, String>(from.getHeaders());
-        final String destination = headers.remove(Stomp.Headers.Send.DESTINATION);
-        if (destination != null) {
-            to.setJMSDestination(StompJmsDestination.createDestination(destination));
-        }
-        String replyTo = headers.remove(Stomp.Headers.Send.REPLY_TO);
-        if (replyTo != null) {
-            to.setJMSReplyTo(StompJmsDestination.createDestination(replyTo));
-        }
-
-        // the standard JMS headers
-
-        to.setJMSMessageID(headers.remove(Stomp.Headers.Message.MESSAGE_ID));
-        to.setJMSCorrelationID(headers.remove(Stomp.Headers.Message.CORRELATION_ID));
-
-        String o = headers.remove(Stomp.Headers.Message.EXPIRATION_TIME);
-        if (o != null) {
-            to.setJMSExpiration(Long.parseLong(o));
-        }
-
-        o = headers.remove(Stomp.Headers.Message.TIMESTAMP);
-        if (o != null) {
-            to.setJMSTimestamp(Long.parseLong(o));
-        }
-
-        o = headers.remove(Stomp.Headers.Message.PRIORITY);
-        if (o != null) {
-            to.setJMSPriority(Integer.parseInt(o));
-        }
-
-        o = headers.remove(Stomp.Headers.Message.REDELIVERED);
-        if (o != null) {
-            to.setJMSRedelivered(Boolean.parseBoolean(o));
-        }
-
-        o = headers.remove(Stomp.Headers.Send.TYPE);
-        if (o != null) {
-            to.setJMSType(o);
-        }
-
-        o = headers.remove(Stomp.Headers.Send.PERSISTENT);
-        if (o != null) {
-            to.setPersistent(Boolean.parseBoolean(o));
-        }
-
-        // Stomp specific headers
-        headers.remove(Stomp.Headers.RECEIPT_REQUESTED);
-
-        o = headers.get(Stomp.Headers.Message.SUBSCRIPTION);
-        if (o != null) {
-            to.setConsumerId(o);
-        }
-
-        //set the properties
-        o = headers.remove(Stomp.Headers.Message.PROPERTIES);
-        if (o != null) {
-            Map<String, Object> props = (Map<String, Object>) readObjectFromString(o);
-            to.setProperties(props);
+    static public String toString(AsciiBuffer buffer) {
+        if( buffer == null ) {
+            return null;
+        } else {
+            return buffer.toString();
         }
     }
 
-    public static Map<String, Object> getJmsHeaders(StompFrame frame) {
-        final Map<String, Object> headers = frame != null ? new HashMap<String, Object>(frame.getHeaders())
-                : new HashMap<String, Object>();
-        headers.remove(Stomp.Headers.Send.DESTINATION);
-        headers.remove(Stomp.Headers.Send.REPLY_TO);
-        headers.remove(Stomp.Headers.Message.MESSAGE_ID);
-        headers.remove(Stomp.Headers.Message.CORRELATION_ID);
-        headers.remove(Stomp.Headers.Message.EXPIRATION_TIME);
-        headers.remove(Stomp.Headers.Message.TIMESTAMP);
-        headers.remove(Stomp.Headers.Message.PRIORITY);
-        headers.remove(Stomp.Headers.Message.REDELIVERED);
-        headers.remove(Stomp.Headers.Send.TYPE);
-        headers.remove(Stomp.Headers.Send.PERSISTENT);
-        headers.remove(Stomp.Headers.RECEIPT_REQUESTED);
-        return headers;
-    }
-
-    public static void copyJmsHeaders(StompJmsMessage from, StompFrame to) throws IOException {
-        final Map<String, String> headers = to.getHeaders();
-        headers.put(Stomp.Headers.Message.DESTINATION, from.getJMSDestination().toString());
-        headers.put(Stomp.Headers.Message.MESSAGE_ID, from.getJMSMessageID());
-
-        if (from.getJMSCorrelationID() != null) {
-            headers.put(Stomp.Headers.Message.CORRELATION_ID, from.getJMSCorrelationID());
-        }
-        headers.put(Stomp.Headers.Message.EXPIRATION_TIME, "" + from.getJMSExpiration());
-
-        if (from.getJMSRedelivered()) {
-            headers.put(Stomp.Headers.Message.REDELIVERED, "true");
-        }
-        headers.put(Stomp.Headers.Message.PRIORITY, "" + from.getJMSPriority());
-
-        if (from.getJMSReplyTo() != null) {
-            headers.put(Stomp.Headers.Message.REPLY_TO, from.getJMSReplyTo().toString());
-        }
-        headers.put(Stomp.Headers.Message.TIMESTAMP, "" + from.getJMSTimestamp());
-
-        if (from.getJMSType() != null) {
-            headers.put(Stomp.Headers.Message.TYPE, from.getJMSType());
-        }
-
-        headers.put(Stomp.Headers.CONTENT_TYPE, from.getJMSXMimeType());
-
-
-        // now lets add all the message headers
-        final Map<String, Object> properties = from.getProperties();
-        if (properties != null && properties.isEmpty() == false) {
-            String str = writeStringFromObject(properties);
-            headers.put(Stomp.Headers.Message.PROPERTIES, str);
-        }
-    }
+//    public static void copyJmsHeaders(StompFrame from, StompJmsMessage to) throws JMSException {
+//        final Map<AsciiBuffer, AsciiBuffer> headers = new HashMap<AsciiBuffer, AsciiBuffer>(from.getHeaders());
+//        final AsciiBuffer destination = headers.remove(DESTINATION);
+//        if (destination != null) {
+//            to.setJMSDestination(StompJmsDestination.createDestination(destination.toString()));
+//        }
+//        AsciiBuffer replyTo = headers.remove(REPLY_TO);
+//        if (replyTo != null) {
+//            to.setJMSReplyTo(StompJmsDestination.createDestination(replyTo.toString()));
+//        }
+//
+//        // the standard JMS headers
+//
+//        to.setJMSMessageID(toString(headers.remove(MESSAGE_ID)));
+//        to.setJMSCorrelationID(toString(headers.remove(CORRELATION_ID)));
+//
+//        AsciiBuffer o = headers.remove(EXPIRATION_TIME);
+//        if (o != null) {
+//            to.setJMSExpiration(Long.parseLong(o.toString()));
+//        }
+//
+//        o = headers.remove(TIMESTAMP);
+//        if (o != null) {
+//            to.setJMSTimestamp(Long.parseLong(o.toString()));
+//        }
+//
+//        o = headers.remove(PRIORITY);
+//        if (o != null) {
+//            to.setJMSPriority(Integer.parseInt(o.toString()));
+//        }
+//
+//        o = headers.remove(REDELIVERED);
+//        if (o != null) {
+//            to.setJMSRedelivered(Boolean.parseBoolean(o.toString()));
+//        }
+//
+//        o = headers.remove(TYPE);
+//        if (o != null) {
+//            to.setJMSType(o.toString());
+//        }
+//
+//        o = headers.remove(PERSISTENT);
+//        if (o != null) {
+//            to.setPersistent(Boolean.parseBoolean(o.toString()));
+//        }
+//
+//        // Stomp specific headers
+//        headers.remove(RECEIPT_REQUESTED);
+//
+//        o = headers.get(SUBSCRIPTION);
+//        if (o != null) {
+//            to.setConsumerId(o.toString());
+//        }
+//
+//        //set the properties
+//        o = headers.remove(PROPERTIES);
+//        if (o != null) {
+//            Map<String, Object> props = (Map<String, Object>) readObjectFromString(o.toString());
+//            to.setProperties(props);
+//        }
+//    }
+//
+//    public static Map<String, Object> getJmsHeaders(StompFrame frame) {
+//        final Map<String, Object> headers = frame != null ? new HashMap<String, Object>(frame.getHeaders())
+//                : new HashMap<String, Object>();
+//        headers.remove(DESTINATION);
+//        headers.remove(REPLY_TO);
+//        headers.remove(MESSAGE_ID);
+//        headers.remove(CORRELATION_ID);
+//        headers.remove(EXPIRATION_TIME);
+//        headers.remove(TIMESTAMP);
+//        headers.remove(PRIORITY);
+//        headers.remove(REDELIVERED);
+//        headers.remove(TYPE);
+//        headers.remove(PERSISTENT);
+//        headers.remove(RECEIPT_REQUESTED);
+//        return headers;
+//    }
+//
+//    public static void copyJmsHeaders(StompJmsMessage from, StompFrame to) throws IOException {
+//        final Map<AsciiBuffer, AsciiBuffer> headers = to.getHeaders();
+//        headers.put(DESTINATION, from.getJMSDestination().toString());
+//        headers.put(MESSAGE_ID, from.getJMSMessageID());
+//
+//        if (from.getJMSCorrelationID() != null) {
+//            headers.put(CORRELATION_ID, from.getJMSCorrelationID());
+//        }
+//        headers.put(EXPIRATION_TIME, "" + from.getJMSExpiration());
+//
+//        if (from.getJMSRedelivered()) {
+//            headers.put(REDELIVERED, "true");
+//        }
+//        headers.put(PRIORITY, "" + from.getJMSPriority());
+//
+//        if (from.getJMSReplyTo() != null) {
+//            headers.put(REPLY_TO, from.getJMSReplyTo().toString());
+//        }
+//        headers.put(TIMESTAMP, "" + from.getJMSTimestamp());
+//
+//        if (from.getJMSType() != null) {
+//            headers.put(TYPE, from.getJMSType());
+//        }
+//
+//        headers.put(CONTENT_TYPE, from.getJMSXMimeType());
+//
+//
+//        // now lets add all the message headers
+//        final Map<String, Object> properties = from.getProperties();
+//        if (properties != null && properties.isEmpty() == false) {
+//            String str = writeStringFromObject(properties);
+//            headers.put(PROPERTIES, str);
+//        }
+//    }
 
 }

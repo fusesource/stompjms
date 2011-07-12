@@ -10,11 +10,11 @@
 
 package org.fusesource.stompjms.message;
 
+import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtbuf.Buffer;
 import org.fusesource.stompjms.StompJmsDestination;
 import org.fusesource.stompjms.StompJmsExceptionSupport;
 import org.fusesource.stompjms.channel.StompFrame;
-import org.fusesource.stompjms.channel.StompTranslator;
 import org.fusesource.stompjms.channel.TypeConversionSupport;
 import org.fusesource.stompjms.util.Callback;
 import org.fusesource.stompjms.util.PropertyExpression;
@@ -24,32 +24,58 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 
+import static org.fusesource.hawtbuf.Buffer.ascii;
+import static org.fusesource.stompjms.channel.Stomp.*;
+
 public class StompJmsMessage implements javax.jms.Message {
 
     private static final Map<String, PropertySetter> JMS_PROPERTY_SETERS = new HashMap<String, PropertySetter>();
 
+    private static HashSet<AsciiBuffer> JMS_FRAME_HEADERS = new HashSet<AsciiBuffer>();
+    static{
+        JMS_FRAME_HEADERS.add(DESTINATION);
+        JMS_FRAME_HEADERS.add(REPLY_TO);
+        JMS_FRAME_HEADERS.add(MESSAGE_ID);
+        JMS_FRAME_HEADERS.add(CORRELATION_ID);
+        JMS_FRAME_HEADERS.add(EXPIRATION_TIME);
+        JMS_FRAME_HEADERS.add(TIMESTAMP);
+        JMS_FRAME_HEADERS.add(PRIORITY);
+        JMS_FRAME_HEADERS.add(REDELIVERED);
+        JMS_FRAME_HEADERS.add(TYPE);
+        JMS_FRAME_HEADERS.add(PERSISTENT);
+        JMS_FRAME_HEADERS.add(RECEIPT_REQUESTED);
+        JMS_FRAME_HEADERS.add(TRANSFORMATION);
+        JMS_FRAME_HEADERS.add(SUBSCRIPTION);
+    }
+
     public static enum JmsMsgType {
-        MESSAGE, BYTES, MAP, OBJECT, STREAM, TEXT
+        MESSAGE("jms/message"),
+        BYTES("jms/bytes-message"),
+        MAP("jms/map-message"),
+        OBJECT("jms/object-message"),
+        STREAM("jms/stream-message"),
+        TEXT("jms/text-message");
+
+        public final AsciiBuffer buffer = new AsciiBuffer(this.name());
+        public final AsciiBuffer mime;
+
+        JmsMsgType(String mime){
+            this.mime = (ascii(mime));
+        }
     }
 
     protected transient Callback<StompJmsMessage> acknowledgeCallback;
-    protected StompJmsDestination destination;
-    protected StompJmsDestination replyTo;
-    protected String messageId;
-    protected String correlationId;
-    protected long timestamp;
-    protected long expiration;
-    protected int redeliveryCounter;
-    protected String consumerId;
-    protected String type;
-    protected int priority;
-    protected boolean persistent;
     protected boolean readOnlyBody;
     protected boolean readOnlyProperties;
     protected Map<String, Object> properties;
-    protected String transactionId;
+    protected AsciiBuffer transactionId;
     protected StompFrame frame = new StompFrame();
-    private Buffer content;
+    protected int redeliveryCounter=0;
+
+    public StompJmsMessage() {
+        frame.setAction(MESSAGE);
+        frame.headers.put(TRANSFORMATION, getMsgType().buffer);
+    }
 
     public StompJmsMessage copy() throws JMSException {
         StompJmsMessage copy = new StompJmsMessage();
@@ -61,23 +87,21 @@ public class StompJmsMessage implements javax.jms.Message {
         return JmsMsgType.MESSAGE;
     }
 
+    public StompFrame getFrame() {
+        return frame;
+    }
+
+    public void setFrame(StompFrame frame) {
+        this.frame = frame;
+    }
+
     protected void copy(StompJmsMessage copy) {
-        copy.destination = this.destination;
-        copy.replyTo = this.replyTo;
-        copy.messageId = this.messageId;
-        copy.correlationId = this.correlationId;
-        copy.timestamp = this.timestamp;
-        copy.expiration = this.expiration;
-        copy.type = this.type;
-        copy.priority = this.priority;
-        copy.persistent = this.persistent;
         copy.readOnlyBody = this.readOnlyBody;
         copy.readOnlyProperties = this.readOnlyBody;
         if (this.properties != null) {
             copy.properties = new HashMap<String, Object>(this.properties);
         }
-        copy.frame = this.frame;
-        copy.content = this.content;
+        copy.frame = frame.clone();
         copy.acknowledgeCallback = this.acknowledgeCallback;
         copy.transactionId = this.transactionId;
         //don't copy redilveryCounter
@@ -119,11 +143,11 @@ public class StompJmsMessage implements javax.jms.Message {
     }
 
     public Buffer getContent() {
-        return this.content;
+        return this.frame.content;
     }
 
     public void setContent(Buffer content) {
-        this.content = content;
+        this.frame.setContent(content);
     }
 
     public void clearBody() throws JMSException {
@@ -142,9 +166,104 @@ public class StompJmsMessage implements javax.jms.Message {
         this.readOnlyProperties = readOnlyProperties;
     }
 
+    private String getStringHeader(AsciiBuffer key) {
+        AsciiBuffer buffer = frame.headers.get(key);
+        if( buffer == null ) {
+            return null;
+        } else {
+            return buffer.toString();
+        }
+    }
+    private void setStringHeader(AsciiBuffer key, String value) {
+        if(value==null) {
+            frame.headers.remove(key);
+        } else {
+            frame.headers.put(key, ascii(value));
+        }
+    }
+
+    private byte[] getBytesHeader(AsciiBuffer key) {
+        AsciiBuffer buffer = frame.headers.get(key);
+        if( buffer == null ) {
+            return null;
+        } else {
+            return buffer.deepCopy().data;
+        }
+    }
+    private void setBytesHeader(AsciiBuffer key, byte[]  value) {
+        if(value==null) {
+            frame.headers.remove(key);
+        } else {
+            frame.headers.put(key, new Buffer(value).deepCopy().ascii());
+        }
+    }
+
+    private Integer getIntegerHeader(AsciiBuffer key) {
+        AsciiBuffer buffer = frame.headers.get(key);
+        if( buffer == null ) {
+            return null;
+        } else {
+            return Integer.parseInt(buffer.toString());
+        }
+    }
+    private void setIntegerHeader(AsciiBuffer key, Integer value) {
+        if(value==null) {
+            frame.headers.remove(key);
+        } else {
+            frame.headers.put(key, ascii(value.toString()));
+        }
+    }
+
+    private Long getLongHeader(AsciiBuffer key) {
+        AsciiBuffer buffer = frame.headers.get(key);
+        if( buffer == null ) {
+            return null;
+        } else {
+            return Long.parseLong(buffer.toString());
+        }
+    }
+    private void setLongHeader(AsciiBuffer key, Long value) {
+        if(value==null) {
+            frame.headers.remove(key);
+        } else {
+            frame.headers.put(key, ascii(value.toString()));
+        }
+    }
+
+    private Boolean getBooleanHeader(AsciiBuffer key) {
+        AsciiBuffer buffer = frame.headers.get(key);
+        if( buffer == null ) {
+            return null;
+        } else {
+            return Boolean.parseBoolean(buffer.toString());
+        }
+    }
+    private void setBooleanHeader(AsciiBuffer key, Boolean value) {
+        if(value==null) {
+            frame.headers.remove(key);
+        } else {
+            frame.headers.put(key, value.booleanValue() ? TRUE : FALSE);
+        }
+    }
+
+    private StompJmsDestination getDestinationHeader(AsciiBuffer key) throws InvalidDestinationException {
+        AsciiBuffer buffer = frame.headers.get(key);
+        if( buffer == null ) {
+            return null;
+        } else {
+            return StompJmsDestination.createDestination(buffer.toString());
+        }
+    }
+    private void setDestinationHeader(AsciiBuffer key, StompJmsDestination value) {
+        if(value==null) {
+            frame.headers.remove(key);
+        } else {
+            frame.headers.put(key, ascii(value.toString()));
+        }
+    }
 
     public String getJMSMessageID() {
-        return this.messageId;
+        return getStringHeader(MESSAGE_ID);
     }
 
     /**
@@ -155,44 +274,52 @@ public class StompJmsMessage implements javax.jms.Message {
      * @throws JMSException
      */
     public void setJMSMessageID(String value) {
-        this.messageId = value;
+        setStringHeader(MESSAGE_ID, value);
+    }
+    public void setMessageID(AsciiBuffer value) {
+        frame.headers.put(MESSAGE_ID, value);
     }
 
 
+    private <T> T or(T value, T other) {
+        if(value!=null) {
+            return value;
+        } else {
+            return other;
+        }
+    }
+
     public long getJMSTimestamp() {
-        return this.timestamp;
+        return or(getLongHeader(TIMESTAMP), 0L);
     }
 
     public void setJMSTimestamp(long timestamp) {
-        this.timestamp = timestamp;
+        setLongHeader(TIMESTAMP, timestamp==0? null : timestamp);
     }
 
     public String getJMSCorrelationID() {
-        return this.correlationId;
+        return getStringHeader(CORRELATION_ID);
     }
 
     public void setJMSCorrelationID(String correlationId) {
-        this.correlationId = correlationId;
+        setStringHeader(CORRELATION_ID, correlationId);
     }
 
     public byte[] getJMSCorrelationIDAsBytes() throws JMSException {
-        return encodeString(getJMSCorrelationID());
+        return getBytesHeader(CORRELATION_ID);
     }
 
     public void setJMSCorrelationIDAsBytes(byte[] correlationId) throws JMSException {
-        setJMSCorrelationID(decodeString(correlationId));
+        setBytesHeader(CORRELATION_ID, correlationId);
     }
 
-    public String getJMSXMimeType() {
-        return "jms/message";
-    }
 
     public boolean isPersistent() {
-        return persistent;
+        return or(getBooleanHeader(PERSISTENT), false);
     }
 
     public void setPersistent(boolean value) {
-        this.persistent = value;
+        setBooleanHeader(PERSISTENT, value ? true : null);
     }
 
     protected static String decodeString(byte[] data) throws JMSException {
@@ -217,36 +344,36 @@ public class StompJmsMessage implements javax.jms.Message {
         }
     }
 
-    public Destination getJMSReplyTo() {
-        return this.replyTo;
+    public Destination getJMSReplyTo() throws InvalidDestinationException {
+        return getStompJmsReplyTo();
     }
 
     public void setJMSReplyTo(Destination destination) throws JMSException {
-        this.replyTo = StompJmsMessageTransformation.transformDestination(destination);
+        setJMSReplyTo(StompJmsMessageTransformation.transformDestination(destination));
     }
 
     public void setJMSReplyTo(StompJmsDestination destination) {
-        this.replyTo = destination;
+        setDestinationHeader(REPLY_TO, destination);
     }
 
-    public StompJmsDestination getStompJmsReplyTo() {
-        return this.replyTo;
+    public StompJmsDestination getStompJmsReplyTo() throws InvalidDestinationException {
+        return getDestinationHeader(REPLY_TO);
     }
 
-    public Destination getJMSDestination() {
-        return this.destination;
+    public Destination getJMSDestination() throws InvalidDestinationException {
+        return getStompJmsDestination();
     }
 
-    public StompJmsDestination getStompJmsDestination() {
-        return this.destination;
+    public StompJmsDestination getStompJmsDestination() throws InvalidDestinationException {
+        return getDestinationHeader(DESTINATION);
     }
 
     public void setJMSDestination(Destination destination) throws JMSException {
-        this.destination = StompJmsMessageTransformation.transformDestination(destination);
+        setJMSDestination(StompJmsMessageTransformation.transformDestination(destination));
     }
 
     public void setJMSDestination(StompJmsDestination destination) {
-        this.destination = destination;
+        setDestinationHeader(DESTINATION, destination);
     }
 
     public int getJMSDeliveryMode() {
@@ -294,42 +421,37 @@ public class StompJmsMessage implements javax.jms.Message {
     }
 
     public String getJMSType() {
-        return this.type;
+        return getStringHeader(TYPE);
     }
 
     public void setJMSType(String type) {
-        this.type = type;
+        setStringHeader(TYPE, type);
     }
 
     public long getJMSExpiration() {
-        return this.expiration;
+        return or(getLongHeader(EXPIRATION_TIME), 0L);
     }
 
     public void setJMSExpiration(long expiration) {
-        this.expiration = expiration;
+        setLongHeader(EXPIRATION_TIME, expiration==0 ? null : expiration);
     }
 
     public int getJMSPriority() {
-        return this.priority;
+        return or(getIntegerHeader(PRIORITY), 4);
     }
 
     public void setJMSPriority(int priority) {
-        this.priority = priority;
+        setIntegerHeader(PRIORITY, priority == 4 ? null : priority);
     }
 
     public Map<String, Object> getProperties() throws IOException {
-        if (properties == null) {
-            if (this.frame == null) {
-                return Collections.emptyMap();
-            }
-            properties = StompTranslator.getJmsHeaders(this.frame);
-        }
+        lazyCreateProperties();
         return Collections.unmodifiableMap(properties);
     }
 
     public void clearProperties() {
         if (this.frame != null) {
-            this.frame.getHeaders().clear();
+            this.frame.headers.clear();
         }
         properties = null;
     }
@@ -346,10 +468,15 @@ public class StompJmsMessage implements javax.jms.Message {
 
     protected void lazyCreateProperties() throws IOException {
         if (properties == null) {
-            if (this.frame == null) {
-                properties = new HashMap<String, Object>();
+            if (this.frame != null) {
+                properties = new HashMap<String, Object>(this.frame.headers.size());
+                for (Map.Entry<AsciiBuffer, AsciiBuffer> entry: this.frame.headers.entrySet()){
+                    if( !JMS_FRAME_HEADERS.contains(entry.getKey()) ) {
+                        properties.put(entry.getKey().toString(), entry.getKey().toString());
+                    }
+                }
             } else {
-                properties = StompTranslator.getJmsHeaders(this.frame);
+                properties = new HashMap<String, Object>();
             }
         }
     }
@@ -717,28 +844,21 @@ public class StompJmsMessage implements javax.jms.Message {
     /**
      * @return the consumerId
      */
-    public String getConsumerId() {
-        return this.consumerId;
-    }
-
-    /**
-     * @param consumerId the consumerId to set
-     */
-    public void setConsumerId(String consumerId) {
-        this.consumerId = consumerId;
+    public AsciiBuffer getConsumerId() {
+        return this.frame.headers.get(SUBSCRIPTION);
     }
 
     /**
      * @return the transactionId
      */
-    public String getTransactionId() {
+    public AsciiBuffer getTransactionId() {
         return this.transactionId;
     }
 
     /**
      * @param transactionId the transactionId to set
      */
-    public void setTransactionId(String transactionId) {
+    public void setTransactionId(AsciiBuffer transactionId) {
         this.transactionId = transactionId;
     }
 }

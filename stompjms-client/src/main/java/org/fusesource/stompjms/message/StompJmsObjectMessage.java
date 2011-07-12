@@ -70,11 +70,6 @@ public class StompJmsObjectMessage extends StompJmsMessage implements ObjectMess
         }
     }
 
-
-    public String getJMSXMimeType() {
-        return "jms/object-message";
-    }
-
     /**
      * Clears out the message body. Clearing a message's body does not clear its
      * header values or property entries.

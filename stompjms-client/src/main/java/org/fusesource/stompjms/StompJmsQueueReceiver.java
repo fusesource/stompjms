@@ -10,6 +10,8 @@
 
 package org.fusesource.stompjms;
 
+import org.fusesource.hawtbuf.AsciiBuffer;
+
 import javax.jms.IllegalStateException;
 import javax.jms.Queue;
 import javax.jms.QueueReceiver;
@@ -24,7 +26,7 @@ public class StompJmsQueueReceiver extends StompJmsMessageConsumer implements Qu
      *
      * @param s
      */
-    protected StompJmsQueueReceiver(String id, StompJmsSession s, StompJmsDestination d, String selector) {
+    protected StompJmsQueueReceiver(AsciiBuffer id, StompJmsSession s, StompJmsDestination d, String selector) {
         super(id, s, d, selector);
     }
 

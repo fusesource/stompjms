@@ -10,6 +10,7 @@
 
 package org.fusesource.stompjms.channel;
 
+import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtbuf.Buffer;
 import org.fusesource.hawtbuf.DataByteArrayOutputStream;
 import org.fusesource.stompjms.StompJmsExceptionSupport;
@@ -21,6 +22,8 @@ import java.io.*;
 import java.net.*;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import static org.fusesource.stompjms.channel.Stomp.*;
+import static org.fusesource.hawtbuf.Buffer.*;
 
 /**
  * @version $Revision$
@@ -276,27 +279,28 @@ public class StompSocket implements Runnable {
      * @throws IOException
      */
 
-    public void connect(String userName, String password, String clientId) throws IOException {
+    public StompFrame connect(String userName, String password, String clientId) throws IOException {
         if (connected.get()) {
             String host = resolveHostName(remoteLocation.getHost());
             // Now send the connect Frame
-            HashMap<String, String> headers = new HashMap<String, String>();
-            headers.put("accept-version", "1.1");
-            headers.put("host", host);
+            HashMap<AsciiBuffer, AsciiBuffer> headers = new HashMap<AsciiBuffer, AsciiBuffer>();
+            headers.put(ACCEPT_VERSION, V1_1);
+            headers.put(HOST, ascii(host));
             if (userName != null && userName.isEmpty() == false) {
-                headers.put("login", userName);
-                headers.put("passcode", password);
+                headers.put(LOGIN, ascii(userName));
+                headers.put(PASSCODE, ascii(password));
             }
             if (clientId != null && clientId.isEmpty() == false) {
-                headers.put("client-id", clientId);
+                headers.put(CLIENT_ID, ascii(clientId));
             }
-            StompFrame frame = new StompFrame("CONNECT", headers);
+            StompFrame frame = new StompFrame(CONNECT, headers);
             sendFrame(frame);
 
-            StompFrame connect = readFrame(this.dataIn);
-            if (!connect.getAction().equals(Stomp.Responses.CONNECTED)) {
-                throw new IOException("Not connected: " + connect.getBody());
+            StompFrame response = readFrame(this.dataIn);
+            if (!response.getAction().equals(CONNECTED)) {
+                throw new IOException("Not connected: " + response.getBody());
             }
+            return response;
         } else {
             throw new IOException("Not initialized");
 
@@ -362,7 +366,7 @@ public class StompSocket implements Runnable {
     public void close() throws IOException {
         if (started.get()) {
             StompFrame frame = new StompFrame();
-            frame.setAction(Stomp.Commands.DISCONNECT);
+            frame.setAction(DISCONNECT);
             sendFrame(frame);
             connected.set(false);
             stop();
@@ -438,14 +442,14 @@ public class StompSocket implements Runnable {
         try {
 
             // parse action
-            String action = parseAction(in);
+            AsciiBuffer action = parseAction(in);
 
             // Parse the headers
-            HashMap<String, String> headers = parseHeaders(in);
+            HashMap<AsciiBuffer, AsciiBuffer> headers = parseHeaders(in);
 
             // Read in the data part.
             Buffer data = null;
-            String contentLength = headers.get(Stomp.Headers.CONTENT_LENGTH);
+            AsciiBuffer contentLength = headers.get(CONTENT_LENGTH);
             if (contentLength != null) {
 
                 // Bless the client, he's telling us how much data to read in.
@@ -455,7 +459,7 @@ public class StompSocket implements Runnable {
                 in.readFully(b);
                 data = new Buffer(b);
                 if (in.readByte() != 0) {
-                    throw new ProtocolException(Stomp.Headers.CONTENT_LENGTH + " bytes were read and "
+                    throw new ProtocolException(CONTENT_LENGTH + " bytes were read and "
                             + "there was no trailing null byte", true);
                 }
 
@@ -490,10 +494,10 @@ public class StompSocket implements Runnable {
 
     }
 
-    protected int parseContentLength(String contentLength) throws ProtocolException {
+    protected int parseContentLength(AsciiBuffer contentLength) throws ProtocolException {
         int length;
         try {
-            length = Integer.parseInt(contentLength.trim());
+            length = Integer.parseInt(contentLength.trim().toString());
         } catch (NumberFormatException e) {
             throw new ProtocolException("Specified content-length is not a valid integer", true);
         }
@@ -505,10 +509,10 @@ public class StompSocket implements Runnable {
         return length;
     }
 
-    protected HashMap<String, String> parseHeaders(DataInput in) throws IOException {
-        HashMap<String, String> headers = new HashMap<String, String>(25);
+    protected HashMap<AsciiBuffer, AsciiBuffer> parseHeaders(DataInput in) throws IOException {
+        HashMap<AsciiBuffer, AsciiBuffer> headers = new HashMap<AsciiBuffer, AsciiBuffer>(25);
         while (true) {
-            String line = readLine(in, MAX_HEADER_LENGTH, "The maximum header length was exceeded");
+            Buffer line = readLine(in, MAX_HEADER_LENGTH, "The maximum header length was exceeded");
             if (line != null && line.trim().length() > 0) {
 
                 if (headers.size() > MAX_HEADERS) {
@@ -516,9 +520,9 @@ public class StompSocket implements Runnable {
                 }
 
                 try {
-                    int seperatorIndex = line.indexOf(Stomp.Headers.SEPERATOR);
-                    String name = line.substring(0, seperatorIndex).trim();
-                    String value = line.substring(seperatorIndex + 1, line.length()).trim();
+                    int seperatorIndex = line.indexOf(SEPERATOR);
+                    AsciiBuffer name = line.slice(0, seperatorIndex).trim().ascii();
+                    AsciiBuffer value = line.slice(seperatorIndex + 1, line.length()).trim().ascii();
                     headers.put(name, value);
                 } catch (Exception e) {
                     throw new ProtocolException("Unable to parser header line [" + line + "]", true);
@@ -530,8 +534,8 @@ public class StompSocket implements Runnable {
         return headers;
     }
 
-    private String parseAction(DataInput in) throws IOException {
-        String action = null;
+    private AsciiBuffer parseAction(DataInput in) throws IOException {
+        Buffer action = null;
 
         // skip white space to next real action line
         while (true) {
@@ -545,10 +549,10 @@ public class StompSocket implements Runnable {
                 }
             }
         }
-        return action;
+        return action.ascii();
     }
 
-    private String readLine(DataInput in, int maxLength, String errorMessage) throws IOException {
+    private Buffer readLine(DataInput in, int maxLength, String errorMessage) throws IOException {
         byte b;
         DataByteArrayOutputStream baos = new DataByteArrayOutputStream();
         while ((b = in.readByte()) != '\n') {
@@ -558,8 +562,7 @@ public class StompSocket implements Runnable {
             baos.write(b);
         }
         baos.close();
-        Buffer sequence = baos.toBuffer();
-        return new String(sequence.getData(), sequence.getOffset(), sequence.getLength(), "UTF-8");
+        return baos.toBuffer();
     }
 
 }

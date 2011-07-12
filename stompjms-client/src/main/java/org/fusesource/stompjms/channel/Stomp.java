@@ -10,136 +10,106 @@
 
 package org.fusesource.stompjms.channel;
 
+import org.fusesource.hawtbuf.AsciiBuffer;
+import static org.fusesource.hawtbuf.Buffer.*;
+
 public interface Stomp {
-    String NULL = "\u0000";
-    String NEWLINE = "\n";
+    AsciiBuffer NULL = ascii("\u0000");
+    AsciiBuffer NEWLINE = ascii("\n");
 
-    public static interface Commands {
-        String CONNECT = "CONNECT";
-        String SEND = "SEND";
-        String DISCONNECT = "DISCONNECT";
-        String SUBSCRIBE = "SUBSCRIBE";
-        String UNSUBSCRIBE = "UNSUBSCRIBE";
-        String MESSAGE = "MESSAGE";
+    // Commands
+    AsciiBuffer CONNECT = ascii("CONNECT");
+    AsciiBuffer SEND = ascii("SEND");
+    AsciiBuffer DISCONNECT = ascii("DISCONNECT");
+    AsciiBuffer SUBSCRIBE = ascii("SUBSCRIBE");
+    AsciiBuffer UNSUBSCRIBE = ascii("UNSUBSCRIBE");
+    AsciiBuffer MESSAGE = ascii("MESSAGE");
 
-        String BEGIN_TRANSACTION = "BEGIN";
-        String COMMIT_TRANSACTION = "COMMIT";
-        String ABORT_TRANSACTION = "ABORT";
-        String BEGIN = "BEGIN";
-        String COMMIT = "COMMIT";
-        String ABORT = "ABORT";
-        String ACK = "ACK";
-    }
+    AsciiBuffer BEGIN_TRANSACTION = ascii("BEGIN");
+    AsciiBuffer COMMIT_TRANSACTION = ascii("COMMIT");
+    AsciiBuffer ABORT_TRANSACTION = ascii("ABORT");
+    AsciiBuffer BEGIN = ascii("BEGIN");
+    AsciiBuffer COMMIT = ascii("COMMIT");
+    AsciiBuffer ABORT = ascii("ABORT");
+    AsciiBuffer ACK = ascii("ACK");
 
-    public interface Responses {
-        String CONNECTED = "CONNECTED";
-        String ERROR = "ERROR";
-        String MESSAGE = "MESSAGE";
-        String RECEIPT = "RECEIPT";
-    }
+    // Responses
+    AsciiBuffer CONNECTED = ascii("CONNECTED");
+    AsciiBuffer ERROR = ascii("ERROR");
+    AsciiBuffer RECEIPT = ascii("RECEIPT");
 
-    public interface Headers {
-        String SEPERATOR = ":";
-        String RECEIPT_REQUESTED = "receipt";
-        String TRANSACTION = "transaction";
-        String CONTENT_LENGTH = "content-length";
-        String CONTENT_TYPE = "content-type";
-        String TRANSFORMATION = "transformation";
-        String TRANSFORMATION_ERROR = "transformation-error";
-        /**
-         * This header is used to instruct ActiveMQ to construct the message
-         * based with a specific type.
-         */
-        String AMQ_MESSAGE_TYPE = "amq-msg-type";
+    // Headers
+    AsciiBuffer SEPERATOR = ascii(":");
+    AsciiBuffer RECEIPT_REQUESTED = ascii("receipt");
+    AsciiBuffer TRANSACTION = ascii("transaction");
+    AsciiBuffer CONTENT_LENGTH = ascii("content-length");
+    AsciiBuffer CONTENT_TYPE = ascii("content-type");
+    AsciiBuffer TRANSFORMATION = ascii("transformation");
+    AsciiBuffer TRANSFORMATION_ERROR = ascii("transformation-error");
 
-        public interface Response {
-            String RECEIPT_ID = "receipt-id";
-        }
+    /**
+     * This header is used to instruct ActiveMQ to construct the message
+     * based with a specific type.
+     */
+    AsciiBuffer AMQ_MESSAGE_TYPE = ascii("amq-msg-type");
+    AsciiBuffer RECEIPT_ID = ascii("receipt-id");
+    AsciiBuffer PERSISTENT = ascii("persistent");
 
-        public interface Send {
-            String DESTINATION = "destination";
-            String CORRELATION_ID = "correlation-id";
-            String REPLY_TO = "reply-to";
-            String EXPIRATION_TIME = "expires";
-            String PRIORITY = "priority";
-            String TYPE = "type";
-            String PERSISTENT = "persistent";
-        }
+    AsciiBuffer MESSAGE_ID = ascii("message-id");
+    AsciiBuffer CORRELATION_ID = ascii("correlation-id");
+    AsciiBuffer EXPIRATION_TIME = ascii("expires");
+    AsciiBuffer REPLY_TO = ascii("reply-to");
+    AsciiBuffer PRIORITY = ascii("priority");
+    AsciiBuffer REDELIVERED = ascii("redelivered");
+    AsciiBuffer TIMESTAMP = ascii("timestamp");
+    AsciiBuffer TYPE = ascii("type");
+    AsciiBuffer SUBSCRIPTION = ascii("subscription");
+    AsciiBuffer USERID = ascii("JMSXUserID");
+    AsciiBuffer PROPERTIES = ascii("JMSXProperties");
 
-        public interface Message {
-            String MESSAGE_ID = "message-id";
-            String DESTINATION = "destination";
-            String CORRELATION_ID = "correlation-id";
-            String EXPIRATION_TIME = "expires";
-            String REPLY_TO = "reply-to";
-            String PRIORITY = "priority";
-            String REDELIVERED = "redelivered";
-            String TIMESTAMP = "timestamp";
-            String TYPE = "type";
-            String SUBSCRIPTION = "subscription";
-            String USERID = "JMSXUserID";
-            String PROPERTIES = "JMSXProperties";
-        }
+    AsciiBuffer ACK_MODE = ascii("ack");
+    AsciiBuffer ID = ascii("id");
+    AsciiBuffer SELECTOR = ascii("selector");
+    AsciiBuffer BROWSER = ascii("browser");
 
-        public interface Subscribe {
-            String DESTINATION = "destination";
-            String ACK_MODE = "ack";
-            String ID = "id";
-            String SELECTOR = "selector";
-            String PERSISTENT = "persistent";
-            String BROWSER = "browser";
+    AsciiBuffer AUTO = ascii("auto");
+    AsciiBuffer CLIENT = ascii("client");
+    AsciiBuffer INDIVIDUAL = ascii("client-individual");
 
-            public interface AckModeValues {
-                String AUTO = "auto";
-                String CLIENT = "client";
-                String INDIVIDUAL = "client-individual";
-            }
-        }
+    AsciiBuffer DESTINATION = ascii("destination");
+    AsciiBuffer LOGIN = ascii("login");
+    AsciiBuffer PASSCODE = ascii("passcode");
+    AsciiBuffer CLIENT_ID = ascii("client-id");
+    AsciiBuffer REQUEST_ID = ascii("request-id");
 
-        public interface Unsubscribe {
-            String DESTINATION = "destination";
-            String ID = "id";
-        }
+    AsciiBuffer SESSION = ascii("session");
+    AsciiBuffer RESPONSE_ID = ascii("response-id");
 
-        public interface Connect {
-            String LOGIN = "login";
-            String PASSCODE = "passcode";
-            String CLIENT_ID = "client-id";
-            String REQUEST_ID = "request-id";
-        }
+    AsciiBuffer ACCEPT_VERSION = ascii("accept-version");
+    AsciiBuffer V1_1 = ascii("1.1");
+    AsciiBuffer V1_0 = ascii("1.0");
+    AsciiBuffer HOST = ascii("host");
 
-        public interface Error {
-            String MESSAGE = "message";
-        }
+    AsciiBuffer TRUE = ascii("true");
+    AsciiBuffer FALSE = ascii("false");
 
-        public interface Connected {
-            String SESSION = "session";
-            String RESPONSE_ID = "response-id";
-        }
-
-        public interface Ack {
-            String SUBSCRIPTION = "subscription";
-            String MESSAGE_ID = "message-id";
-        }
-    }
-
-    public enum Transformations {
-        JMS_BYTE,
-        JMS_XML,
-        JMS_JSON,
-        JMS_OBJECT_XML,
-        JMS_OBJECT_JSON,
-        JMS_MAP_XML,
-        JMS_MAP_JSON,
-        JMS_ADVISORY_XML,
-        JMS_ADVISORY_JSON;
-
-        public String toString() {
-            return name().replaceAll("_", "-").toLowerCase();
-        }
-
-        public static Transformations getValue(String value) {
-            return valueOf(value.replaceAll("-", "_").toUpperCase());
-        }
-    }
+//    public enum Transformations {
+//        JMS_BYTE,
+//        JMS_XML,
+//        JMS_JSON,
+//        JMS_OBJECT_XML,
+//        JMS_OBJECT_JSON,
+//        JMS_MAP_XML,
+//        JMS_MAP_JSON,
+//        JMS_ADVISORY_XML,
+//        JMS_ADVISORY_JSON;
+//
+//        public AsciiBuffer toAsciiBuffer() {
+//            return name().replaceAll("_", "-").toLowerCase();
+//        }
+//
+//        public static Transformations getValue(AsciiBuffer value) {
+//            return valueOf(value.replaceAll("-", "_").toUpperCase());
+//        }
+//    }
 }

@@ -11,6 +11,7 @@
 package org.fusesource.stompjms.util;
 
 
+import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.stompjms.channel.StompFrame;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,7 +36,7 @@ public class SendRequest {
         return this.response;
     }
 
-    public void put(String id, StompFrame r) {
+    public void put(AsciiBuffer id, StompFrame r) {
         this.response = r;
         cancel();
     }

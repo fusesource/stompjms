@@ -10,6 +10,7 @@
 
 package org.fusesource.stompjms.channel;
 
+import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.stompjms.StompJmsDestination;
 import org.fusesource.stompjms.StompJmsExceptionSupport;
 import org.fusesource.stompjms.StompJmsMessageListener;
@@ -25,7 +26,9 @@ import java.net.URI;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
+import static org.fusesource.stompjms.channel.Stomp.*;
 
 public class StompChannel implements StompFrameListener {
     private static final long TIMEOUT = 15000;
@@ -41,8 +44,22 @@ public class StompChannel implements StompFrameListener {
     private AtomicBoolean started = new AtomicBoolean();
     private AtomicBoolean initialized = new AtomicBoolean();
     private AtomicBoolean connected = new AtomicBoolean();
-    private Map<String, SendRequest> requests = new LRUCache<String, SendRequest>();
-    private String currentTransactionId = null;
+    private Map<AsciiBuffer, SendRequest> requests = new LRUCache<AsciiBuffer, SendRequest>();
+    private AsciiBuffer currentTransactionId = null;
+    private AsciiBuffer session;
+    
+    private AtomicLong requestCounter = new AtomicLong();
+    
+    public AsciiBuffer getSession() {
+        return session;
+    }
+    public AsciiBuffer nextId() {
+        return nextId("");
+    }
+
+    public AsciiBuffer nextId(String prefix) {
+        return new AsciiBuffer(prefix+Long.toString(requestCounter.incrementAndGet()));
+    }
 
     public StompChannel copy() {
         StompChannel copy = new StompChannel();
@@ -71,7 +88,11 @@ public class StompChannel implements StompFrameListener {
         if (this.connected.compareAndSet(false, true)) {
             initialize();
             try {
-                this.socket.connect(getUserName(), getPassword(), getChannelId());
+                StompFrame connected = this.socket.connect(getUserName(), getPassword(), getChannelId());
+                session = connected.headers.get(SESSION);
+                if ( session==null ) {
+                    session = new AsciiBuffer("ID:"+UUID.randomUUID().toString());
+                }
             } catch (IOException e) {
                 throw StompJmsExceptionSupport.create(e);
             }
@@ -110,8 +131,8 @@ public class StompChannel implements StompFrameListener {
     public void sendMessage(StompJmsMessage message) throws JMSException {
         StompJmsMessage copy = message.copy();
         copy.onSend();
-        StompFrame frame = StompTranslator.convert(copy);
-        frame.setAction(Stomp.Commands.SEND);
+        StompFrame frame = copy.getFrame();
+        frame.setAction(SEND);
         addTransaction(frame);
         try {
             sendFrame(frame);
@@ -121,21 +142,23 @@ public class StompChannel implements StompFrameListener {
     }
 
     public void sendMessageRequest(StompJmsMessage message) throws JMSException {
-        StompFrame frame = StompTranslator.convert(message);
-        frame.setAction(Stomp.Commands.SEND);
+        StompJmsMessage copy = message.copy();
+        copy.onSend();
+        StompFrame frame = copy.getFrame();
+        frame.setAction(SEND);
         addTransaction(frame);
         try {
-            sendRequest(UUID.randomUUID().toString(), frame);
+            sendRequest(nextId(), frame);
         } catch (IOException e) {
             throw StompJmsExceptionSupport.create(e);
         }
     }
 
-    public void ackMessage(StompJmsDestination destination, String consumerId, String messageId) throws JMSException {
+    public void ackMessage(StompJmsDestination destination, AsciiBuffer consumerId, AsciiBuffer messageId) throws JMSException {
         StompFrame frame = new StompFrame();
-        frame.setAction(Stomp.Commands.ACK);
-        frame.getHeaders().put(Stomp.Headers.Ack.SUBSCRIPTION, consumerId);
-        frame.getHeaders().put(Stomp.Headers.Ack.MESSAGE_ID, messageId);
+        frame.setAction(ACK);
+        frame.headers.put(SUBSCRIPTION, consumerId);
+        frame.headers.put(MESSAGE_ID, messageId);
         addTransaction(frame);
         try {
             sendFrame(frame);
@@ -144,21 +167,21 @@ public class StompChannel implements StompFrameListener {
         }
     }
 
-    public void subscribe(StompJmsDestination destination, String consumerId, String selector, boolean clientAck, boolean persistent) throws JMSException {
+    public void subscribe(StompJmsDestination destination, AsciiBuffer consumerId, AsciiBuffer selector, boolean clientAck, boolean persistent) throws JMSException {
         StompFrame frame = new StompFrame();
-        frame.setAction(Stomp.Commands.SUBSCRIBE);
-        frame.getHeaders().put(Stomp.Headers.Subscribe.DESTINATION, destination.toString());
-        frame.getHeaders().put(Stomp.Headers.Subscribe.ID, consumerId);
+        frame.setAction(SUBSCRIBE);
+        frame.headers.put(DESTINATION, destination.toBuffer());
+        frame.headers.put(ID, consumerId);
         if (selector != null && selector.trim().isEmpty() == false) {
-            frame.getHeaders().put(Stomp.Headers.Subscribe.SELECTOR, selector);
+            frame.headers.put(SELECTOR, selector);
         }
         if (clientAck) {
-            frame.getHeaders().put(Stomp.Headers.Subscribe.ACK_MODE, Stomp.Headers.Subscribe.AckModeValues.CLIENT);
+            frame.headers.put(ACK_MODE, CLIENT);
         } else {
-            frame.getHeaders().put(Stomp.Headers.Subscribe.ACK_MODE, Stomp.Headers.Subscribe.AckModeValues.AUTO);
+            frame.headers.put(ACK_MODE, AUTO);
         }
         if (persistent) {
-            frame.getHeaders().put(Stomp.Headers.Subscribe.PERSISTENT, "true");
+            frame.headers.put(PERSISTENT, TRUE);
         }
         try {
             sendRequest(consumerId, frame);
@@ -167,18 +190,18 @@ public class StompChannel implements StompFrameListener {
         }
     }
 
-    public void unsubscribe(StompJmsDestination destination, String consumerId, boolean persistent, boolean browser) throws JMSException {
+    public void unsubscribe(StompJmsDestination destination, AsciiBuffer consumerId, boolean persistent, boolean browser) throws JMSException {
         StompFrame frame = new StompFrame();
-        frame.setAction(Stomp.Commands.UNSUBSCRIBE);
+        frame.setAction(UNSUBSCRIBE);
         if (destination != null) {
-            frame.getHeaders().put(Stomp.Headers.Unsubscribe.DESTINATION, destination.toString());
+            frame.headers.put(DESTINATION, destination.toBuffer());
         }
-        frame.getHeaders().put(Stomp.Headers.Unsubscribe.ID, consumerId);
+        frame.headers.put(ID, consumerId);
         if (persistent) {
-            frame.getHeaders().put(Stomp.Headers.Subscribe.PERSISTENT, "true");
+            frame.headers.put(PERSISTENT, TRUE);
         }
         if (browser) {
-            frame.getHeaders().put(Stomp.Headers.Subscribe.BROWSER, "true");
+            frame.headers.put(BROWSER, TRUE);
         }
         try {
             sendFrame(frame);
@@ -188,13 +211,13 @@ public class StompChannel implements StompFrameListener {
     }
 
 
-    public synchronized String startTransaction() throws JMSException {
+    public synchronized AsciiBuffer startTransaction() throws JMSException {
         if (this.currentTransactionId != null) {
             throw new JMSException("Transaction " + this.currentTransactionId + " already in progress");
         }
-        this.currentTransactionId = "TX:" + UUID.randomUUID().toString();
+        this.currentTransactionId = nextId("TX:");
         StompFrame frame = new StompFrame();
-        frame.setAction(Stomp.Commands.BEGIN);
+        frame.setAction(BEGIN);
         addTransaction(frame);
         try {
             sendFrame(frame);
@@ -205,9 +228,9 @@ public class StompChannel implements StompFrameListener {
     }
 
     public synchronized void commitTransaction() throws JMSException {
-        String id = this.currentTransactionId;
+        AsciiBuffer id = this.currentTransactionId;
         StompFrame frame = new StompFrame();
-        frame.setAction(Stomp.Commands.COMMIT);
+        frame.setAction(COMMIT);
         addTransaction(frame);
         this.currentTransactionId = null;
         try {
@@ -218,9 +241,9 @@ public class StompChannel implements StompFrameListener {
     }
 
     public void rollbackTransaction() throws JMSException {
-        String id = this.currentTransactionId;
+        AsciiBuffer id = this.currentTransactionId;
         StompFrame frame = new StompFrame();
-        frame.setAction(Stomp.Commands.ABORT);
+        frame.setAction(ABORT);
         addTransaction(frame);
         this.currentTransactionId = null;
         try {
@@ -234,12 +257,12 @@ public class StompChannel implements StompFrameListener {
         this.socket.sendFrame(frame);
     }
 
-    public void sendRequest(String id, StompFrame frame) throws IOException {
+    public void sendRequest(AsciiBuffer id, StompFrame frame) throws IOException {
         SendRequest sr = new SendRequest();
         synchronized (this.requests) {
             this.requests.put(id, sr);
         }
-        frame.getHeaders().put(Stomp.Headers.RECEIPT_REQUESTED, id);
+        frame.headers.put(RECEIPT_REQUESTED, id);
         this.socket.sendFrame(frame);
         StompFrame response = sr.get(TIMEOUT);
         if (response == null) {
@@ -249,11 +272,11 @@ public class StompChannel implements StompFrameListener {
 
 
     public void onFrame(StompFrame frame) {
-        String action = frame.getAction();
+        AsciiBuffer action = frame.getAction();
         if (frame.getClass() == StompFrameError.class) {
             handleException(((StompFrameError) frame).getException());
         }
-        if (action.startsWith(Stomp.Commands.MESSAGE)) {
+        if (action.startsWith(MESSAGE)) {
             try {
                 StompJmsMessage msg = StompTranslator.convert(frame);
                 addTransaction(msg);
@@ -266,8 +289,8 @@ public class StompChannel implements StompFrameListener {
             } catch (JMSException e) {
                 handleException(e);
             }
-        } else if (action.startsWith(Stomp.Responses.RECEIPT)) {
-            String id = frame.getHeaders().get(Stomp.Headers.Response.RECEIPT_ID);
+        } else if (action.startsWith(RECEIPT)) {
+            AsciiBuffer id = frame.headers.get(RECEIPT_ID);
             if (id != null) {
                 synchronized (this.requests) {
                     SendRequest request = this.requests.remove(id);
@@ -280,7 +303,7 @@ public class StompChannel implements StompFrameListener {
             } else {
                 handleException(new ProtocolException("Stomp Response with no receipt id: " + frame));
             }
-        } else if (action.startsWith(Stomp.Responses.ERROR)) {
+        } else if (action.startsWith(ERROR)) {
             handleException(new ProtocolException("Received an error: " + frame.toString()));
         } else {
             handleException(new ProtocolException("Unknown STOMP action: " + action));
@@ -408,7 +431,7 @@ public class StompChannel implements StompFrameListener {
 
     private synchronized void addTransaction(StompFrame frame) {
         if (this.currentTransactionId != null) {
-            frame.getHeaders().put(Stomp.Headers.TRANSACTION, this.currentTransactionId);
+            frame.headers.put(TRANSACTION, this.currentTransactionId);
         }
     }
 

@@ -11,6 +11,7 @@
 package org.fusesource.stompjms.channel;
 
 
+import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtbuf.Buffer;
 import org.fusesource.hawtbuf.DataByteArrayOutputStream;
 
@@ -19,6 +20,10 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
+
+import static org.fusesource.stompjms.channel.Stomp.*;
+import static org.fusesource.hawtbuf.Buffer.*;
 
 /**
  * Represents all the data in a STOMP frame.
@@ -29,19 +34,19 @@ public class StompFrame {
 
     public static final Buffer NO_DATA = new Buffer(new byte[]{});
 
-    private String action;
-    private Map<String, String> headers = new HashMap<String, String>();
-    private Buffer content = NO_DATA;
+    public AsciiBuffer action;
+    public Map<AsciiBuffer, AsciiBuffer> headers = new HashMap<AsciiBuffer, AsciiBuffer>();
+    public Buffer content = NO_DATA;
 
-    public StompFrame(String command) {
+    public StompFrame(AsciiBuffer command) {
         this(command, null, (Buffer) null);
     }
 
-    public StompFrame(String command, Map<String, String> headers) {
+    public StompFrame(AsciiBuffer command, Map<AsciiBuffer, AsciiBuffer> headers) {
         this(command, headers, (Buffer) null);
     }
 
-    public StompFrame(String command, Map<String, String> headers, Buffer data) {
+    public StompFrame(AsciiBuffer command, Map<AsciiBuffer, AsciiBuffer> headers, Buffer data) {
         this.action = command;
         if (headers != null)
             this.headers = headers;
@@ -49,18 +54,22 @@ public class StompFrame {
             this.content = data;
     }
 
-    public StompFrame(String command, Map<String, String> headers, byte[] data) {
+    public StompFrame(AsciiBuffer command, Map<AsciiBuffer, AsciiBuffer> headers, byte[] data) {
         this(command, headers, (data != null ? new Buffer(data) : null));
     }
 
     public StompFrame() {
     }
 
-    public String getAction() {
+    public StompFrame clone() {
+        return new StompFrame(action, new HashMap(headers), content);
+    }
+
+    public AsciiBuffer getAction() {
         return action;
     }
 
-    public void setAction(String command) {
+    public void setAction(AsciiBuffer command) {
         this.action = command;
     }
 
@@ -87,80 +96,41 @@ public class StompFrame {
         this.content = NO_DATA;
     }
 
-    public Map<String, String> getHeaders() {
+    public Map<AsciiBuffer, AsciiBuffer> getHeaders() {
         return headers;
     }
 
-    public void setHeaders(Map<String, String> headers) {
-        this.headers = headers;
-    }
+    public Buffer toBuffer() {
+        try {
+            DataByteArrayOutputStream out = new DataByteArrayOutputStream();
+            out.write(getAction());
+            out.write(Stomp.NEWLINE);
 
+            for (Map.Entry<AsciiBuffer, AsciiBuffer> entry: headers.entrySet()){
+                out.write(entry.getKey());
+                out.write(SEPERATOR);
+                out.write(entry.getValue());
+                out.write(Stomp.NEWLINE);
+            }
 
-    public Buffer toBuffer() throws IOException {
-
-        DataByteArrayOutputStream out = new DataByteArrayOutputStream();
-        StringBuffer buffer = new StringBuffer();
-
-        buffer.append(getAction());
-        buffer.append(Stomp.NEWLINE);
-
-        Map<String, String> h = getHeaders();
-        for (Iterator<Map.Entry<String, String>> iter = h.entrySet().iterator(); iter.hasNext();) {
-            Map.Entry<String, String> entry = iter.next();
-            buffer.append(entry.getKey());
-            buffer.append(":");
-            buffer.append(entry.getValue());
-            buffer.append(Stomp.NEWLINE);
+            //denotes end of headers with a new line
+            out.write(CONTENT_LENGTH);
+            out.write(SEPERATOR);
+            int contentLength = content != null ? content.length() : 0;
+            out.write(ascii(Integer.toString(contentLength)));
+            out.write(Stomp.NEWLINE);
+            out.write(Stomp.NEWLINE);
+            if (content != null) {
+                out.write(content);
+            }
+            out.write(Stomp.NULL);
+            return out.toBuffer();
+        } catch (IOException e) {
+            throw new RuntimeException(e); // not expected to occur.
         }
-        //denotes end of headers with a new line
-        buffer.append(Stomp.Headers.CONTENT_LENGTH).append(":");
-        Buffer b = getContent();
-        int contentLength = b != null ? b.length() : 0;
-        buffer.append(contentLength);
-
-        if (b != null) {
-            buffer.append(Stomp.NEWLINE);
-            buffer.append(Stomp.NEWLINE);
-            String content = new String(b.getData(), b.getOffset(), b.getLength(), "UTF-8");
-            buffer.append(content);
-        }
-        buffer.append(Stomp.NULL);
-        out.write(buffer.toString().getBytes());
-        Buffer result = out.toBuffer();
-        return result;
     }
 
     public String toString() {
-        StringBuffer buffer = new StringBuffer();
-
-        buffer.append(getAction());
-        buffer.append(Stomp.NEWLINE);
-
-        Map<String, String> h = getHeaders();
-        for (Iterator<Map.Entry<String, String>> iter = h.entrySet().iterator(); iter.hasNext();) {
-            Map.Entry<String, String> entry = iter.next();
-            buffer.append(entry.getKey());
-            buffer.append(":");
-            buffer.append(entry.getValue());
-            buffer.append(Stomp.NEWLINE);
-        }
-        //denotes end of headers with a new line
-        buffer.append(Stomp.NEWLINE);
-        Buffer b = getContent();
-        if (b != null) {
-
-            String content = null;
-            try {
-                content = new String(b.getData(), b.getOffset(), b.getLength(), "UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
-
-            buffer.append(Stomp.Headers.CONTENT_LENGTH);
-            buffer.append(":").append(content.length());
-            buffer.append(Stomp.NEWLINE);
-            buffer.append(content);
-        }
-        return buffer.toString();
+        return toBuffer().utf8().toString();
     }
 }

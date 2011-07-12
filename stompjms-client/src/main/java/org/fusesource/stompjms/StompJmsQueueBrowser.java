@@ -10,6 +10,7 @@
 
 package org.fusesource.stompjms;
 
+import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.stompjms.message.StompJmsMessage;
 
 import javax.jms.IllegalStateException;
@@ -51,7 +52,7 @@ public class StompJmsQueueBrowser implements QueueBrowser, Enumeration {
 
     private StompJmsMessageConsumer consumer;
     private boolean closed;
-    private final String id;
+    private final AsciiBuffer id;
     private final AtomicBoolean browseDone = new AtomicBoolean(true);
     private Object semaphore = new Object();
 
@@ -64,7 +65,7 @@ public class StompJmsQueueBrowser implements QueueBrowser, Enumeration {
      * @param selector
      * @throws javax.jms.JMSException
      */
-    protected StompJmsQueueBrowser(StompJmsSession session, String id, StompJmsDestination destination, String selector) throws JMSException {
+    protected StompJmsQueueBrowser(StompJmsSession session, AsciiBuffer id, StompJmsDestination destination, String selector) throws JMSException {
         this.session = session;
         this.id = id;
         this.destination = destination;

@@ -10,6 +10,7 @@
 
 package org.fusesource.stompjms;
 
+import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.stompjms.jndi.JNDIStorable;
 
 import javax.jms.InvalidDestinationException;
@@ -45,6 +46,10 @@ public abstract class StompJmsDestination extends JNDIStorable implements Extern
             toString = getType() + getPhysicalName();
         }
         return toString;
+    }
+
+    public AsciiBuffer toBuffer() {
+        return new AsciiBuffer(toString());
     }
 
     protected abstract String getType();

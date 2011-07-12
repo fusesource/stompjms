@@ -15,6 +15,7 @@ import org.fusesource.stompjms.StompJmsExceptionSupport;
 import org.fusesource.stompjms.message.StompJmsMessage;
 
 import javax.jms.DeliveryMode;
+import javax.jms.InvalidDestinationException;
 import javax.jms.JMSException;
 import java.io.IOException;
 import java.util.HashMap;
@@ -38,20 +39,29 @@ public class PropertyExpression {
         JMS_PROPERTY_EXPRESSIONS.put("JMSDestination", new SubExpression() {
 
             public Object evaluate(StompJmsMessage message) {
-                StompJmsDestination dest = message.getStompJmsDestination();
-                if (dest == null) {
+                try {
+                    StompJmsDestination dest = message.getStompJmsDestination();
+                    if (dest == null) {
+                        return null;
+                    }
+                    return dest.toString();
+                } catch (InvalidDestinationException e) {
                     return null;
                 }
-                return dest.toString();
             }
         });
         JMS_PROPERTY_EXPRESSIONS.put("JMSReplyTo", new SubExpression() {
 
             public Object evaluate(StompJmsMessage message) {
-                if (message.getStompJmsReplyTo() == null) {
+                try {
+                    StompJmsDestination dest = message.getStompJmsReplyTo();
+                    if (dest == null) {
+                        return null;
+                    }
+                    return dest.toString();
+                } catch (InvalidDestinationException e) {
                     return null;
                 }
-                return message.getStompJmsReplyTo().toString();
             }
         });
         JMS_PROPERTY_EXPRESSIONS.put("JMSType", new SubExpression() {
