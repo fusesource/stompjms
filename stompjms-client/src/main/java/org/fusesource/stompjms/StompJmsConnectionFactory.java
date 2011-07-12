@@ -85,14 +85,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      * @see javax.jms.TopicConnectionFactory#createTopicConnection()
      */
     public TopicConnection createTopicConnection() throws JMSException {
-        try {
-            TopicConnection result = new StompJmsConnection(this.brokerURI, this.localURI, getUsername(), getPassword());
-            Map<String, String> map = PropertyUtil.getProperties(this);
-            PropertyUtil.setProperties(result, map);
-            return result;
-        } catch (Exception e) {
-            throw StompJmsExceptionSupport.create(e);
-        }
+        return createTopicConnection( getUsername(), getPassword());
     }
 
     /**
@@ -103,13 +96,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      * @see javax.jms.TopicConnectionFactory#createTopicConnection(java.lang.String, java.lang.String)
      */
     public TopicConnection createTopicConnection(String userName, String password) throws JMSException {
-        try {
-            TopicConnection result = new StompJmsConnection(this.brokerURI, this.localURI, userName, password);
-            PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
-            return result;
-        } catch (Exception e) {
-            throw StompJmsExceptionSupport.create(e);
-        }
+        return (TopicConnection) createConnection(userName, password);
     }
 
     /**
@@ -118,13 +105,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      * @see javax.jms.ConnectionFactory#createConnection()
      */
     public Connection createConnection() throws JMSException {
-        try {
-            Connection result = new StompJmsConnection(this.brokerURI, this.localURI, getUsername(), getPassword());
-            PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
-            return result;
-        } catch (Exception e) {
-            throw StompJmsExceptionSupport.create(e);
-        }
+        return createConnection(getUsername(), getPassword());
     }
 
     /**
@@ -136,7 +117,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      */
     public Connection createConnection(String userName, String password) throws JMSException {
         try {
-            Connection result = new StompJmsConnection(this.brokerURI, this.localURI, getUsername(), getPassword());
+            Connection result = new StompJmsConnection(this.brokerURI, this.localURI, userName, password);
             PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
             return result;
         } catch (Exception e) {
@@ -150,13 +131,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      * @see javax.jms.QueueConnectionFactory#createQueueConnection()
      */
     public QueueConnection createQueueConnection() throws JMSException {
-        try {
-            QueueConnection result = new StompJmsConnection(this.brokerURI, this.localURI, getUsername(), getPassword());
-            PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
-            return result;
-        } catch (Exception e) {
-            throw StompJmsExceptionSupport.create(e);
-        }
+        return createQueueConnection(getUsername(), getPassword());
     }
 
     /**
@@ -167,13 +142,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      * @see javax.jms.QueueConnectionFactory#createQueueConnection(java.lang.String, java.lang.String)
      */
     public QueueConnection createQueueConnection(String userName, String password) throws JMSException {
-        try {
-            QueueConnection result = new StompJmsConnection(this.brokerURI, this.localURI, userName, password);
-            PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
-            return result;
-        } catch (Exception e) {
-            throw StompJmsExceptionSupport.create(e);
-        }
+        return (QueueConnection) createConnection(userName, password);
     }
 
 
