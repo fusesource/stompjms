@@ -96,7 +96,7 @@ public class StompChannel implements StompFrameListener {
                 StompFrame connected = this.socket.connect(getUserName(), getPassword(), getChannelId());
                 session = connected.headers.get(SESSION);
                 if ( session==null ) {
-                    session = new AsciiBuffer("ID:"+UUID.randomUUID().toString());
+                    session = new AsciiBuffer("id-"+UUID.randomUUID().toString());
                 }
             } catch (IOException e) {
                 throw StompJmsExceptionSupport.create(e);
@@ -155,7 +155,7 @@ public class StompChannel implements StompFrameListener {
         frame.headers.put(CONTENT_LENGTH, new AsciiBuffer(Integer.toString(frame.content.length)));
         addTransaction(frame);
         try {
-            sendRequest(nextId(), frame);
+            sendRequest(frame);
         } catch (IOException e) {
             throw StompJmsExceptionSupport.create(e);
         }
@@ -194,7 +194,7 @@ public class StompChannel implements StompFrameListener {
             frame.headers.put(BROWSER, TRUE);
         }
         try {
-            sendRequest(consumerId, frame);
+            sendRequest(frame);
         } catch (IOException e) {
             throw StompJmsExceptionSupport.create(e);
         }
@@ -222,7 +222,7 @@ public class StompChannel implements StompFrameListener {
         if (this.currentTransactionId != null) {
             throw new JMSException("Transaction " + this.currentTransactionId + " already in progress");
         }
-        this.currentTransactionId = nextId("TX:");
+        this.currentTransactionId = nextId("TX-");
         StompFrame frame = new StompFrame();
         frame.setAction(BEGIN);
         addTransaction(frame);
@@ -241,7 +241,7 @@ public class StompChannel implements StompFrameListener {
         addTransaction(frame);
         this.currentTransactionId = null;
         try {
-            sendRequest(id, frame);
+            sendRequest(frame);
         } catch (IOException e) {
             throw StompJmsExceptionSupport.create(e);
         }
@@ -254,7 +254,7 @@ public class StompChannel implements StompFrameListener {
         addTransaction(frame);
         this.currentTransactionId = null;
         try {
-            sendRequest(id, frame);
+            sendRequest(frame);
         } catch (IOException e) {
             throw StompJmsExceptionSupport.create(e);
         }
@@ -264,7 +264,8 @@ public class StompChannel implements StompFrameListener {
         this.socket.sendFrame(frame);
     }
 
-    public void sendRequest(AsciiBuffer id, StompFrame frame) throws IOException {
+    public void sendRequest(StompFrame frame) throws IOException {
+        AsciiBuffer id = nextId();
         SendRequest sr = new SendRequest();
         synchronized (this.requests) {
             this.requests.put(id, sr);
@@ -324,6 +325,9 @@ public class StompChannel implements StompFrameListener {
     }
 
     public static String decodeHeader(Buffer value) {
+        if( value ==null )
+            return null;
+
         ByteArrayOutputStream rc = new ByteArrayOutputStream(value.length);
         Buffer pos = new Buffer(value);
         int max = value.offset + value.length;
@@ -350,6 +354,8 @@ public class StompChannel implements StompFrameListener {
     }
 
     public static AsciiBuffer encodeHeader(String value) {
+        if( value ==null )
+            return null;
         try {
             byte[] data = value.getBytes("UTF-8");
             ByteArrayOutputStream rc = new ByteArrayOutputStream(data.length);

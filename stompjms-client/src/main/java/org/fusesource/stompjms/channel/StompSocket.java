@@ -120,6 +120,9 @@ public class StompSocket implements Runnable {
      * @throws IOException
      */
     public synchronized void sendFrame(StompFrame frame) throws IOException {
+//        System.out.println("===>");
+//        System.out.println(frame);
+//        System.out.println("===>");
         frame.write(dataOut);
         dataOut.flush();
     }
@@ -491,7 +494,11 @@ public class StompSocket implements Runnable {
 
             }
 
-            return new StompFrame(action, headers, data);
+            StompFrame frame = new StompFrame(action, headers, data);
+//            System.out.println("<===");
+//            System.out.println(frame);
+//            System.out.println("<===");
+            return frame;
 
         } catch (ProtocolException e) {
             return new StompFrameError(e);

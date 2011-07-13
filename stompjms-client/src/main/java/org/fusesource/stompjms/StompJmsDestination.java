@@ -11,6 +11,7 @@
 package org.fusesource.stompjms;
 
 import org.fusesource.hawtbuf.AsciiBuffer;
+import org.fusesource.stompjms.channel.StompChannel;
 import org.fusesource.stompjms.jndi.JNDIStorable;
 
 import javax.jms.InvalidDestinationException;
@@ -35,7 +36,7 @@ public abstract class StompJmsDestination extends JNDIStorable implements Extern
     protected transient boolean temporary;
     protected transient int hashValue;
     protected transient String toString;
-
+    protected transient AsciiBuffer buffer;
 
     protected StompJmsDestination(String name) {
         setPhysicalName(name);
@@ -49,7 +50,10 @@ public abstract class StompJmsDestination extends JNDIStorable implements Extern
     }
 
     public AsciiBuffer toBuffer() {
-        return new AsciiBuffer(toString());
+        if (buffer == null) {
+            buffer = StompChannel.encodeHeader(toString());
+        }
+        return buffer;
     }
 
     protected abstract String getType();
@@ -64,6 +68,9 @@ public abstract class StompJmsDestination extends JNDIStorable implements Extern
 
     private void setPhysicalName(String physicalName) {
         this.physicalName = physicalName;
+        this.toString = null;
+        this.buffer = null;
+
     }
 
     /**
