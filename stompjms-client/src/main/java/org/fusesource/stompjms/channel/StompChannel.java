@@ -11,6 +11,8 @@
 package org.fusesource.stompjms.channel;
 
 import org.fusesource.hawtbuf.AsciiBuffer;
+import org.fusesource.hawtbuf.Buffer;
+import org.fusesource.hawtbuf.ByteArrayOutputStream;
 import org.fusesource.stompjms.StompJmsDestination;
 import org.fusesource.stompjms.StompJmsExceptionSupport;
 import org.fusesource.stompjms.StompJmsMessageListener;
@@ -22,7 +24,10 @@ import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
 import javax.net.SocketFactory;
 import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.text.BreakIterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -31,7 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.fusesource.stompjms.channel.Stomp.*;
 
 public class StompChannel implements StompFrameListener {
-    private static final long TIMEOUT = 15000;
+    private static final long TIMEOUT = -1;
     private String channelId;
     private String userName;
     private String password;
@@ -266,9 +271,13 @@ public class StompChannel implements StompFrameListener {
         }
         frame.headers.put(RECEIPT_REQUESTED, id);
         this.socket.sendFrame(frame);
-        StompFrame response = sr.get(TIMEOUT);
-        if (response == null) {
-            throw new IOException("SendRequest timed out for " + frame);
+        try {
+            StompFrame response = sr.get(TIMEOUT);
+            if (response == null) {
+                throw new IOException("SendRequest timed out for " + frame);
+            }
+        } catch (InterruptedException e) {
+            throw new InterruptedIOException();
         }
     }
 
@@ -313,6 +322,58 @@ public class StompChannel implements StompFrameListener {
 
 
     }
+
+    public static String decodeHeader(Buffer value) {
+        ByteArrayOutputStream rc = new ByteArrayOutputStream(value.length);
+        Buffer pos = new Buffer(value);
+        int max = value.offset + value.length;
+        while (pos.offset < max) {
+            if (pos.startsWith(ESCAPE_ESCAPE_SEQ)) {
+                rc.write(ESCAPE_BYTE);
+                pos.offset += 2;
+            } else if (pos.startsWith(COLON_ESCAPE_SEQ)) {
+                rc.write(COLON_BYTE);
+                pos.offset += 2;
+            } else if (pos.startsWith(NEWLINE_ESCAPE_SEQ)) {
+                rc.write(NEWLINE_BYTE);
+                pos.offset += 2;
+            } else {
+                rc.write(pos.data[pos.offset]);
+                pos.offset += 1;
+            }
+        }
+        try {
+            return new String(rc.toByteArray(), "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e); // not expected.
+        }
+    }
+
+    public static AsciiBuffer encodeHeader(String value) {
+        try {
+            byte[] data = value.getBytes("UTF-8");
+            ByteArrayOutputStream rc = new ByteArrayOutputStream(data.length);
+            for (byte d : data) {
+                switch (d) {
+                    case ESCAPE_BYTE:
+                        rc.write(ESCAPE_ESCAPE_SEQ);
+                        break;
+                    case COLON_BYTE:
+                        rc.write(COLON_ESCAPE_SEQ);
+                        break;
+                    case NEWLINE_BYTE:
+                        rc.write(COLON_ESCAPE_SEQ);
+                        break;
+                    default:
+                        rc.write(d);
+                }
+            }
+            return rc.toBuffer().ascii();
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e); // not expected.
+        }
+    }
+
 
     /**
      * @return the channelId

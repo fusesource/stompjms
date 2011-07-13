@@ -87,19 +87,19 @@ public class StompJmsMapMessage extends StompJmsMessage implements MapMessage {
         return JmsMsgType.MAP;
     }
 
-    public StompJmsMessage copy() {
+    public StompJmsMessage copy() throws JMSException {
         StompJmsMapMessage copy = new StompJmsMapMessage();
         copy(copy);
         return copy;
     }
 
-    public void copy(StompJmsMapMessage copy) {
+    public void copy(StompJmsMapMessage copy) throws JMSException {
         storeContent();
         super.copy(copy);
     }
 
 
-    public void storeContent() {
+    public void storeContent() throws JMSException {
         Buffer buffer = getContent();
         if (buffer == null && !this.map.isEmpty()) {
             buffer = StompTranslator.writeBufferFromObject(this.map);

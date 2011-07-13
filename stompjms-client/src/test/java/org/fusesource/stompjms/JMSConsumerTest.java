@@ -45,6 +45,36 @@ public class JMSConsumerTest extends JmsTestSupport {
         junit.textui.TestRunner.run(suite());
     }
 
+//    public void initCombosForTestMessageProperties() {
+//        addCombinationValues("deliveryMode", new Object[]{Integer.valueOf(DeliveryMode.NON_PERSISTENT), Integer.valueOf(DeliveryMode.PERSISTENT)});
+//        addCombinationValues("destinationType", new Object[]{"/queue/"});
+//    }
+
+    public void testMessageProperties() throws Exception {
+        destinationType = "/queue/";
+        deliveryMode = DeliveryMode.NON_PERSISTENT;
+
+        connection.start();
+        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        destination = createDestination(destinationType);
+        MessageProducer producer = session.createProducer(destination);
+        producer.setDeliveryMode(deliveryMode);
+
+        Message msg = session.createMessage();
+        msg.setBooleanProperty("p1", true);
+        msg.setByteProperty("p2", (byte) 2);
+        msg.setShortProperty("p3", (short) 3);
+        producer.send(msg);
+
+        MessageConsumer consumer = session.createConsumer(destination);
+        Message m = consumer.receive(1000);
+        assertNotNull(m);
+        assertTrue(msg.getBooleanProperty("p1"));
+        assertEquals((byte)2, m.getByteProperty("p2"));
+        assertEquals((short)3, m.getShortProperty("p3"));
+
+        assertNull(consumer.receiveNoWait());
+    }
 
     public void initCombosForTestQueueBrowser() {
         addCombinationValues("deliveryMode", new Object[]{Integer.valueOf(DeliveryMode.NON_PERSISTENT), Integer.valueOf(DeliveryMode.PERSISTENT)});

@@ -26,6 +26,7 @@ import java.util.*;
 
 import static org.fusesource.hawtbuf.Buffer.ascii;
 import static org.fusesource.stompjms.channel.Stomp.*;
+import static org.fusesource.stompjms.channel.StompChannel.*;
 
 public class StompJmsMessage implements javax.jms.Message {
 
@@ -460,6 +461,7 @@ public class StompJmsMessage implements javax.jms.Message {
     public void setProperty(String name, Object value) throws IOException {
         lazyCreateProperties();
         properties.put(name, value);
+        this.frame.headers.put(encodeHeader(name), encodeHeader(value.toString()));
     }
 
     public void removeProperty(String name) throws IOException {
@@ -473,7 +475,7 @@ public class StompJmsMessage implements javax.jms.Message {
                 properties = new HashMap<String, Object>(this.frame.headers.size());
                 for (Map.Entry<AsciiBuffer, AsciiBuffer> entry: this.frame.headers.entrySet()){
                     if( !RESERVED_HEADER_NAMES.contains(entry.getKey()) ) {
-                        properties.put(entry.getKey().toString(), entry.getKey().toString());
+                        properties.put(decodeHeader(entry.getKey()), decodeHeader(entry.getValue()));
                     }
                 }
             } else {

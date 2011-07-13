@@ -525,7 +525,7 @@ public class StompSocket implements Runnable {
                 }
 
                 try {
-                    int seperatorIndex = line.indexOf(SEPERATOR);
+                    int seperatorIndex = line.indexOf(COLON);
                     AsciiBuffer name = line.slice(0, seperatorIndex).trim().ascii();
                     AsciiBuffer value = line.slice(seperatorIndex + 1, line.length()).trim().ascii();
                     headers.put(name, value);

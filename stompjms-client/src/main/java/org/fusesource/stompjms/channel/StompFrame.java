@@ -19,12 +19,9 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 import static org.fusesource.stompjms.channel.Stomp.*;
-import static org.fusesource.hawtbuf.Buffer.*;
 
 /**
  * Represents all the data in a STOMP frame.
@@ -116,19 +113,19 @@ public class StompFrame {
     }
 
     public void write(DataOutput out) throws IOException {
-        write(out,action);
+        write(out, action);
         out.writeByte(NEWLINE_BYTE);
         for (Map.Entry<AsciiBuffer, AsciiBuffer> entry: headers.entrySet()){
-            write(out,entry.getKey());
-            out.writeByte(SEPERATOR_BYTE);
-            write(out,entry.getValue());
+            write(out, entry.getKey());
+            out.writeByte(COLON_BYTE);
+            write(out, entry.getValue());
             out.writeByte(NEWLINE_BYTE);
         }
 
         //denotes end of headers with a new line
         out.writeByte(NEWLINE_BYTE);
         if (content != null) {
-            write(out,content);
+            write(out, content);
         }
         out.writeByte(NULL_BYTE);
     }

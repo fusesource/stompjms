@@ -14,24 +14,22 @@ package org.fusesource.stompjms.util;
 import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.stompjms.channel.StompFrame;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * state on a request
  */
 public class SendRequest {
-    private final AtomicBoolean done = new AtomicBoolean();
-    private StompFrame response;
+    private final CountDownLatch done = new CountDownLatch(1);
+    volatile private StompFrame response;
 
-    public StompFrame get(long timeout) {
-        synchronized (this.done) {
-            if (this.done.get() == false && this.response == null) {
-                try {
-                    this.done.wait(timeout);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
+    public StompFrame get(long timeout) throws InterruptedException {
+        if( timeout == 0 ) {
+        } else if( timeout < 0 ) {
+            done.await();
+        } else {
+            done.await(timeout, TimeUnit.MILLISECONDS);
         }
         return this.response;
     }
@@ -42,9 +40,6 @@ public class SendRequest {
     }
 
     void cancel() {
-        this.done.set(true);
-        synchronized (this.done) {
-            this.done.notifyAll();
-        }
+        done.countDown();
     }
 }
