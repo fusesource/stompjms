@@ -17,7 +17,7 @@ import javax.jms.IllegalStateException;
 import javax.jms.*;
 import java.util.Enumeration;
 import java.util.concurrent.atomic.AtomicBoolean;
-
+import static org.fusesource.stompjms.channel.Stomp.*;
 
 /**
  * A client uses a <CODE>QueueBrowser</CODE> object to look at messages on a
@@ -77,25 +77,29 @@ public class StompJmsQueueBrowser implements QueueBrowser, Enumeration {
     private StompJmsMessageConsumer createConsumer() throws JMSException {
         browseDone.set(false);
 
-        return new StompJmsMessageConsumer(id, session, destination, selector) {
+        StompJmsMessageConsumer rc = new StompJmsMessageConsumer(id, session, destination, selector) {
+
+            @Override
+            public boolean isBrowser() {
+                return true;
+            }
+
             public void onMessage(StompJmsMessage message) {
                 if (message == null) {
                     browseDone.set(true);
                 } else {
-                    try {
-                        String browser = message.getStringProperty("browser");
-                        if (browser != null && browser.equalsIgnoreCase("end")) {
-                            browseDone.set(true);
-                        } else {
-                            super.onMessage(message);
-                        }
-                    } catch (JMSException e) {
+                    AsciiBuffer browser = message.getFrame().headers.get(BROWSER);
+                    if (browser!=null && END.equals(browser)) {
+                        browseDone.set(true);
+                    } else {
+                        super.onMessage(message);
                     }
-
                 }
                 notifyMessageAvailable();
             }
         };
+        rc.init();
+        return rc;
     }
 
     private void destroyConsumer() {

@@ -41,6 +41,18 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
         this.messageSelector = selector;
     }
 
+    public void init() throws JMSException {
+        session.add(this, isDurableSubscription(), isBrowser());
+    }
+
+    public boolean isDurableSubscription() {
+        return false;
+    }
+
+
+    public boolean isBrowser() {
+        return false;
+    }
 
     /**
      * @throws JMSException

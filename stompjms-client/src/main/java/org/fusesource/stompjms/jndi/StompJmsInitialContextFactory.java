@@ -155,6 +155,19 @@ public class StompJmsInitialContextFactory implements InitialContextFactory {
     protected StompJmsConnectionFactory createConnectionFactory(Hashtable environment) throws URISyntaxException {
         StompJmsConnectionFactory answer = new StompJmsConnectionFactory();
         Properties properties = new Properties();
+        environment.remove("java.naming.factory.initial");
+        Object o = environment.remove("java.naming.provider.url");
+        if(o!=null) {
+            answer.setBrokerURI(o.toString());
+        }
+        o = environment.remove("java.naming.security.principal");
+        if(o!=null) {
+            answer.setUsername(o.toString());
+        }
+        o = environment.remove("java.naming.security.credentials");
+        if(o!=null) {
+            answer.setPassword(o.toString());
+        }
         properties.putAll(environment);
         answer.setProperties(properties);
         return answer;

@@ -15,6 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
+import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,6 +43,54 @@ public class JMSConsumerTest extends JmsTestSupport {
 
     public static void main(String[] args) {
         junit.textui.TestRunner.run(suite());
+    }
+
+
+    public void initCombosForTestQueueBrowser() {
+        addCombinationValues("deliveryMode", new Object[]{Integer.valueOf(DeliveryMode.NON_PERSISTENT), Integer.valueOf(DeliveryMode.PERSISTENT)});
+        addCombinationValues("destinationType", new Object[]{"/queue/"});
+    }
+
+    public void testQueueBrowser() throws Exception {
+        // Receive a message with the JMS API
+        connection.start();
+        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        destination = createDestination(destinationType);
+        MessageProducer producer = session.createProducer(destination);
+        producer.setDeliveryMode(deliveryMode);
+
+        producer.send(session.createTextMessage("1"));
+        producer.send(session.createTextMessage("2"));
+        producer.send(session.createTextMessage("3"));
+
+        Thread.sleep(1000);
+
+        // Make sure only 1 message was delivered.
+        QueueBrowser browser = session.createBrowser((Queue) destination);
+
+        ArrayList<String> expected = new ArrayList<String>();
+        expected.add("1");
+        expected.add("2");
+        expected.add("3");
+
+        ArrayList<String> results = new ArrayList<String>();
+        Enumeration enumeration = browser.getEnumeration();
+        while (browser.getEnumeration().hasMoreElements()) {
+            TextMessage m = (TextMessage) enumeration.nextElement();
+            results.add(m.getText());
+        }
+        System.out.println(results);
+        assertEquals(expected, results);
+
+        browser = session.createBrowser((Queue) destination);
+        results = new ArrayList<String>();
+        enumeration = browser.getEnumeration();
+        while (browser.getEnumeration().hasMoreElements()) {
+            TextMessage m = (TextMessage) enumeration.nextElement();
+            results.add(m.getText());
+        }
+        System.out.println(results);
+        assertEquals(expected, results);
     }
 
     public void initCombosForTestMessageListenerWithConsumerCanBeStopped() {

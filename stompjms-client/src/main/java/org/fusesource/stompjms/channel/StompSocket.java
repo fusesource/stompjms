@@ -295,8 +295,15 @@ public class StompSocket implements Runnable {
             sendFrame(frame);
 
             StompFrame response = readFrame(this.dataIn);
-            if (!response.getAction().equals(CONNECTED)) {
-                throw new IOException("Not connected: " + response.getBody());
+            if (response.getAction().equals(ERROR)) {
+                AsciiBuffer value = response.headers.get(MESSAGE_HEADER);
+                if( value!=null ) {
+                    throw new IOException("Could not connect: " + value.toString());
+                } else {
+                    throw new IOException("Could not connect: " + response.getBody());
+                }
+            } else if (!response.getAction().equals(CONNECTED)) {
+                throw new IOException("Could not connect. Received unexpected frame: " + response.toString());
             }
             return response;
         } else {

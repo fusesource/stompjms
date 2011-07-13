@@ -169,7 +169,7 @@ public class StompChannel implements StompFrameListener {
         }
     }
 
-    public void subscribe(StompJmsDestination destination, AsciiBuffer consumerId, AsciiBuffer selector, boolean clientAck, boolean persistent) throws JMSException {
+    public void subscribe(StompJmsDestination destination, AsciiBuffer consumerId, AsciiBuffer selector, boolean clientAck, boolean persistent, boolean browser) throws JMSException {
         StompFrame frame = new StompFrame();
         frame.setAction(SUBSCRIBE);
         frame.headers.put(DESTINATION, destination.toBuffer());
@@ -184,6 +184,9 @@ public class StompChannel implements StompFrameListener {
         }
         if (persistent) {
             frame.headers.put(PERSISTENT, TRUE);
+        }
+        if (browser) {
+            frame.headers.put(BROWSER, TRUE);
         }
         try {
             sendRequest(consumerId, frame);
@@ -201,9 +204,6 @@ public class StompChannel implements StompFrameListener {
         frame.headers.put(ID, consumerId);
         if (persistent) {
             frame.headers.put(PERSISTENT, TRUE);
-        }
-        if (browser) {
-            frame.headers.put(BROWSER, TRUE);
         }
         try {
             sendFrame(frame);

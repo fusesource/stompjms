@@ -59,6 +59,7 @@ public interface Stomp {
     AsciiBuffer RECEIPT_ID = ascii("receipt-id");
     AsciiBuffer PERSISTENT = ascii("persistent");
 
+    AsciiBuffer MESSAGE_HEADER = ascii("message");
     AsciiBuffer MESSAGE_ID = ascii("message-id");
     AsciiBuffer CORRELATION_ID = ascii("correlation-id");
     AsciiBuffer EXPIRATION_TIME = ascii("expires");
@@ -96,6 +97,7 @@ public interface Stomp {
 
     AsciiBuffer TRUE = ascii("true");
     AsciiBuffer FALSE = ascii("false");
+    AsciiBuffer END = ascii("end");
 
 //    public enum Transformations {
 //        JMS_BYTE,
