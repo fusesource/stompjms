@@ -8,12 +8,19 @@
  * in the license.txt file.
  */
 
-package org.fusesource.stompjms.channel;
+package org.fusesource.stompjms.client;
 
 import org.fusesource.hawtbuf.AsciiBuffer;
-import static org.fusesource.hawtbuf.Buffer.*;
 
-public interface Stomp {
+import static org.fusesource.hawtbuf.Buffer.ascii;
+
+/**
+ * <p>
+ * </p>
+ *
+ * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
+ */
+public interface Constants {
     final AsciiBuffer NULL = ascii("\u0000");
     final byte NULL_BYTE = 0;
 
@@ -99,24 +106,4 @@ public interface Stomp {
     final AsciiBuffer FALSE = ascii("false");
     final AsciiBuffer END = ascii("end");
 
-
-//    public enum Transformations {
-//        JMS_BYTE,
-//        JMS_XML,
-//        JMS_JSON,
-//        JMS_OBJECT_XML,
-//        JMS_OBJECT_JSON,
-//        JMS_MAP_XML,
-//        JMS_MAP_JSON,
-//        JMS_ADVISORY_XML,
-//        JMS_ADVISORY_JSON;
-//
-//        public AsciiBuffer toAsciiBuffer() {
-//            return name().replaceAll("_", "-").toLowerCase();
-//        }
-//
-//        public static Transformations getValue(AsciiBuffer value) {
-//            return valueOf(value.replaceAll("-", "_").toUpperCase());
-//        }
-//    }
 }

@@ -7,10 +7,20 @@
  * CDDL license a copy of which has been included with this distribution
  * in the license.txt file.
  */
+package org.fusesource.stompjms.client.callback;
 
-package org.fusesource.stompjms.channel;
+/**
+ * <p>
+ * </p>
+ *
+ * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
+ */
+public class Callback<T> {
 
-public interface StompFrameListener {
+    public void failure(Throwable value) {
+    }
 
-    public void onFrame(StompFrame frame);
+    public void success(T value) {
+    }
+
 }

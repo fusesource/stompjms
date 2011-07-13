@@ -8,7 +8,7 @@
  * in the license.txt file.
  */
 
-package org.fusesource.stompjms.channel;
+package org.fusesource.stompjms.util;
 
 import org.fusesource.stompjms.StompJmsDestination;
 import org.fusesource.stompjms.StompJmsQueue;

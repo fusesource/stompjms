@@ -10,7 +10,7 @@
 
 package org.fusesource.stompjms;
 
-import org.fusesource.stompjms.channel.StompChannel;
+import org.fusesource.stompjms.util.StompChannel;
 
 import javax.jms.*;
 import javax.jms.IllegalStateException;

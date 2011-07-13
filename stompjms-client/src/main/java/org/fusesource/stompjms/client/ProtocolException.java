@@ -8,10 +8,16 @@
  * in the license.txt file.
  */
 
-package org.fusesource.stompjms.channel;
+package org.fusesource.stompjms.client;
 
 import java.io.IOException;
 
+/**
+ * <p>
+ * </p>
+ *
+ * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
+ */
 public class ProtocolException extends IOException {
 
     private static final long serialVersionUID = -2869735532997332242L;

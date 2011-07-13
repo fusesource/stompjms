@@ -12,7 +12,8 @@ package org.fusesource.stompjms;
 
 import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtbuf.ByteArrayOutputStream;
-import org.fusesource.stompjms.channel.StompChannel;
+import org.fusesource.stompjms.util.StompChannel;
+import org.fusesource.stompjms.client.StompFrame;
 import org.fusesource.stompjms.message.*;
 
 import javax.jms.*;
@@ -182,7 +183,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public TopicSubscriber createDurableSubscriber(Topic topic, String name) throws JMSException {
         checkClosed();
-        AsciiBuffer id = StompChannel.encodeHeader(this.connection.getClientID() + ":" + name);
+        AsciiBuffer id = StompFrame.encodeHeader(this.connection.getClientID() + ":" + name);
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(topic);
         StompJmsTopicSubscriber result = new StompJmsDurableTopicSubscriber(id, this, dest, false, "");
         result.init();
@@ -418,7 +419,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public void unsubscribe(String name) throws JMSException {
         checkClosed();
-        AsciiBuffer id = StompChannel.encodeHeader(this.connection.getClientID() + ":" + name);
+        AsciiBuffer id = StompFrame.encodeHeader(this.connection.getClientID() + ":" + name);
         StompJmsMessageConsumer consumer = this.consumers.remove(id);
         if (consumer != null) {
             consumer.close();
@@ -516,7 +517,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
 
     protected void add(StompJmsMessageConsumer consumer, boolean persistent, boolean browser) throws JMSException {
         this.consumers.put(consumer.getId(), consumer);
-        this.channel.subscribe(consumer.getDestination(), consumer.getId(), StompChannel.encodeHeader(consumer.getMessageSelector()),
+        this.channel.subscribe(consumer.getDestination(), consumer.getId(), StompFrame.encodeHeader(consumer.getMessageSelector()),
                 this.acknowledgementMode == Session.CLIENT_ACKNOWLEDGE, persistent, browser);
         if (started.get()) {
             consumer.start();

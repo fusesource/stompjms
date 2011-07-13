@@ -11,7 +11,7 @@
 package org.fusesource.stompjms.message;
 
 import org.fusesource.hawtbuf.Buffer;
-import org.fusesource.stompjms.channel.StompTranslator;
+import org.fusesource.stompjms.util.StompTranslator;
 
 import javax.jms.JMSException;
 import javax.jms.ObjectMessage;

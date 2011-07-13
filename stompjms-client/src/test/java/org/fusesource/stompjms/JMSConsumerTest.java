@@ -89,6 +89,35 @@ public class JMSConsumerTest extends JmsTestSupport {
 //
 //    }
 
+    public void initCombosForTestSendReceiveBytesMessage() {
+        addCombinationValues("deliveryMode", new Object[]{Integer.valueOf(DeliveryMode.NON_PERSISTENT), Integer.valueOf(DeliveryMode.PERSISTENT)});
+        addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/"});
+    }
+
+
+    public void testSendReceiveBytesMessage() throws Exception {
+
+        // Receive a message with the JMS API
+        connection.start();
+        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        destination = createDestination(destinationType);
+        MessageConsumer consumer = session.createConsumer(destination);
+        MessageProducer producer = session.createProducer(destination);
+        producer.setDeliveryMode(deliveryMode);
+
+        BytesMessage message = session.createBytesMessage();
+        message.writeBoolean(true);
+        message.writeBoolean(false);
+        producer.send(message);
+
+        // Make sure only 1 message was delivered.
+        BytesMessage m = (BytesMessage) consumer.receive(1000);
+        assertNotNull(m);
+        assertTrue(m.readBoolean());
+        assertFalse(m.readBoolean());
+        assertNull(consumer.receiveNoWait());
+    }
+
     public void initCombosForTestTransactions() {
         addCombinationValues("deliveryMode", new Object[]{Integer.valueOf(DeliveryMode.NON_PERSISTENT), Integer.valueOf(DeliveryMode.PERSISTENT)});
 //        addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/", "/temp-queue/", "/temp-topic/"});
@@ -251,36 +280,6 @@ public class JMSConsumerTest extends JmsTestSupport {
         consumer.start();
         assertTrue(done2.await(1, TimeUnit.SECONDS));
         assertEquals(2, counter.get());
-    }
-
-
-    public void initCombosForTestSendReceiveBytesMessage() {
-        addCombinationValues("deliveryMode", new Object[]{Integer.valueOf(DeliveryMode.NON_PERSISTENT), Integer.valueOf(DeliveryMode.PERSISTENT)});
-        addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/"});
-    }
-
-
-    public void testSendReceiveBytesMessage() throws Exception {
-
-        // Receive a message with the JMS API
-        connection.start();
-        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-        destination = createDestination(destinationType);
-        MessageConsumer consumer = session.createConsumer(destination);
-        MessageProducer producer = session.createProducer(destination);
-        producer.setDeliveryMode(deliveryMode);
-
-        BytesMessage message = session.createBytesMessage();
-        message.writeBoolean(true);
-        message.writeBoolean(false);
-        producer.send(message);
-
-        // Make sure only 1 message was delivered.
-        BytesMessage m = (BytesMessage) consumer.receive(1000);
-        assertNotNull(m);
-        assertTrue(m.readBoolean());
-        assertFalse(m.readBoolean());
-        assertNull(consumer.receiveNoWait());
     }
 
     public void initCombosForTestSetMessageListenerAfterStart() {

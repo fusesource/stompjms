@@ -11,7 +11,7 @@
 package org.fusesource.stompjms;
 
 import org.fusesource.hawtbuf.AsciiBuffer;
-import org.fusesource.stompjms.channel.StompChannel;
+import org.fusesource.stompjms.client.StompFrame;
 import org.fusesource.stompjms.jndi.JNDIStorable;
 
 import javax.jms.InvalidDestinationException;
@@ -51,7 +51,7 @@ public abstract class StompJmsDestination extends JNDIStorable implements Extern
 
     public AsciiBuffer toBuffer() {
         if (buffer == null) {
-            buffer = StompChannel.encodeHeader(toString());
+            buffer = StompFrame.encodeHeader(toString());
         }
         return buffer;
     }

@@ -10,7 +10,7 @@
 
 package org.fusesource.stompjms;
 
-import org.fusesource.stompjms.channel.StompChannel;
+import org.fusesource.stompjms.util.StompChannel;
 
 import javax.jms.*;
 import javax.jms.IllegalStateException;
@@ -51,7 +51,6 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         mainChannel.setUserName(userName);
         mainChannel.setPassword(password);
         mainChannel.setExceptionListener(this.exceptionListener);
-        mainChannel.initialize();
     }
 
     /**
@@ -66,11 +65,11 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
                 }
                 this.sessions.clear();
                 for (StompChannel c : channelsMap.values()) {
-                    c.stop();
+                    c.close();
                 }
                 channelsMap.clear();
                 if (mainChannel != null) {
-                    mainChannel.stop();
+                    mainChannel.close();
                     mainChannel = null;
                 }
             } catch (Exception e) {
@@ -329,9 +328,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
             result = this.mainChannel.copy();
             result.setExceptionListener(this.exceptionListener);
             result.setChannelId(clientId + "-" + clientNumber++);
-            result.initialize();
             result.connect();
-            result.start();
         }
         return result;
     }
@@ -344,7 +341,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
             c.setListener(null);
             if (c != this.mainChannel) {
                 c.setExceptionListener(null);
-                c.stop();
+                c.close();
             }
         }
     }
@@ -363,10 +360,8 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     private void connect() throws JMSException {
         if (connected.compareAndSet(false, true)) {
             this.mainChannel.connect();
-            this.mainChannel.start();
             for (StompChannel sc : this.channelsMap.values()) {
                 sc.connect();
-                sc.start();
             }
         }
     }

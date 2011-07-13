@@ -8,31 +8,22 @@
  * in the license.txt file.
  */
 
-package org.fusesource.stompjms.channel;
+package org.fusesource.stompjms.util;
 
-import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.io.HierarchicalStreamReader;
-import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
-import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
 import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtbuf.Buffer;
 import org.fusesource.hawtbuf.BufferInputStream;
 import org.fusesource.hawtbuf.DataByteArrayOutputStream;
-import org.fusesource.stompjms.StompJmsDestination;
-import org.fusesource.stompjms.StompJmsExceptionSupport;
+import org.fusesource.stompjms.client.StompFrame;
 import org.fusesource.stompjms.message.*;
 import org.fusesource.stompjms.util.ClassLoadingAwareObjectInputStream;
 
 import javax.jms.JMSException;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.util.HashMap;
 import java.util.Map;
-import static org.fusesource.stompjms.channel.Stomp.*;
-import static org.fusesource.hawtbuf.Buffer.*;
 
+import static org.fusesource.stompjms.client.Constants.TRANSFORMATION;
 
 /**
  * Frame translator implementation that uses XStream to convert messages to and
@@ -78,7 +69,7 @@ public class StompTranslator {
 //    }
 
     public static StompJmsMessage convert(StompFrame frame) throws JMSException {
-        Map<AsciiBuffer, AsciiBuffer> headers = frame.headers;
+        Map<AsciiBuffer, AsciiBuffer> headers = frame.headerMap();
         StompJmsMessage result = null;
         AsciiBuffer type = headers.get(TRANSFORMATION);
         if (type != null) {
