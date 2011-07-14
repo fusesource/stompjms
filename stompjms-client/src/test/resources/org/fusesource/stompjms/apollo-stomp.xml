@@ -16,6 +16,7 @@
 
     <virtual_host id="default">
       <host_name>localhost</host_name>
+      <queue queue_buffer="50240000"/>
     </virtual_host>
 
     <web_admin host="127.0.0.1" port="61680"/>

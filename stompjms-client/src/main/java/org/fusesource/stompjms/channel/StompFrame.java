@@ -99,9 +99,13 @@ public class StompFrame {
     }
 
     public Buffer toBuffer() {
+        return toBuffer(true);
+    }
+
+    public Buffer toBuffer(boolean includeBody) {
         try {
             DataByteArrayOutputStream out = new DataByteArrayOutputStream();
-            write(out);
+            write(out, includeBody);
             return out.toBuffer();
         } catch (IOException e) {
             throw new RuntimeException(e); // not expected to occur.
@@ -113,6 +117,10 @@ public class StompFrame {
     }
 
     public void write(DataOutput out) throws IOException {
+        write(out, true);
+    }
+
+    public void write(DataOutput out, boolean includeBody) throws IOException {
         write(out, action);
         out.writeByte(NEWLINE_BYTE);
         for (Map.Entry<AsciiBuffer, AsciiBuffer> entry: headers.entrySet()){
@@ -124,13 +132,15 @@ public class StompFrame {
 
         //denotes end of headers with a new line
         out.writeByte(NEWLINE_BYTE);
-        if (content != null) {
-            write(out, content);
+        if(includeBody) {
+            if (content != null) {
+                write(out, content);
+            }
+            out.writeByte(NULL_BYTE);
         }
-        out.writeByte(NULL_BYTE);
     }
 
     public String toString() {
-        return toBuffer().utf8().toString();
+        return toBuffer(false).ascii().toString();
     }
 }

@@ -21,9 +21,7 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.fusesource.hawtbuf.Buffer.ascii;
@@ -32,17 +30,17 @@ import static org.fusesource.hawtbuf.Buffer.ascii;
  * JMS Session implementation
  */
 public class StompJmsSession implements Session, QueueSession, TopicSession, StompJmsMessageListener {
-    private long nextMessageSwquence = 0;
-    private final StompJmsConnection connection;
-    private final StompChannel channel;
-    private final int acknowledgementMode;
-    private final List<MessageProducer> producers = new CopyOnWriteArrayList<MessageProducer>();
-    private final Map<AsciiBuffer, StompJmsMessageConsumer> consumers = new ConcurrentHashMap<AsciiBuffer, StompJmsMessageConsumer>();
-    private MessageListener messageListener;
-    private AtomicBoolean closed = new AtomicBoolean();
-    private AtomicBoolean started = new AtomicBoolean();
-    private AsciiBuffer currentTransactionId;
-    private LinkedBlockingQueue<StompJmsMessage> stoppedMessages = new LinkedBlockingQueue<StompJmsMessage>(10000);
+    long nextMessageSwquence = 0;
+    final StompJmsConnection connection;
+    final StompChannel channel;
+    final int acknowledgementMode;
+    final List<MessageProducer> producers = new CopyOnWriteArrayList<MessageProducer>();
+    final Map<AsciiBuffer, StompJmsMessageConsumer> consumers = new ConcurrentHashMap<AsciiBuffer, StompJmsMessageConsumer>();
+    MessageListener messageListener;
+    AtomicBoolean closed = new AtomicBoolean();
+    AtomicBoolean started = new AtomicBoolean();
+    AsciiBuffer currentTransactionId;
+    LinkedBlockingQueue<StompJmsMessage> stoppedMessages = new LinkedBlockingQueue<StompJmsMessage>(10000);
 
     /**
      * Constructor
@@ -564,11 +562,8 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             message.setJMSTimestamp(timeStamp);
             message.setJMSExpiration(System.currentTimeMillis() + timeToLive);
         }
-        if (message.isPersistent() && !getTransacted()) {
-            this.channel.sendMessageRequest(message);
-        } else {
-            this.channel.sendMessage(message);
-        }
+        boolean sync = message.isPersistent() && !getTransacted();
+        this.channel.sendMessage(message, sync);
     }
 
     protected void checkClosed() throws IllegalStateException {
@@ -603,6 +598,10 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
 
     protected void stop() throws JMSException {
         started.set(false);
+        if(executor!=null) {
+            executor.shutdown();
+            executor = null;
+        }
         for (StompJmsMessageConsumer consumer : consumers.values()) {
             consumer.stop();
         }
@@ -618,6 +617,15 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
 
     protected StompJmsConnection getConnection() {
         return this.connection;
+    }
+
+    ExecutorService executor;
+
+    Executor getExecutor() {
+        if( executor ==null ) {
+            executor = Executors.newSingleThreadExecutor();
+        }
+        return executor;
     }
 
     private void dispatch(StompJmsMessage message) {
@@ -640,7 +648,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         AsciiBuffer id = ascii(Long.toString(nextMessageSwquence++));
         ByteArrayOutputStream out = new ByteArrayOutputStream(session.length() + 1 + id.length());
         out.write(session);
-        out.write('.');
+        out.write('-');
         out.write(id);
         return out.toBuffer().ascii();
     }

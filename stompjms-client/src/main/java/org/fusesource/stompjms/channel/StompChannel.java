@@ -36,22 +36,22 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.fusesource.stompjms.channel.Stomp.*;
 
 public class StompChannel implements StompFrameListener {
-    private static final long TIMEOUT = -1;
-    private String channelId;
-    private String userName;
-    private String password;
-    private String ackMode;
-    private URI brokerURI;
-    private URI localURI;
-    private StompSocket socket;
-    private StompJmsMessageListener listener;
-    private ExceptionListener exceptionListener;
-    private AtomicBoolean started = new AtomicBoolean();
-    private AtomicBoolean initialized = new AtomicBoolean();
-    private AtomicBoolean connected = new AtomicBoolean();
-    private Map<AsciiBuffer, SendRequest> requests = new LRUCache<AsciiBuffer, SendRequest>();
-    private AsciiBuffer currentTransactionId = null;
-    private AsciiBuffer session;
+    static final long TIMEOUT = -1;
+    String channelId;
+    String userName;
+    String password;
+    String ackMode;
+    URI brokerURI;
+    URI localURI;
+    StompSocket socket;
+    StompJmsMessageListener listener;
+    ExceptionListener exceptionListener;
+    AtomicBoolean started = new AtomicBoolean();
+    AtomicBoolean initialized = new AtomicBoolean();
+    AtomicBoolean connected = new AtomicBoolean();
+    Map<AsciiBuffer, SendRequest> requests = new LRUCache<AsciiBuffer, SendRequest>();
+    AsciiBuffer currentTransactionId = null;
+    AsciiBuffer session;
     
     private AtomicLong requestCounter = new AtomicLong();
     
@@ -60,6 +60,10 @@ public class StompChannel implements StompFrameListener {
     }
     public AsciiBuffer nextId() {
         return nextId("");
+    }
+
+    public StompSocket getSocket() {
+        return socket;
     }
 
     public AsciiBuffer nextId(String prefix) {
@@ -133,7 +137,7 @@ public class StompChannel implements StompFrameListener {
         }
     }
 
-    public void sendMessage(StompJmsMessage message) throws JMSException {
+    public void sendMessage(StompJmsMessage message, boolean sync) throws JMSException {
         StompJmsMessage copy = message.copy();
         copy.onSend();
         StompFrame frame = copy.getFrame();
@@ -141,34 +145,29 @@ public class StompChannel implements StompFrameListener {
         frame.headers.put(CONTENT_LENGTH, new AsciiBuffer(Integer.toString(frame.content.length)));
         addTransaction(frame);
         try {
-            sendFrame(frame);
+            if( sync ) {
+                sendRequest(frame);
+            } else {
+                sendFrame(frame);
+            }
         } catch (IOException e) {
             throw StompJmsExceptionSupport.create(e);
         }
     }
 
-    public void sendMessageRequest(StompJmsMessage message) throws JMSException {
-        StompJmsMessage copy = message.copy();
-        copy.onSend();
-        StompFrame frame = copy.getFrame();
-        frame.setAction(SEND);
-        frame.headers.put(CONTENT_LENGTH, new AsciiBuffer(Integer.toString(frame.content.length)));
-        addTransaction(frame);
-        try {
-            sendRequest(frame);
-        } catch (IOException e) {
-            throw StompJmsExceptionSupport.create(e);
-        }
-    }
-
-    public void ackMessage(StompJmsDestination destination, AsciiBuffer consumerId, AsciiBuffer messageId) throws JMSException {
+    public void ackMessage(AsciiBuffer consumerId, AsciiBuffer messageId, Boolean sync) throws JMSException {
+//        System.out.println(""+socket.getLocalAddress() +" ack "+ messageId);
         StompFrame frame = new StompFrame();
         frame.setAction(ACK);
         frame.headers.put(SUBSCRIPTION, consumerId);
         frame.headers.put(MESSAGE_ID, messageId);
         addTransaction(frame);
         try {
-            sendFrame(frame);
+            if(sync) {
+                sendRequest(frame);
+            } else {
+                sendFrame(frame);
+            }
         } catch (IOException e) {
             throw StompJmsExceptionSupport.create(e);
         }
@@ -182,11 +181,12 @@ public class StompChannel implements StompFrameListener {
         if (selector != null && selector.trim().isEmpty() == false) {
             frame.headers.put(SELECTOR, selector);
         }
-        if (clientAck) {
-            frame.headers.put(ACK_MODE, CLIENT);
-        } else {
-            frame.headers.put(ACK_MODE, AUTO);
-        }
+//        if (clientAck) {
+//            frame.headers.put(ACK_MODE, CLIENT);
+//        } else {
+//            frame.headers.put(ACK_MODE, AUTO);
+//        }
+        frame.headers.put(ACK_MODE, CLIENT);
         if (persistent) {
             frame.headers.put(PERSISTENT, TRUE);
         }
@@ -282,7 +282,6 @@ public class StompChannel implements StompFrameListener {
         }
     }
 
-
     public void onFrame(StompFrame frame) {
         AsciiBuffer action = frame.getAction();
         if (frame.getClass() == StompFrameError.class) {
@@ -290,18 +289,29 @@ public class StompChannel implements StompFrameListener {
         }
         if (action.startsWith(MESSAGE)) {
             try {
+//                if( frame.headers.get(DESTINATION).equals(AsciiBuffer.ascii("/queue/DC_IncomingOffersQ1"))) {
+//                    socket.trace = true;
+//                }
+//                if(socket.trace) {
+//                    System.out.println("processing a message");
+//                }
                 StompJmsMessage msg = StompTranslator.convert(frame);
-                addTransaction(msg);
                 msg.setReadOnlyBody(true);
                 msg.setReadOnlyProperties(true);
                 StompJmsMessageListener l = this.listener;
                 if (l != null) {
                     l.onMessage(msg);
                 }
+//                if(socket.trace) {
+//                    System.out.println("done processing a message");
+//                }
             } catch (JMSException e) {
                 handleException(e);
             }
         } else if (action.startsWith(RECEIPT)) {
+//            if(socket.trace) {
+//                System.out.println("got the receipt");
+//            }
             AsciiBuffer id = frame.headers.get(RECEIPT_ID);
             if (id != null) {
                 synchronized (this.requests) {
@@ -316,13 +326,23 @@ public class StompChannel implements StompFrameListener {
                 handleException(new ProtocolException("Stomp Response with no receipt id: " + frame));
             }
         } else if (action.startsWith(ERROR)) {
-            handleException(new ProtocolException("Received an error: " + frame.toString()));
+            handleException(new ProtocolException("Received an error: " + errorMessage(frame)));
         } else {
             handleException(new ProtocolException("Unknown STOMP action: " + action));
         }
 
 
     }
+
+    public static String errorMessage(StompFrame frame) {
+        AsciiBuffer value = frame.headers.get(MESSAGE_HEADER);
+        if( value!=null ) {
+            return decodeHeader(value);
+        } else {
+            return frame.getBody();
+        }
+    }
+
 
     public static String decodeHeader(Buffer value) {
         if( value ==null )

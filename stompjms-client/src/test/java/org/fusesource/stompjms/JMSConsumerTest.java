@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.concurrent.CountDownLatch;
@@ -45,10 +46,90 @@ public class JMSConsumerTest extends JmsTestSupport {
         junit.textui.TestRunner.run(suite());
     }
 
-//    public void initCombosForTestMessageProperties() {
+//    public void initCombosForTestFlowControl() {
 //        addCombinationValues("deliveryMode", new Object[]{Integer.valueOf(DeliveryMode.NON_PERSISTENT), Integer.valueOf(DeliveryMode.PERSISTENT)});
 //        addCombinationValues("destinationType", new Object[]{"/queue/"});
 //    }
+//
+//    public void testFlowControl() throws Exception {
+//
+//        // Receive a message with the JMS API
+//        connection.start();
+//        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+//        destination = createDestination(destinationType);
+//        StompJmsMessageConsumer consumer = (StompJmsMessageConsumer)session.createConsumer(destination);
+//        MessageProducer producer = session.createProducer(destination);
+//        producer.setDeliveryMode(deliveryMode);
+//
+//        for (int i = 0; i < 1000; i++) {
+//            BytesMessage message = session.createBytesMessage();
+//            message.writeBytes(new byte[1024]);
+//            message.setIntProperty("seq", i);
+//            producer.send(message);
+//        }
+//
+//        Thread.sleep(1000);
+//        int size = consumer.messageQueue.size();
+//
+//        // We should not get all the messages.
+//        assertTrue(size < 1000);
+//
+//        // We should not get any more messages since we have not acked any..
+//        Thread.sleep(500);
+//        assertEquals(size, consumer.messageQueue.size());
+//
+//        // Ack some messages.  That should cause us to get some
+//        // more messages.
+//        consumer.receive().acknowledge();
+//        consumer.receive().acknowledge();
+//        consumer.receive().acknowledge();
+//
+//        Thread.sleep(500);
+//        assertTrue(consumer.messageQueue.size() > size-3 );
+//
+//    }
+
+    public void initCombosForTestTransactions() {
+        addCombinationValues("deliveryMode", new Object[]{Integer.valueOf(DeliveryMode.NON_PERSISTENT), Integer.valueOf(DeliveryMode.PERSISTENT)});
+//        addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/", "/temp-queue/", "/temp-topic/"});
+        addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/"});
+    }
+
+    public void testTransactions() throws Exception {
+
+        // Receive a message with the JMS API
+        connection.start();
+        Session session = connection.createSession(true, Session.SESSION_TRANSACTED);
+        destination = createDestination(destinationType);
+        MessageConsumer consumer = session.createConsumer(destination);
+        MessageProducer producer = session.createProducer(destination);
+        producer.setDeliveryMode(deliveryMode);
+
+        Message message = session.createMessage();
+        message.setStringProperty("seq", "1");
+        producer.send(message);
+
+        message = session.createMessage();
+        message.setStringProperty("seq", "2");
+        producer.send(message);
+
+        assertNull(consumer.receive(500));
+
+        session.commit();
+
+        // We should not get the messages
+        message = consumer.receive(1000);
+        assertEquals("1", message.getStringProperty("seq"));
+        message = consumer.receive(1000);
+        assertEquals("2", message.getStringProperty("seq"));
+        assertNull(consumer.receive(500));
+
+        session.commit();
+
+        // no more messages should be received.
+        assertNull(consumer.receive(500));
+
+    }
 
     public void testMessageProperties() throws Exception {
         destinationType = "/queue/";
@@ -70,8 +151,8 @@ public class JMSConsumerTest extends JmsTestSupport {
         Message m = consumer.receive(1000);
         assertNotNull(m);
         assertTrue(msg.getBooleanProperty("p1"));
-        assertEquals((byte)2, m.getByteProperty("p2"));
-        assertEquals((short)3, m.getShortProperty("p3"));
+        assertEquals((byte) 2, m.getByteProperty("p2"));
+        assertEquals((short) 3, m.getShortProperty("p3"));
 
         assertNull(consumer.receiveNoWait());
     }

@@ -112,6 +112,7 @@ public class StompSocket implements Runnable {
         return stopped.get();
     }
 
+//    volatile boolean trace=false;
 
     /**
      * A one way asynchronous send
@@ -120,9 +121,11 @@ public class StompSocket implements Runnable {
      * @throws IOException
      */
     public synchronized void sendFrame(StompFrame frame) throws IOException {
-//        System.out.println("===>");
-//        System.out.println(frame);
-//        System.out.println("===>");
+//        if(trace) {
+//            System.out.println(socket.getLocalPort()+" ===> {");
+//            System.out.println(frame);
+//            System.out.println("}");
+//        }
         frame.write(dataOut);
         dataOut.flush();
     }
@@ -299,12 +302,7 @@ public class StompSocket implements Runnable {
 
             StompFrame response = readFrame(this.dataIn);
             if (response.getAction().equals(ERROR)) {
-                AsciiBuffer value = response.headers.get(MESSAGE_HEADER);
-                if( value!=null ) {
-                    throw new IOException("Could not connect: " + value.toString());
-                } else {
-                    throw new IOException("Could not connect: " + response.getBody());
-                }
+                throw new IOException("Could not connect: " + StompChannel.errorMessage(response));
             } else if (!response.getAction().equals(CONNECTED)) {
                 throw new IOException("Could not connect. Received unexpected frame: " + response.toString());
             }
@@ -430,9 +428,16 @@ public class StompSocket implements Runnable {
         this.dataOut = new DataOutputStream(outputStream);
     }
 
-    public String getRemoteAddress() {
+    public SocketAddress getRemoteAddress() {
         if (socket != null) {
-            return "" + socket.getRemoteSocketAddress();
+            return socket.getRemoteSocketAddress();
+        }
+        return null;
+    }
+
+    public SocketAddress getLocalAddress() {
+        if (socket != null) {
+            return socket.getLocalSocketAddress();
         }
         return null;
     }
@@ -448,7 +453,9 @@ public class StompSocket implements Runnable {
     private StompFrame readFrame(DataInput in) throws IOException {
 
         try {
-
+//            if(trace) {
+//                System.out.println(socket.getLocalPort()+" reading frame: ");
+//            }
             // parse action
             AsciiBuffer action = parseAction(in);
 
@@ -495,9 +502,11 @@ public class StompSocket implements Runnable {
             }
 
             StompFrame frame = new StompFrame(action, headers, data);
-//            System.out.println("<===");
-//            System.out.println(frame);
-//            System.out.println("<===");
+//            if(trace) {
+//                System.out.println(socket.getLocalPort()+" <=== {");
+//                System.out.println(frame);
+//                System.out.println("}");
+//            }
             return frame;
 
         } catch (ProtocolException e) {

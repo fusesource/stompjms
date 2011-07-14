@@ -66,7 +66,7 @@ public class StompJmsMessage implements javax.jms.Message {
         }
     }
 
-    protected transient Callback<StompJmsMessage> acknowledgeCallback;
+    protected transient Runnable acknowledgeCallback;
     protected boolean readOnlyBody;
     protected boolean readOnlyProperties;
     protected Map<String, Object> properties;
@@ -137,7 +137,7 @@ public class StompJmsMessage implements javax.jms.Message {
     public void acknowledge() throws JMSException {
         if (acknowledgeCallback != null) {
             try {
-                acknowledgeCallback.execute(this);
+                acknowledgeCallback.run();
             } catch (Throwable e) {
                 throw StompJmsExceptionSupport.create(e);
             }
@@ -262,6 +262,10 @@ public class StompJmsMessage implements javax.jms.Message {
         } else {
             frame.headers.put(key, ascii(value.toString()));
         }
+    }
+
+    public AsciiBuffer getMessageID() {
+        return frame.headers.get(MESSAGE_ID);
     }
 
     public String getJMSMessageID() {
@@ -817,11 +821,11 @@ public class StompJmsMessage implements javax.jms.Message {
         }
     }
 
-    public Callback<StompJmsMessage> getAcknowledgeCallback() {
+    public Runnable getAcknowledgeCallback() {
         return acknowledgeCallback;
     }
 
-    public void setAcknowledgeCallback(Callback<StompJmsMessage> acknowledgeCallback) {
+    public void setAcknowledgeCallback(Runnable acknowledgeCallback) {
         this.acknowledgeCallback = acknowledgeCallback;
     }
 
