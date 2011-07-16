@@ -61,6 +61,10 @@ public class StompProtocolCodec implements ProtocolCodec {
         }
     }
 
+    public int getWriteBufferSize() {
+        return write_buffer_size;
+    }
+
     public boolean full() {
         return next_write_buffer.size() >= (write_buffer_size >> 1);
     }
@@ -94,6 +98,7 @@ public class StompProtocolCodec implements ProtocolCodec {
         // if we have a pending write that is being sent over the socket...
         if ( write_buffer.remaining() != 0 ) {
           last_write_io_size = write_channel.write(write_buffer);
+//          System.out.println(last_write_io_size);
           write_counter += last_write_io_size;
         }
 

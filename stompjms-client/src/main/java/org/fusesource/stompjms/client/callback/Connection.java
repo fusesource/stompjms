@@ -75,6 +75,10 @@ public class Connection {
         return connectedFrame;
     }
 
+    public Transport transport() {
+        return transport;
+    }
+
     private void processStompFrame(StompFrame frame) {
         getDispatchQueue().assertExecuting();
         AsciiBuffer action = frame.action();

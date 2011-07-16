@@ -8,12 +8,13 @@
  * in the license.txt file.
  */
 
-package org.fusesource.stompjms.util;
+package org.fusesource.stompjms;
 
 import org.fusesource.hawtbuf.AsciiBuffer;
-import org.fusesource.stompjms.StompJmsDestination;
-import org.fusesource.stompjms.StompJmsExceptionSupport;
-import org.fusesource.stompjms.StompJmsMessageListener;
+import org.fusesource.hawtdispatch.CustomDispatchSource;
+import org.fusesource.hawtdispatch.Dispatch;
+import org.fusesource.hawtdispatch.DispatchSource;
+import org.fusesource.hawtdispatch.EventAggregator;
 import org.fusesource.stompjms.client.ProtocolException;
 import org.fusesource.stompjms.client.Stomp;
 import org.fusesource.stompjms.client.StompFrame;
@@ -21,6 +22,7 @@ import org.fusesource.stompjms.client.callback.Callback;
 import org.fusesource.stompjms.client.callback.Connection;
 import org.fusesource.stompjms.client.future.CallbackFuture;
 import org.fusesource.stompjms.message.StompJmsMessage;
+import org.fusesource.stompjms.util.StompTranslator;
 
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
@@ -28,6 +30,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.fusesource.stompjms.client.Constants.*;
@@ -47,7 +50,8 @@ public class StompChannel {
     AtomicBoolean connected = new AtomicBoolean();
     AsciiBuffer currentTransactionId = null;
     AsciiBuffer session;
-    
+    AtomicInteger writeBufferRemaining = new AtomicInteger();
+
     private AtomicLong requestCounter = new AtomicLong();
     
     public AsciiBuffer getSession() {
@@ -86,6 +90,7 @@ public class StompChannel {
                     .localURI(localURI)
                     .connect(future);
                 connection = future.await();
+                writeBufferRemaining.set(connection.transport().getProtocolCodec().getWriteBufferSize());
                 connection.getDispatchQueue().execute(new Runnable() {
                     public void run() {
                         connection.receive(new Callback<StompFrame>() {
@@ -251,17 +256,42 @@ public class StompChannel {
         }
     }
 
+
     public void sendFrame(final StompFrame frame) throws IOException {
         try {
-            final CallbackFuture<Void> future = new CallbackFuture<Void>();
-            connection.getDispatchQueue().execute(new Runnable() {
-                public void run() {
-                    connection.send(frame, future);
-                }
-            });
-            // Wait on the future so that we don't cause flow control
-            // problems.
-            future.await();
+            final int size = frame.size();
+            if( writeBufferRemaining.getAndAdd(-size) > 0 ) {
+                // just send it without blocking...
+                connection.getDispatchQueue().execute(new Runnable() {
+                    public void run() {
+                        connection.send(frame, new Callback<Void>(){
+                            public void failure(Throwable value) {
+                                handleException(value);
+                            }
+                            @Override
+                            public void success(Void value) {
+                                writeBufferRemaining.getAndAdd(size);
+                            }
+                        });
+                    }
+                });
+            } else {
+                // ran out of buffer space.. wait for the write to complete
+                // so that we don't blow out our memory buffers.
+                final CallbackFuture<Void> future = new CallbackFuture<Void>() {
+                    @Override
+                    public void success(Void value) {
+                        writeBufferRemaining.getAndAdd(size);
+                        super.success(value);
+                    }
+                };
+                connection.getDispatchQueue().execute(new Runnable() {
+                    public void run() {
+                        connection.send(frame, future);
+                    }
+                });
+                future.await();
+            }
         } catch (IOException e) {
             throw e;
         } catch (Exception e) {

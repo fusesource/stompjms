@@ -51,8 +51,8 @@ public class StompFrame {
     }
 
     private AsciiBuffer action;
-    private ArrayList<HeaderEntry> headerList = new ArrayList<HeaderEntry>(5);
-    private HashMap<AsciiBuffer, AsciiBuffer> headerMap;
+    private ArrayList<HeaderEntry> headerList;
+    private HashMap<AsciiBuffer, AsciiBuffer> headerMap = new HashMap<AsciiBuffer, AsciiBuffer>(16);
     private Buffer content = NO_DATA;
 
     public StompFrame() {
@@ -187,6 +187,21 @@ public class StompFrame {
         addHeader(CONTENT_LENGTH, new AsciiBuffer(Integer.toString(content.length())));
     }
 
+    public int size() {
+        int rc = action.length() + 1;
+        if( headerList!=null ) {
+            for (HeaderEntry entry : headerList) {
+                rc += entry.getKey().length() + entry.getValue().length() + 2;
+            }
+        } else {
+            for (Map.Entry<AsciiBuffer,AsciiBuffer> entry : headerMap.entrySet()) {
+                rc += entry.getKey().length() + entry.getValue().length() + 2;
+            }
+        }
+        rc += content.length() + 3;
+        return rc;
+    }
+
     public void write(DataOutput out, boolean includeBody) throws IOException {
         write(out, action);
         out.writeByte(NEWLINE_BYTE);
@@ -212,6 +227,7 @@ public class StompFrame {
         if (includeBody) {
             write(out, content);
             out.writeByte(NULL_BYTE);
+            out.writeByte(NEWLINE_BYTE);
         }
     }
 

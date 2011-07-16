@@ -12,7 +12,6 @@ package org.fusesource.stompjms;
 
 import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtbuf.ByteArrayOutputStream;
-import org.fusesource.stompjms.util.StompChannel;
 import org.fusesource.stompjms.client.StompFrame;
 import org.fusesource.stompjms.message.*;
 

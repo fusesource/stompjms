@@ -11,8 +11,10 @@
 package org.fusesource.stompjms;
 
 import org.fusesource.hawtbuf.AsciiBuffer;
+import org.fusesource.hawtdispatch.CustomDispatchSource;
+import org.fusesource.hawtdispatch.Dispatch;
+import org.fusesource.hawtdispatch.EventAggregator;
 import org.fusesource.stompjms.message.StompJmsMessage;
-import org.fusesource.stompjms.util.Callback;
 
 import javax.jms.IllegalStateException;
 import javax.jms.*;
@@ -24,22 +26,54 @@ import java.util.concurrent.locks.ReentrantLock;
  * implementation of a Jms Message Consumer
  */
 public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessageListener {
-   final StompJmsSession session;
-   final StompJmsDestination destination;
-   final AsciiBuffer id;
-   boolean closed;
-   boolean started;
-   MessageListener messageListener;
-   final String messageSelector;
-   final MessageQueue messageQueue = new MessageQueue();
-   final Lock lock = new ReentrantLock();
+    final StompJmsSession session;
+    final StompJmsDestination destination;
+    final AsciiBuffer id;
+    boolean closed;
+    boolean started;
+    MessageListener messageListener;
+    final String messageSelector;
+    final MessageQueue messageQueue = new MessageQueue();
+    final Lock lock = new ReentrantLock();
+
+    final CustomDispatchSource<AsciiBuffer,AsciiBuffer> ackSource;
 
 
-    protected StompJmsMessageConsumer(AsciiBuffer id, StompJmsSession s, StompJmsDestination destination, String selector) {
+    protected StompJmsMessageConsumer(final AsciiBuffer id, StompJmsSession s, StompJmsDestination destination, String selector) {
         this.id = id;
         this.session = s;
         this.destination = destination;
         this.messageSelector = selector;
+
+        ackSource = Dispatch.createSource(new EventAggregator<AsciiBuffer, AsciiBuffer>() {
+            public AsciiBuffer mergeEvent(AsciiBuffer previous, AsciiBuffer events) {
+                return events;
+            }
+            public AsciiBuffer mergeEvents(AsciiBuffer previous, AsciiBuffer events) {
+                return events;
+            }
+        }, session.channel.connection.getDispatchQueue());
+
+        ackSource.setEventHandler(new Runnable() {
+            public void run() {
+                AsciiBuffer msgid = ackSource.getData();
+                try {
+                    switch( session.acknowledgementMode ) {
+                        case Session.CLIENT_ACKNOWLEDGE:
+                            session.channel.ackMessage(id, msgid, true);
+                            break;
+                        case Session.AUTO_ACKNOWLEDGE:
+                        case Session.DUPS_OK_ACKNOWLEDGE:
+                        case Session.SESSION_TRANSACTED:
+                            session.channel.ackMessage(id, msgid, false);
+                    }
+                } catch (JMSException e) {
+                    session.connection.onException(e);
+                }
+            }
+        });
+        ackSource.resume();
+
     }
 
     public void init() throws JMSException {
@@ -139,16 +173,14 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
         }
     }
 
-    StompJmsMessage ack(StompJmsMessage message) throws JMSException {
+    StompJmsMessage ack(final StompJmsMessage message) {
         if( message!=null ){
-            switch( session.acknowledgementMode ) {
-                case Session.AUTO_ACKNOWLEDGE:
-                    session.channel.ackMessage(id, message.getMessageID(), true);
-                    break;
-                case Session.DUPS_OK_ACKNOWLEDGE:
-                case Session.SESSION_TRANSACTED:
-                    session.channel.ackMessage(id, message.getMessageID(), false);
-                case Session.CLIENT_ACKNOWLEDGE: break;
+            if( session.acknowledgementMode != Session.CLIENT_ACKNOWLEDGE ) {
+                ackSource.getTargetQueue().execute(new Runnable() {
+                    public void run() {
+                        ackSource.merge(message.getMessageID());
+                    }
+                });
             }
         }
         return message;
@@ -163,11 +195,11 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
             if( session.acknowledgementMode ==  Session.CLIENT_ACKNOWLEDGE ) {
                 message.setAcknowledgeCallback(new Runnable(){
                     public void run() {
-                        try {
-                            session.channel.ackMessage(id, message.getMessageID(), true);
-                        } catch (JMSException e) {
-                            throw new RuntimeException(e);
-                        }
+                        ackSource.getTargetQueue().execute(new Runnable() {
+                            public void run() {
+                                ackSource.merge(message.getMessageID());
+                            }
+                        });
                     }
                 });
             }
@@ -183,14 +215,9 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
                     while( (message=messageQueue.dequeueNoWait()) !=null ) {
                         try {
                             messageListener.onMessage(message);
-                            try {
-                                ack(message);
-                            } catch (JMSException e) {
-                                session.connection.onException(e);
-                            }
+                            ack(message);
                         } catch (Exception e) {
                             session.connection.onException(e);
-                            e.printStackTrace();
                         }
                     }
                 }
