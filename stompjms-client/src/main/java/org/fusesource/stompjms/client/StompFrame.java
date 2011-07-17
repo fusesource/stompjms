@@ -254,16 +254,16 @@ public class StompFrame {
         while (pos.offset < max) {
             if (pos.startsWith(ESCAPE_ESCAPE_SEQ)) {
                 rc.write(ESCAPE_BYTE);
-                pos.offset += 2;
+                pos.moveHead(2);
             } else if (pos.startsWith(COLON_ESCAPE_SEQ)) {
                 rc.write(COLON_BYTE);
-                pos.offset += 2;
+                pos.moveHead(2);
             } else if (pos.startsWith(NEWLINE_ESCAPE_SEQ)) {
                 rc.write(NEWLINE_BYTE);
-                pos.offset += 2;
+                pos.moveHead(2);
             } else {
                 rc.write(pos.data[pos.offset]);
-                pos.offset += 1;
+                pos.moveHead(1);
             }
         }
         try {

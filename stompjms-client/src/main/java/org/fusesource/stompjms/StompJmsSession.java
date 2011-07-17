@@ -39,7 +39,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     MessageListener messageListener;
     AtomicBoolean closed = new AtomicBoolean();
     AtomicBoolean started = new AtomicBoolean();
-    AsciiBuffer currentTransactionId;
+    volatile AsciiBuffer currentTransactionId;
     LinkedBlockingQueue<StompJmsMessage> stoppedMessages = new LinkedBlockingQueue<StompJmsMessage>(10000);
 
     /**
@@ -83,7 +83,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         if (!getTransacted()) {
             throw new javax.jms.IllegalStateException("Not a transacted session");
         }
-        this.channel.commitTransaction();
+        this.channel.commitTransaction(currentTransactionId);
         this.currentTransactionId = this.channel.startTransaction();
     }
 
@@ -390,7 +390,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         for (StompJmsMessageConsumer c : consumers.values()) {
             c.rollback(this.currentTransactionId);
         }
-        this.channel.rollbackTransaction();
+        this.channel.rollbackTransaction(currentTransactionId);
         this.currentTransactionId = this.channel.startTransaction();
     }
 
@@ -563,7 +563,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             message.setJMSExpiration(System.currentTimeMillis() + timeToLive);
         }
         boolean sync = message.isPersistent() && !getTransacted();
-        this.channel.sendMessage(message, sync);
+        this.channel.sendMessage(message, currentTransactionId, sync);
     }
 
     protected void checkClosed() throws IllegalStateException {
@@ -587,7 +587,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             while ((message = this.stoppedMessages.poll()) != null) {
                 dispatch(message);
             }
-            if (getTransacted()) {
+            if (getTransacted() && this.currentTransactionId == null) {
                 this.currentTransactionId = this.channel.startTransaction();
             }
             for (StompJmsMessageConsumer consumer : consumers.values()) {

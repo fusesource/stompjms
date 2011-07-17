@@ -11,10 +11,6 @@
 package org.fusesource.stompjms;
 
 import org.fusesource.hawtbuf.AsciiBuffer;
-import org.fusesource.hawtdispatch.CustomDispatchSource;
-import org.fusesource.hawtdispatch.Dispatch;
-import org.fusesource.hawtdispatch.DispatchSource;
-import org.fusesource.hawtdispatch.EventAggregator;
 import org.fusesource.stompjms.client.ProtocolException;
 import org.fusesource.stompjms.client.Stomp;
 import org.fusesource.stompjms.client.StompFrame;
@@ -48,7 +44,6 @@ public class StompChannel {
     ExceptionListener exceptionListener;
     AtomicBoolean started = new AtomicBoolean();
     AtomicBoolean connected = new AtomicBoolean();
-    AsciiBuffer currentTransactionId = null;
     AsciiBuffer session;
     AtomicInteger writeBufferRemaining = new AtomicInteger();
 
@@ -133,13 +128,15 @@ public class StompChannel {
         }
     }
 
-    public void sendMessage(StompJmsMessage message, boolean sync) throws JMSException {
+    public void sendMessage(StompJmsMessage message, AsciiBuffer txid, boolean sync) throws JMSException {
         StompJmsMessage copy = message.copy();
         copy.onSend();
         StompFrame frame = copy.getFrame();
         frame.action(SEND);
         frame.headerMap().put(CONTENT_LENGTH, new AsciiBuffer(Integer.toString(frame.content().length)));
-        addTransaction(frame);
+        if (txid != null) {
+            frame.headerMap().put(TRANSACTION, txid);
+        }
         try {
             if( sync ) {
                 sendRequest(frame);
@@ -151,13 +148,15 @@ public class StompChannel {
         }
     }
 
-    public void ackMessage(AsciiBuffer consumerId, AsciiBuffer messageId, Boolean sync) throws JMSException {
-//        System.out.println(""+socket.getLocalAddress() +" ack "+ messageId);
+    public void ackMessage(AsciiBuffer consumerId, AsciiBuffer messageId, AsciiBuffer txid, Boolean sync) throws JMSException {
+        connection.getDispatchQueue().assertExecuting();
         StompFrame frame = new StompFrame();
         frame.action(ACK);
         frame.headerMap().put(SUBSCRIPTION, consumerId);
         frame.headerMap().put(MESSAGE_ID, messageId);
-        addTransaction(frame);
+        if (txid != null) {
+            frame.headerMap().put(TRANSACTION, txid);
+        }
         try {
             if(sync) {
                 sendRequest(frame);
@@ -214,28 +213,27 @@ public class StompChannel {
     }
 
 
-    public synchronized AsciiBuffer startTransaction() throws JMSException {
-        if (this.currentTransactionId != null) {
-            throw new JMSException("Transaction " + this.currentTransactionId + " already in progress");
-        }
-        this.currentTransactionId = nextId("TX-");
+    public AsciiBuffer startTransaction() throws JMSException {
+        AsciiBuffer txid = nextId("TX-");
         StompFrame frame = new StompFrame();
         frame.action(BEGIN);
-        addTransaction(frame);
+        if (txid != null) {
+            frame.headerMap().put(TRANSACTION, txid);
+        }
         try {
             sendFrame(frame);
         } catch (IOException e) {
             throw StompJmsExceptionSupport.create(e);
         }
-        return currentTransactionId;
+        return txid;
     }
 
-    public synchronized void commitTransaction() throws JMSException {
-        AsciiBuffer id = this.currentTransactionId;
+    public void commitTransaction(AsciiBuffer txid) throws JMSException {
         StompFrame frame = new StompFrame();
         frame.action(COMMIT);
-        addTransaction(frame);
-        this.currentTransactionId = null;
+        if (txid != null) {
+            frame.headerMap().put(TRANSACTION, txid);
+        }
         try {
             sendRequest(frame);
         } catch (IOException e) {
@@ -243,12 +241,12 @@ public class StompChannel {
         }
     }
 
-    public void rollbackTransaction() throws JMSException {
-        AsciiBuffer id = this.currentTransactionId;
+    public void rollbackTransaction(AsciiBuffer txid) throws JMSException {
         StompFrame frame = new StompFrame();
         frame.action(ABORT);
-        addTransaction(frame);
-        this.currentTransactionId = null;
+        if (txid != null) {
+            frame.headerMap().put(TRANSACTION, txid);
+        }
         try {
             sendRequest(frame);
         } catch (IOException e) {
@@ -444,18 +442,6 @@ public class StompChannel {
             l.onException(StompJmsExceptionSupport.create(e));
         } else {
             e.printStackTrace();
-        }
-    }
-
-    private synchronized void addTransaction(StompJmsMessage message) {
-        if (this.currentTransactionId != null) {
-            message.setTransactionId(this.currentTransactionId);
-        }
-    }
-
-    private synchronized void addTransaction(StompFrame frame) {
-        if (this.currentTransactionId != null) {
-            frame.headerMap().put(TRANSACTION, this.currentTransactionId);
         }
     }
 

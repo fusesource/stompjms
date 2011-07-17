@@ -60,12 +60,12 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
                 try {
                     switch( session.acknowledgementMode ) {
                         case Session.CLIENT_ACKNOWLEDGE:
-                            session.channel.ackMessage(id, msgid, true);
+                            session.channel.ackMessage(id, msgid, session.currentTransactionId, true);
                             break;
                         case Session.AUTO_ACKNOWLEDGE:
                         case Session.DUPS_OK_ACKNOWLEDGE:
                         case Session.SESSION_TRANSACTED:
-                            session.channel.ackMessage(id, msgid, false);
+                            session.channel.ackMessage(id, msgid, session.currentTransactionId, false);
                     }
                 } catch (JMSException e) {
                     session.connection.onException(e);
