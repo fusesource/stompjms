@@ -112,7 +112,6 @@ public class StompChannel {
             started.set(false);
             this.connection.close(new Runnable() {
                 public void run() {
-                    connection = null;
                 }
             });
         }
@@ -431,7 +430,9 @@ public class StompChannel {
         if (l != null) {
             l.onException(StompJmsExceptionSupport.create(e));
         } else {
-            e.printStackTrace();
+            if( started.get() ) {
+                e.printStackTrace();
+            }
         }
     }
 
