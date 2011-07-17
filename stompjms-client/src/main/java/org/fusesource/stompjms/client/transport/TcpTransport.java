@@ -9,10 +9,7 @@
  */
 package org.fusesource.stompjms.client.transport;
 
-import org.fusesource.hawtdispatch.Dispatch;
-import org.fusesource.hawtdispatch.DispatchQueue;
-import org.fusesource.hawtdispatch.DispatchSource;
-import org.fusesource.hawtdispatch.Retained;
+import org.fusesource.hawtdispatch.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -166,6 +163,7 @@ public class TcpTransport extends BaseService implements Transport {
     protected DispatchQueue dispatchQueue;
     private DispatchSource readSource;
     private DispatchSource writeSource;
+    private CustomDispatchSource<Integer, Integer> yieldSource;
 
     protected boolean useLocalHost = true;
 
@@ -445,6 +443,13 @@ public class TcpTransport extends BaseService implements Transport {
     }
 
     protected void onConnected() throws IOException {
+        yieldSource = Dispatch.createSource(EventAggregators.INTEGER_ADD, dispatchQueue);
+        yieldSource.setEventHandler(new Runnable() {
+            public void run() {
+                drainInbound();
+            }
+        });
+        yieldSource.resume();
 
         readSource = Dispatch.createSource(channel, SelectionKey.OP_READ, dispatchQueue);
         writeSource = Dispatch.createSource(channel, SelectionKey.OP_WRITE, dispatchQueue);
@@ -566,9 +571,9 @@ public class TcpTransport extends BaseService implements Transport {
         }
         try {
             long initial = codec.getReadCounter();
-            // Only process upto 64k worth of data at a time so we can give
+            // Only process upto 2 x the read buffer worth of data at a time so we can give
             // other connections a chance to process their requests.
-            while( codec.getReadCounter()-initial < 1024*64 ) {
+            while( codec.getReadCounter()-initial <  codec.getReadBufferSize()<<2 ) {
                 Object command = codec.read();
                 if ( command!=null ) {
                     try {
@@ -586,6 +591,7 @@ public class TcpTransport extends BaseService implements Transport {
                     return;
                 }
             }
+            yieldSource.merge(1);
         } catch (IOException e) {
             onTransportFailure(e);
         }

@@ -644,7 +644,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     }
 
     private AsciiBuffer getNextMessageId() {
-        AsciiBuffer session = channel.getSession();
+        AsciiBuffer session = channel.sessionId();
         AsciiBuffer id = ascii(Long.toString(nextMessageSwquence++));
         ByteArrayOutputStream out = new ByteArrayOutputStream(session.length() + 1 + id.length());
         out.write(session);

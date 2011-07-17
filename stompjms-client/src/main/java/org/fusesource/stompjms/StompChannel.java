@@ -27,7 +27,6 @@ import java.net.URI;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.fusesource.stompjms.client.Constants.*;
 
@@ -44,24 +43,15 @@ public class StompChannel {
     ExceptionListener exceptionListener;
     AtomicBoolean started = new AtomicBoolean();
     AtomicBoolean connected = new AtomicBoolean();
-    AsciiBuffer session;
+    AsciiBuffer sessionId;
     AtomicInteger writeBufferRemaining = new AtomicInteger();
 
-    private AtomicLong requestCounter = new AtomicLong();
-    
-    public AsciiBuffer getSession() {
-        return session;
-    }
-    public AsciiBuffer nextId() {
-        return nextId("");
+    public AsciiBuffer sessionId() {
+        return sessionId;
     }
 
-    public Connection getConnection() {
+    public Connection connection() {
         return connection;
-    }
-
-    public AsciiBuffer nextId(String prefix) {
-        return new AsciiBuffer(prefix+Long.toString(requestCounter.incrementAndGet()));
     }
 
     public StompChannel copy() {
@@ -100,9 +90,9 @@ public class StompChannel {
                     }
                 });
 
-                session = connection.connectedFrame().headerMap().get(SESSION);
-                if ( session==null ) {
-                    session = new AsciiBuffer("id-"+UUID.randomUUID().toString());
+                sessionId = connection.connectedFrame().headerMap().get(SESSION);
+                if ( sessionId ==null ) {
+                    sessionId = new AsciiBuffer("id-"+UUID.randomUUID().toString());
                 }
                 started.set(true);
 
@@ -214,7 +204,7 @@ public class StompChannel {
 
 
     public AsciiBuffer startTransaction() throws JMSException {
-        AsciiBuffer txid = nextId("TX-");
+        AsciiBuffer txid = connection.nextId("TX-");
         StompFrame frame = new StompFrame();
         frame.action(BEGIN);
         if (txid != null) {
@@ -445,4 +435,7 @@ public class StompChannel {
         }
     }
 
+    public AsciiBuffer nextId() {
+        return connection.nextId();
+    }
 }

@@ -13,10 +13,13 @@ import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtdispatch.DispatchQueue;
 import org.fusesource.stompjms.client.ProtocolException;
 import org.fusesource.stompjms.client.StompFrame;
+import org.fusesource.stompjms.client.StompProtocolCodec;
 import org.fusesource.stompjms.client.transport.Transport;
 import org.fusesource.stompjms.client.transport.TransportListener;
 
+import java.io.EOFException;
 import java.io.IOException;
+import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -79,6 +82,18 @@ public class Connection {
         return transport;
     }
 
+    public Connection refiller(Runnable refiller) {
+        getDispatchQueue().assertExecuting();
+        this.refiller = refiller;
+        return this;
+    }
+
+    public Connection receive(Callback<StompFrame> receiver) {
+        getDispatchQueue().assertExecuting();
+        this.receiver = receiver;
+        return this;
+    }
+
     private void processStompFrame(StompFrame frame) {
         getDispatchQueue().assertExecuting();
         AsciiBuffer action = frame.action();
@@ -97,7 +112,6 @@ public class Connection {
                 processFailure(new ProtocolException("Stomp Response with no receipt id: " + frame));
             }
         } else if (action.startsWith(ERROR)) {
-            toReceiver(frame);
             processFailure(new ProtocolException("Received an error: " + frame.errorMessage()));
         } else {
             toReceiver(frame);
@@ -119,26 +133,29 @@ public class Connection {
     private void processFailure(Throwable error) {
         if( failure == null ) {
             failure = error;
-            ArrayList<Callback<Void>> values = new ArrayList(requests.values());
-            requests.clear();
-            for (Callback<Void> value : values) {
-                value.failure(failure);
-            }
-
-            ArrayList<OverflowEntry> overflowEntries = new ArrayList<OverflowEntry>(overflow);
-            overflow.clear();
-            for (OverflowEntry entry : overflowEntries) {
-                if( entry.cb !=null ) {
-                    entry.cb.failure(failure);
-                }
-            }
-
+            failRequests(failure);
             if( receiver!=null ) {
                 try {
                     receiver.failure(failure);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            }
+        }
+    }
+
+    private void failRequests(Throwable failure) {
+        ArrayList<Callback<Void>> values = new ArrayList(requests.values());
+        requests.clear();
+        for (Callback<Void> value : values) {
+            value.failure(failure);
+        }
+
+        ArrayList<OverflowEntry> overflowEntries = new ArrayList<OverflowEntry>(overflow);
+        overflow.clear();
+        for (OverflowEntry entry : overflowEntries) {
+            if( entry.cb !=null ) {
+                entry.cb.failure(failure);
             }
         }
     }
@@ -153,13 +170,16 @@ public class Connection {
     public void suspend() {
         this.transport.suspendRead();
     }
-    public void close(Runnable onComplete) {
-        this.transport.stop(onComplete);
-    }
 
-    public void receive(Callback<StompFrame> receiver) {
-        getDispatchQueue().assertExecuting();
-        this.receiver = receiver;
+    public void close(final Runnable onComplete) {
+        this.transport.stop(new Runnable() {
+            public void run() {
+                if( onComplete!=null ) {
+                    failRequests(new ClosedChannelException());
+                    onComplete.run();
+                }
+            }
+        });
     }
 
     public boolean offer(StompFrame frame) {
@@ -179,6 +199,7 @@ public class Connection {
     }
 
     public Throwable getFailure() {
+        getDispatchQueue().assertExecuting();
         return failure;
     }
 
@@ -204,6 +225,9 @@ public class Connection {
 
     private void drainOverflow() {
         getDispatchQueue().assertExecuting();
+        if( overflow.isEmpty() ){
+            return;
+        }
         OverflowEntry entry;
         while((entry=overflow.peek())!=null) {
             if( offer(entry.frame) ) {

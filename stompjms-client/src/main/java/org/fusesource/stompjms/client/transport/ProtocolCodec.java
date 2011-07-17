@@ -76,6 +76,7 @@ public interface ProtocolCodec {
 
     public void setWritableByteChannel(WritableByteChannel channel) throws Exception;
 
+    public int getReadBufferSize();
     public int getWriteBufferSize();
 
     /**
