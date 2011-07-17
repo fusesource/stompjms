@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
 import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.concurrent.CountDownLatch;
@@ -44,6 +45,35 @@ public class JMSConsumerTest extends JmsTestSupport {
 
     public static void main(String[] args) {
         junit.textui.TestRunner.run(suite());
+    }
+
+    public void initCombosForTestSendReceiveObjectMessage() {
+        addCombinationValues("deliveryMode", new Object[]{Integer.valueOf(DeliveryMode.NON_PERSISTENT), Integer.valueOf(DeliveryMode.PERSISTENT)});
+        addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/"});
+    }
+
+    public void testSendReceiveObjectMessage() throws Exception {
+
+        // Receive a message with the JMS API
+        connection.start();
+        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        destination = createDestination(destinationType);
+        MessageConsumer consumer = session.createConsumer(destination);
+        MessageProducer producer = session.createProducer(destination);
+        producer.setDeliveryMode(deliveryMode);
+
+        ObjectMessage message = session.createObjectMessage();
+        Pizza p = new Pizza();
+        p.description = "tasty";
+        message.setObject(p);
+        producer.send(message);
+
+        // Make sure only 1 message was delivered.
+        ObjectMessage m = (ObjectMessage) consumer.receive(1000);
+        assertNotNull(m);
+        assertNotNull(m.getObject());
+        assertEquals("tasty", ((Pizza)m.getObject()).description);
+        assertNull(consumer.receiveNoWait());
     }
 
 //    public void initCombosForTestFlowControl() {
@@ -116,6 +146,11 @@ public class JMSConsumerTest extends JmsTestSupport {
         assertTrue(m.readBoolean());
         assertFalse(m.readBoolean());
         assertNull(consumer.receiveNoWait());
+    }
+
+
+    static class Pizza implements Serializable {
+        String description;
     }
 
     public void initCombosForTestTransactions() {

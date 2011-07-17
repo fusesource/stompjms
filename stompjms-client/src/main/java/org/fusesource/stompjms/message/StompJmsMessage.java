@@ -143,14 +143,20 @@ public class StompJmsMessage implements javax.jms.Message {
     }
 
     public Buffer getContent() {
-        return this.frame.content();
+        Buffer content = this.frame.content();
+        if( content.isEmpty() ) {
+            return null;
+        } else {
+            return content;
+        }
     }
 
     public void setContent(Buffer content) {
         if( content == null ) {
-            content = NO_DATA;
+            this.frame.content(NO_DATA);
+        } else {
+            this.frame.content(content);
         }
-        this.frame.content(content);
     }
 
     public void clearBody() throws JMSException {
