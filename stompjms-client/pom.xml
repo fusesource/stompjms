@@ -43,12 +43,6 @@
       <version>${hawtbuf-version}</version>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>${slf4j-version}</version>
-    </dependency>
-
-    <dependency>
       <groupId>org.apache.geronimo.specs</groupId>
       <artifactId>geronimo-jms_1.1_spec</artifactId>
       <version>1.1</version>
@@ -92,7 +86,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <!-- just to make sure it gets downloaded -->
       <groupId>org.apache.activemq</groupId>
       <artifactId>apollo-web</artifactId>
       <version>${apollo-version}</version>
@@ -119,5 +112,46 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.fusesource.mvnplugins</groupId>
+        <artifactId>maven-uberize-plugin</artifactId>
+        <version>${mvnplugins-version}</version>
+        <executions>
+          <execution>
+            <id>all</id>
+            <phase>package</phase>
+            <goals><goal>uberize</goal></goals>
+            <configuration>
+              <uberArtifactAttached>true</uberArtifactAttached>
+              <uberClassifierName>uber</uberClassifierName>
+              <artifactSet>
+                <includes>
+                  <include>org.fusesource.stompjms:stompjms-client</include>
+                  <include>org.fusesource.hawtdispatch:hawtdispatch</include>
+                  <include>org.fusesource.hawtbuf:hawtbuf</include>
+                  <include>org.apache.geronimo.specs:geronimo-jms_1.1_spec</include>
+                </includes>
+              </artifactSet>            
+              <!-- <filters>
+                <filter>
+                  <artifact>org.apache.activemq:apollo-web</artifact>
+                  <excludes>
+                    <exclude>WEB-INF/classes/**</exclude>
+                    <exclude>WEB-INF/lib/**</exclude>
+                    <exclude>**/*.scaml</exclude>
+                    <exclude>**/*.jade</exclude>
+                    <exclude>**/*.ssp</exclude>
+                  </excludes>
+                </filter>
+              </filters>             -->
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+      
 </project>

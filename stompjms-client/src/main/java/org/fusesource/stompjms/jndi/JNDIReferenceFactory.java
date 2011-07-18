@@ -10,9 +10,6 @@
 
 package org.fusesource.stompjms.jndi;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.naming.*;
 import javax.naming.spi.ObjectFactory;
 import java.util.Enumeration;
@@ -25,7 +22,6 @@ import java.util.Map;
  * Converts objects implementing JNDIStorable into a property fields so they can be stored and regenerated from JNDI
  */
 public class JNDIReferenceFactory implements ObjectFactory {
-    static Logger log = LoggerFactory.getLogger(JNDIReferenceFactory.class);
 
     /**
      * This will be called by a JNDIprovider when a Reference is retrieved from a JNDI store - and generates the orignal
@@ -43,9 +39,6 @@ public class JNDIReferenceFactory implements ObjectFactory {
         Object result = null;
         if (object instanceof Reference) {
             Reference reference = (Reference) object;
-            if (log.isTraceEnabled()) {
-                log.trace("Getting instance of " + reference.getClassName());
-            }
             Class<?> theClass = loadClass(this, reference.getClassName());
             if (JNDIStorable.class.isAssignableFrom(theClass)) {
                 JNDIStorable store = (JNDIStorable) theClass.newInstance();
@@ -58,7 +51,6 @@ public class JNDIReferenceFactory implements ObjectFactory {
                 result = store;
             }
         } else {
-            log.error("Object " + object + " is not a reference - cannot load");
             throw new RuntimeException("Object " + object + " is not a reference");
         }
         return result;
@@ -73,9 +65,6 @@ public class JNDIReferenceFactory implements ObjectFactory {
      * @throws NamingException
      */
     public static Reference createReference(String instanceClassName, JNDIStorable po) throws NamingException {
-        if (log.isTraceEnabled()) {
-            log.trace("Creating reference: " + instanceClassName + "," + po);
-        }
         Reference result = new Reference(instanceClassName, JNDIReferenceFactory.class.getName(), null);
         try {
             Map<String, String> props = po.getProperties();
@@ -84,7 +73,6 @@ public class JNDIReferenceFactory implements ObjectFactory {
                 result.add(addr);
             }
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
             throw new NamingException(e.getMessage());
         }
         return result;

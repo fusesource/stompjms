@@ -10,8 +10,6 @@
 package org.fusesource.stompjms.client.transport;
 
 import org.fusesource.hawtdispatch.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.*;
@@ -29,8 +27,6 @@ import java.util.concurrent.TimeUnit;
  * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
  */
 public class TcpTransport extends BaseService implements Transport {
-
-    private static final Logger LOG = LoggerFactory.getLogger(TcpTransport.class);
 
     abstract static class SocketState {
         void onStop(Runnable onCompleted) {
@@ -717,16 +713,8 @@ public class TcpTransport extends BaseService implements Transport {
         this.useLocalHost = useLocalHost;
     }
 
-
     private void trace(String message) {
-        if( LOG.isTraceEnabled() ) {
-            final String label = dispatchQueue.getLabel();
-            if( label !=null ) {
-                LOG.trace(label +" | "+message);
-            } else {
-                LOG.trace(message);
-            }
-        }
+        // TODO:
     }
 
     public SocketChannel getSocketChannel() {
