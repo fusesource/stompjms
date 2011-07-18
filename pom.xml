@@ -39,7 +39,7 @@
     <junit-version>4.7</junit-version>
     <slf4j-version>1.6.1</slf4j-version>
     <hawtbuf-version>1.6-SNAPSHOT</hawtbuf-version>
-    <hawtdispatch-version>1.3</hawtdispatch-version>
+    <hawtdispatch-version>1.4-SNAPSHOT</hawtdispatch-version>
     <apollo-version>1.0-beta1</apollo-version>
     
   </properties>

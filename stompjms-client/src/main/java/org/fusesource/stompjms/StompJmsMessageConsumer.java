@@ -14,6 +14,7 @@ import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtdispatch.CustomDispatchSource;
 import org.fusesource.hawtdispatch.Dispatch;
 import org.fusesource.hawtdispatch.EventAggregator;
+import org.fusesource.hawtdispatch.OrderedEventAggregator;
 import org.fusesource.stompjms.message.StompJmsMessage;
 
 import javax.jms.IllegalStateException;
@@ -45,7 +46,8 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
         this.destination = destination;
         this.messageSelector = selector;
 
-        ackSource = Dispatch.createSource(new EventAggregator<AsciiBuffer, AsciiBuffer>() {
+        ackSource = Dispatch.createSource(new OrderedEventAggregator<AsciiBuffer, AsciiBuffer>() {
+//        ackSource = Dispatch.createSource(new EventAggregator<AsciiBuffer, AsciiBuffer>() {
             public AsciiBuffer mergeEvent(AsciiBuffer previous, AsciiBuffer events) {
                 return events;
             }
