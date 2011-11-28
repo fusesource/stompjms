@@ -183,16 +183,21 @@ public class Connection {
     }
 
     public boolean offer(StompFrame frame) {
+        return this.offer(frame, true);
+    }
+
+    public boolean offer(StompFrame frame, boolean addContentLength) {
         getDispatchQueue().assertExecuting();
         if( this.transport.full() ) {
             return false;
         } else {
-            if( SEND.equals(frame.action()) ) {
+            if( addContentLength && SEND.equals(frame.action()) ) {
                 frame.addContentLengthHeader();
             }
             return this.transport.offer(frame);
         }
     }
+
     public boolean full() {
         getDispatchQueue().assertExecuting();
         return this.transport.full();
