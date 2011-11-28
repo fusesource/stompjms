@@ -507,7 +507,7 @@ public class TcpTransport extends BaseService implements Transport {
     }
 
     public boolean offer(Object command) {
-        assert Dispatch.getCurrentQueue() == dispatchQueue;
+        dispatchQueue.assertExecuting();
         try {
             if (!socketState.is(CONNECTED.class)) {
                 throw new IOException("Not connected.");
@@ -540,7 +540,7 @@ public class TcpTransport extends BaseService implements Transport {
      *
      */
     protected void drainOutbound() {
-        assert Dispatch.getCurrentQueue() == dispatchQueue;
+        dispatchQueue.assertExecuting();
         if (getServiceState() != STARTED || !socketState.is(CONNECTED.class)) {
             return;
         }
