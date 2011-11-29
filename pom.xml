@@ -17,7 +17,7 @@
   <parent>
     <groupId>org.fusesource</groupId>
     <artifactId>fusesource-pom</artifactId>
-    <version>1.5</version>
+    <version>1.9</version>
   </parent>
   
   <groupId>org.fusesource.stompjms</groupId>
@@ -38,8 +38,8 @@
     
     <junit-version>4.7</junit-version>
     <slf4j-version>1.6.1</slf4j-version>
-    <hawtbuf-version>1.6</hawtbuf-version>
-    <hawtdispatch-version>1.4</hawtdispatch-version>
+    <hawtbuf-version>1.7</hawtbuf-version>
+    <hawtdispatch-version>1.5</hawtdispatch-version>
     <apollo-version>1.0-beta1</apollo-version>
     <mvnplugins-version>1.15</mvnplugins-version>
   </properties>

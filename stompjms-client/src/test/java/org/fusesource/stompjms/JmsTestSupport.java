@@ -18,6 +18,7 @@ import org.springframework.core.io.ClassPathResource;
 import javax.jms.*;
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -101,7 +102,7 @@ public class JmsTestSupport extends CombinationTestSupport {
 
         broker = createBroker();
         ServiceControl.start(broker, "Starting Apollo Broker");
-        this.port = broker.get_socket_address().getPort();
+        this.port = ((InetSocketAddress)broker.get_socket_address()).getPort();
 //        this.port = ((InetSocketAddress)broker.get_socket_address()).getPort();
         factory = createConnectionFactory();
         connection = (StompJmsConnection) factory.createConnection(userName, password);

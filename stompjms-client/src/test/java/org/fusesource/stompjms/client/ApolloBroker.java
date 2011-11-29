@@ -15,6 +15,7 @@ import org.apache.activemq.apollo.broker.BrokerFactory;
 import org.apache.activemq.apollo.util.ServiceControl;
 
 import java.io.File;
+import java.net.InetSocketAddress;
 import java.net.URL;
 
 /**
@@ -39,7 +40,7 @@ public class ApolloBroker {
         }
         broker = createBroker();
         ServiceControl.start(broker, "Starting Apollo Broker");
-        this.port = broker.get_socket_address().getPort();
+        this.port = ((InetSocketAddress)broker.get_socket_address()).getPort();
     }
 
     public void stop() throws Exception {
