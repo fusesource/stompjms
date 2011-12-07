@@ -314,9 +314,6 @@ public class TcpTransport extends BaseService implements Transport {
     }
 
     private void initializeChannel() throws Exception {
-        if( codec !=null ) {
-            initializeCodec();
-        }
         this.channel.configureBlocking(false);
         Socket socket = channel.socket();
         try {
@@ -342,6 +339,9 @@ public class TcpTransport extends BaseService implements Transport {
         try {
             socket.setSendBufferSize(sendBufferSize);
         } catch (SocketException e) {
+        }
+        if( codec !=null ) {
+            initializeCodec();
         }
     }
 
@@ -542,6 +542,8 @@ public class TcpTransport extends BaseService implements Transport {
 
     }
 
+    boolean writeResumedForCodecFlush = false;
+
     /**
      *
      */
@@ -552,15 +554,18 @@ public class TcpTransport extends BaseService implements Transport {
         }
         try {
             if( codec.flush() == ProtocolCodec.BufferState.EMPTY && flush() ) {
-                if( !writeSource.isSuspended() ) {
+                if( writeResumedForCodecFlush) {
+                    writeResumedForCodecFlush = false;
                     suspendWrite();
                 }
-                if(rejectingOffers) {
-                    rejectingOffers = false;
-                    listener.onRefill();
-                }
+                rejectingOffers = false;
+                listener.onRefill();
+
             } else {
-                resumeWrite();
+                if(!writeResumedForCodecFlush) {
+                    writeResumedForCodecFlush = true;
+                    resumeWrite();
+                }
             }
         } catch (IOException e) {
             onTransportFailure(e);
@@ -646,6 +651,7 @@ public class TcpTransport extends BaseService implements Transport {
             }
         }
     }
+
     private void _resumeRead() {
         readSource.resume();
         dispatchQueue.execute(new Runnable(){
