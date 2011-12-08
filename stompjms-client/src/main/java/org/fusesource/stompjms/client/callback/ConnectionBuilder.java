@@ -21,6 +21,7 @@ import org.fusesource.stompjms.client.transport.TransportListener;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Properties;
 import java.util.concurrent.Executor;
 
 import static org.fusesource.hawtdispatch.Dispatch.NOOP;
@@ -51,10 +52,13 @@ public class ConnectionBuilder {
     private String passcode;
     private String host;
     private String clientId;
+    private String version = "1.1";
+    private Properties customHeaders;
 
     public ConnectionBuilder(URI remoteURI) {
         assert remoteURI !=null : "URI should not be null.";
         this.remoteURI = remoteURI;
+        this.host = remoteURI.getHost();
     }
 
 
@@ -70,6 +74,16 @@ public class ConnectionBuilder {
 
     public ConnectionBuilder host(String host) {
         this.host = host;
+        return this;
+    }
+
+    public ConnectionBuilder version(String version) {
+        this.version = version;
+        return this;
+    }
+
+    public ConnectionBuilder customHeaders(Properties customHeaders) {
+        this.customHeaders = customHeaders;
         return this;
     }
 
@@ -167,11 +181,11 @@ public class ConnectionBuilder {
                     transport.resumeRead();
 
                     StompFrame frame = new StompFrame(CONNECT);
-                    frame.addHeader(ACCEPT_VERSION, V1_1);
+                    if (version != null) {
+                        frame.addHeader(ACCEPT_VERSION, StompFrame.encodeHeader(version));
+                    }
                     if (host != null) {
                         frame.addHeader(HOST, StompFrame.encodeHeader(host));
-                    } else {
-                        frame.addHeader(HOST, StompFrame.encodeHeader(remoteURI.getHost()));
                     }
                     if (login != null) {
                         frame.addHeader(LOGIN, StompFrame.encodeHeader(login));
@@ -181,6 +195,11 @@ public class ConnectionBuilder {
                     }
                     if (clientId != null) {
                         frame.addHeader(CLIENT_ID, StompFrame.encodeHeader(passcode));
+                    }
+                    if( customHeaders!=null ) {
+                        for (Object key : customHeaders.keySet()) {
+                            frame.addHeader(StompFrame.encodeHeader(key.toString()), StompFrame.encodeHeader(customHeaders.get(key).toString()));
+                        }
                     }
 
                     boolean accepted = transport.offer(frame);
