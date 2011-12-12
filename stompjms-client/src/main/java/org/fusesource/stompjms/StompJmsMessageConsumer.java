@@ -39,8 +39,23 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
     final MessageQueue messageQueue = new MessageQueue();
     final Lock lock = new ReentrantLock();
 
-    final CustomDispatchSource<AsciiBuffer,AsciiBuffer> ackSource;
+    final CustomDispatchSource<AckCallbackFuture, AckCallbackFuture> ackSource;
 
+    class AckCallbackFuture extends CallbackFuture<Void> {
+        AsciiBuffer id;
+
+        public AckCallbackFuture(AsciiBuffer id) {
+            this.id = id;
+        }
+
+        public void success() {
+            success(null);
+        }
+
+        public AsciiBuffer getId() {
+            return id;
+        }
+    }
 
     protected StompJmsMessageConsumer(final AsciiBuffer id, StompJmsSession s, StompJmsDestination destination, String selector) {
         this.id = id;
@@ -48,19 +63,20 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
         this.destination = destination;
         this.messageSelector = selector;
 
-        ackSource = Dispatch.createSource(new OrderedEventAggregator<AsciiBuffer, AsciiBuffer>() {
+        ackSource = Dispatch.createSource(new OrderedEventAggregator<AckCallbackFuture, AckCallbackFuture>() {
 //        ackSource = Dispatch.createSource(new EventAggregator<AsciiBuffer, AsciiBuffer>() {
-            public AsciiBuffer mergeEvent(AsciiBuffer previous, AsciiBuffer events) {
+            public AckCallbackFuture mergeEvent(AckCallbackFuture previous, AckCallbackFuture events) {
                 return events;
             }
-            public AsciiBuffer mergeEvents(AsciiBuffer previous, AsciiBuffer events) {
+            public AckCallbackFuture mergeEvents(AckCallbackFuture previous, AckCallbackFuture events) {
                 return events;
             }
         }, session.channel.connection.getDispatchQueue());
 
         ackSource.setEventHandler(new Runnable() {
             public void run() {
-                AsciiBuffer msgid = ackSource.getData();
+                AckCallbackFuture cb = ackSource.getData();
+                AsciiBuffer msgid = cb.getId();
                 try {
                     switch( session.acknowledgementMode ) {
                         case Session.CLIENT_ACKNOWLEDGE:
@@ -71,7 +87,9 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
                         case Session.SESSION_TRANSACTED:
                             session.channel.ackMessage(id, msgid, session.currentTransactionId, false);
                     }
+                    cb.success();
                 } catch (JMSException e) {
+                    cb.failure(e);
                     session.connection.onException(e);
                 }
             }
@@ -178,36 +196,25 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
     }
 
     StompJmsMessage ack(final StompJmsMessage message) {
-        return ack(message, -1);
-    }
-
-    StompJmsMessage ack(final StompJmsMessage message, long timeout) {
         if( message!=null ){
             if( session.acknowledgementMode != Session.CLIENT_ACKNOWLEDGE ) {
-                doAck(message, timeout);
+                doAck(message);
             }
         }
         return message;
     }
 
-    private void doAck(final StompJmsMessage message, long timeout) {
-        final CallbackFuture<Void> future = new CallbackFuture<Void>();
+    private void doAck(final StompJmsMessage message) {
+        final AckCallbackFuture future = new AckCallbackFuture(message.getMessageID());
         ackSource.getTargetQueue().execute(new Runnable() {
             public void run() {
-                ackSource.merge(message.getMessageID());
-                future.success(null);
+                ackSource.merge(future);
             }
         });
-        // wait until the ack is passed on to the transport layer
-        // to avoid an out of order commit occurring (for example)
         try {
-            if (timeout < 0) {
-                future.await();
-            } else {
-                future.await(timeout, TimeUnit.MILLISECONDS);
-            }
+            future.await();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Exception occurred sending ACK for message id : " + message.getMessageID(), e);
         }
     }
 
@@ -220,7 +227,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
             if( session.acknowledgementMode ==  Session.CLIENT_ACKNOWLEDGE ) {
                 message.setAcknowledgeCallback(new Runnable(){
                     public void run() {
-                        doAck(message, -1);
+                        doAck(message);
                     }
                 });
             }
