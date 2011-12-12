@@ -15,11 +15,13 @@ import org.fusesource.hawtdispatch.CustomDispatchSource;
 import org.fusesource.hawtdispatch.Dispatch;
 import org.fusesource.hawtdispatch.EventAggregator;
 import org.fusesource.hawtdispatch.OrderedEventAggregator;
+import org.fusesource.stompjms.client.future.CallbackFuture;
 import org.fusesource.stompjms.message.StompJmsMessage;
 
 import javax.jms.IllegalStateException;
 import javax.jms.*;
 import java.util.List;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -176,16 +178,37 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
     }
 
     StompJmsMessage ack(final StompJmsMessage message) {
+        return ack(message, -1);
+    }
+
+    StompJmsMessage ack(final StompJmsMessage message, long timeout) {
         if( message!=null ){
             if( session.acknowledgementMode != Session.CLIENT_ACKNOWLEDGE ) {
-                ackSource.getTargetQueue().execute(new Runnable() {
-                    public void run() {
-                        ackSource.merge(message.getMessageID());
-                    }
-                });
+                doAck(message, timeout);
             }
         }
         return message;
+    }
+
+    private void doAck(final StompJmsMessage message, long timeout) {
+        final CallbackFuture<Void> future = new CallbackFuture<Void>();
+        ackSource.getTargetQueue().execute(new Runnable() {
+            public void run() {
+                ackSource.merge(message.getMessageID());
+                future.success(null);
+            }
+        });
+        // wait until the ack is passed on to the transport layer
+        // to avoid an out of order commit occurring (for example)
+        try {
+            if (timeout < 0) {
+                future.await();
+            } else {
+                future.await(timeout, TimeUnit.MILLISECONDS);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -197,11 +220,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
             if( session.acknowledgementMode ==  Session.CLIENT_ACKNOWLEDGE ) {
                 message.setAcknowledgeCallback(new Runnable(){
                     public void run() {
-                        ackSource.getTargetQueue().execute(new Runnable() {
-                            public void run() {
-                                ackSource.merge(message.getMessageID());
-                            }
-                        });
+                        doAck(message, -1);
                     }
                 });
             }
