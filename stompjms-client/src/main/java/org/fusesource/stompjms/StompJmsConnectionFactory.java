@@ -30,6 +30,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
     private URI localURI;
     private String username;
     private String password;
+    boolean forceAsyncSend;
 
     /**
      * Constructor
@@ -220,4 +221,11 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
         this.password = password;
     }
 
+    public boolean isForceAsyncSend() {
+        return forceAsyncSend;
+    }
+
+    public void setForceAsyncSend(boolean forceAsyncSend) {
+        this.forceAsyncSend = forceAsyncSend;
+    }
 }

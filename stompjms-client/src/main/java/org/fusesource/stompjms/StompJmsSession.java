@@ -40,6 +40,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     AtomicBoolean closed = new AtomicBoolean();
     AtomicBoolean started = new AtomicBoolean();
     volatile AsciiBuffer currentTransactionId;
+    boolean forceAsyncSend;
     LinkedBlockingQueue<StompJmsMessage> stoppedMessages = new LinkedBlockingQueue<StompJmsMessage>(10000);
 
     /**
@@ -48,11 +49,20 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      * @param connection
      * @param acknowledgementMode
      */
-    protected StompJmsSession(StompJmsConnection connection, StompChannel channel, int acknowledgementMode) {
+    protected StompJmsSession(StompJmsConnection connection, StompChannel channel, int acknowledgementMode, boolean forceAsyncSend) {
         this.connection = connection;
         this.channel = channel;
         this.acknowledgementMode = acknowledgementMode;
         this.channel.setListener(this);
+        this.forceAsyncSend = forceAsyncSend;
+    }
+
+    public boolean isForceAsyncSend() {
+        return forceAsyncSend;
+    }
+
+    public void setForceAsyncSend(boolean forceAsyncSend) {
+        this.forceAsyncSend = forceAsyncSend;
     }
 
     /**
@@ -562,7 +572,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             message.setJMSTimestamp(timeStamp);
             message.setJMSExpiration(System.currentTimeMillis() + timeToLive);
         }
-        boolean sync = message.isPersistent() && !getTransacted();
+        boolean sync = !forceAsyncSend && message.isPersistent() && !getTransacted();
         this.channel.sendMessage(message, currentTransactionId, sync);
     }
 

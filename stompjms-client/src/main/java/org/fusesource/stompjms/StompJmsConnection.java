@@ -34,6 +34,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     private Map<StompJmsSession, StompChannel> channelsMap = new ConcurrentHashMap<StompJmsSession, StompChannel>();
     private AtomicBoolean closed = new AtomicBoolean();
     private AtomicBoolean started = new AtomicBoolean();
+    boolean forceAsyncSend;
 
     /**
      * @param brokerURI
@@ -124,12 +125,20 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         connect();
         int ackMode = getSessionAcknowledgeMode(transacted, acknowledgeMode);
         StompChannel c = getChannel();
-        StompJmsSession result = new StompJmsSession(this, c, ackMode);
+        StompJmsSession result = new StompJmsSession(this, c, ackMode, forceAsyncSend);
         addSession(result, c);
         if (started.get()) {
             result.start();
         }
         return result;
+    }
+
+    public boolean isForceAsyncSend() {
+        return forceAsyncSend;
+    }
+
+    public void setForceAsyncSend(boolean forceAsyncSend) {
+        this.forceAsyncSend = forceAsyncSend;
     }
 
     /**
@@ -245,7 +254,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         connect();
         int ackMode = getSessionAcknowledgeMode(transacted, acknowledgeMode);
         StompChannel c = getChannel();
-        StompJmsTopicSession result = new StompJmsTopicSession(this, c, ackMode);
+        StompJmsTopicSession result = new StompJmsTopicSession(this, c, ackMode, forceAsyncSend);
         addSession(result, c);
         if (started.get()) {
             result.start();
@@ -282,7 +291,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         connect();
         int ackMode = getSessionAcknowledgeMode(transacted, acknowledgeMode);
         StompChannel c = getChannel();
-        StompJmsQueueSession result = new StompJmsQueueSession(this, c, ackMode);
+        StompJmsQueueSession result = new StompJmsQueueSession(this, c, ackMode, forceAsyncSend);
         addSession(result, c);
         if (started.get()) {
             result.start();
