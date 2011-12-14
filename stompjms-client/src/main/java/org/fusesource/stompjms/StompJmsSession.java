@@ -18,6 +18,7 @@ import org.fusesource.stompjms.message.*;
 import javax.jms.*;
 import javax.jms.IllegalStateException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -41,6 +42,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     AtomicBoolean started = new AtomicBoolean();
     volatile AsciiBuffer currentTransactionId;
     boolean forceAsyncSend;
+    long consumerMessageBufferSize = 1024*64;
     LinkedBlockingQueue<StompJmsMessage> stoppedMessages = new LinkedBlockingQueue<StompJmsMessage>(10000);
 
     /**
@@ -71,16 +73,11 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public void close() throws JMSException {
         if (closed.compareAndSet(false, true)) {
-
             this.connection.removeSession(this);
-            for (StompJmsMessageConsumer c : this.consumers.values()) {
-                if (this.channel.isStarted()) {
-                    this.channel.unsubscribe(c.getDestination(), c.getId(), false, false);
-                }
+            for (StompJmsMessageConsumer c : new ArrayList<StompJmsMessageConsumer>(this.consumers.values())) {
                 c.close();
             }
         }
-        this.consumers.clear();
         this.connection.removeSession(this);
     }
 
@@ -433,7 +430,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         if (consumer != null) {
             consumer.close();
         }
-        this.channel.unsubscribe(null, id, true, false);
+        this.channel.unsubscribe(id, true);
 
     }
 
@@ -524,17 +521,33 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         return result;
     }
 
-    protected void add(StompJmsMessageConsumer consumer, boolean persistent, boolean browser) throws JMSException {
+    protected void add(StompJmsMessageConsumer consumer) throws JMSException {
         this.consumers.put(consumer.getId(), consumer);
-        this.channel.subscribe(consumer.getDestination(), consumer.getId(), StompFrame.encodeHeader(consumer.getMessageSelector()),
-                this.acknowledgementMode == Session.CLIENT_ACKNOWLEDGE, persistent, browser);
+        if(consumer.ackSource == null) {
+            this.channel.autoAckSubscriptions.incrementAndGet();
+        }
+        this.channel.subscribe(
+            consumer.getDestination(),
+            consumer.getId(),
+            StompFrame.encodeHeader(consumer.getMessageSelector()),
+            this.acknowledgementMode == Session.CLIENT_ACKNOWLEDGE,
+            consumer.isDurableSubscription(),
+            consumer.isBrowser(),
+            StompFrame.encodeHeaders(consumer.getDestination().getSubscribeHeaders())
+        );
         if (started.get()) {
             consumer.start();
         }
     }
 
     protected void remove(StompJmsMessageConsumer consumer) throws JMSException {
+        if (this.channel.isStarted()) {
+            this.channel.unsubscribe(consumer.getId(), false);
+        }
         this.consumers.remove(consumer.getId());
+        if(consumer.ackSource == null) {
+            this.channel.autoAckSubscriptions.decrementAndGet();
+        }
     }
 
     protected void add(MessageProducer producer) {

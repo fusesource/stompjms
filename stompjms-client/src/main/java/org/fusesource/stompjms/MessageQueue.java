@@ -20,21 +20,34 @@ import java.util.List;
 
 public class MessageQueue {
 
+    static class QueueEntry {
+        private final StompJmsMessage message;
+        private final int size;
+        QueueEntry(StompJmsMessage message, int size) {
+            this.message = message;
+            this.size = size;
+        }
+    }
+
+    private final long maxSize;
     private final Object mutex = new Object();
-    private final LinkedList<StompJmsMessage> list;
+    private final LinkedList<QueueEntry> list = new LinkedList<QueueEntry>();
     private boolean closed;
     private boolean running;
+    private long size;
 
-    public MessageQueue() {
-        this.list = new LinkedList<StompJmsMessage>();
+    public MessageQueue(long maxSize) {
+        this.maxSize = maxSize;
     }
 
     /* (non-Javadoc)
      * @see org.apache.activemq.MessageDispatchChannelI#enqueue(org.apache.activemq.command.MessageDispatch)
      */
     public void enqueue(StompJmsMessage message) {
+        QueueEntry entry = new QueueEntry(message,  message.getFrame().size());
         synchronized (mutex) {
-            list.addLast(message);
+            list.addLast(entry);
+            size += entry.size;
             mutex.notify();
         }
     }
@@ -43,8 +56,10 @@ public class MessageQueue {
      * @see org.apache.activemq.MessageDispatchChannelI#enqueueFirst(org.apache.activemq.command.MessageDispatch)
      */
     public void enqueueFirst(StompJmsMessage message) {
+        QueueEntry entry = new QueueEntry(message,  message.getFrame().size());
         synchronized (mutex) {
-            list.addFirst(message);
+            list.addFirst(entry);
+            size += entry.size;
             mutex.notify();
         }
     }
@@ -75,7 +90,9 @@ public class MessageQueue {
             if (closed || !running || list.isEmpty()) {
                 return null;
             }
-            return list.removeFirst();
+            QueueEntry entry = list.removeFirst();
+            size -= entry.size;
+            return entry.message;
         }
     }
 
@@ -87,7 +104,9 @@ public class MessageQueue {
             if (closed || !running || list.isEmpty()) {
                 return null;
             }
-            return list.removeFirst();
+            QueueEntry entry = list.removeFirst();
+            size -= entry.size;
+            return entry.message;
         }
     }
 
@@ -99,7 +118,7 @@ public class MessageQueue {
             if (closed || !running || list.isEmpty()) {
                 return null;
             }
-            return list.getFirst();
+            return list.getFirst().message;
         }
     }
 
@@ -180,8 +199,12 @@ public class MessageQueue {
      */
     public List<StompJmsMessage> removeAll() {
         synchronized (mutex) {
-            ArrayList<StompJmsMessage> rc = new ArrayList<StompJmsMessage>(list);
+            ArrayList<StompJmsMessage> rc = new ArrayList<StompJmsMessage>(list.size());
+            for (QueueEntry entry : list) {
+                rc.add(entry.message);
+            }
             list.clear();
+            size = 0;
             return rc;
         }
     }
@@ -189,11 +212,12 @@ public class MessageQueue {
     public void rollback(AsciiBuffer transactionId) {
         synchronized (mutex) {
             if (transactionId != null && transactionId.isEmpty() == false) {
-                List<StompJmsMessage> tmp = new ArrayList<StompJmsMessage>(this.list);
-                for (StompJmsMessage message : tmp) {
-                    AsciiBuffer tid = message.getTransactionId();
+                List<QueueEntry> tmp = new ArrayList<QueueEntry>(this.list);
+                for (QueueEntry entry : tmp) {
+                    AsciiBuffer tid = entry.message.getTransactionId();
                     if (tid != null && tid.equals(transactionId)) {
-                        this.list.remove(message);
+                        this.list.remove(entry);
+                        this.size -= entry.size;
                     }
                 }
             }
@@ -205,5 +229,9 @@ public class MessageQueue {
         synchronized (mutex) {
             return list.toString();
         }
+    }
+
+    public boolean isFull() {
+        return this.size >= maxSize;
     }
 }

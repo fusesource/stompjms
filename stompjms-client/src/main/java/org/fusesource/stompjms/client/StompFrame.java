@@ -300,4 +300,13 @@ public class StompFrame {
         }
     }
 
+    public static Map<AsciiBuffer, AsciiBuffer> encodeHeaders(Map<String, String> headers) {
+        if(headers==null)
+            return null;
+        HashMap<AsciiBuffer, AsciiBuffer> rc = new HashMap<AsciiBuffer, AsciiBuffer>(headers.size());
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            rc.put(StompFrame.encodeHeader(entry.getKey()), StompFrame.encodeHeader(entry.getValue()));
+        }
+        return rc;
+    }
 }

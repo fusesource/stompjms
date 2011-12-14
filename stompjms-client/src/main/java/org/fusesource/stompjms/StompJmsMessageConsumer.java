@@ -13,7 +13,6 @@ package org.fusesource.stompjms;
 import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtdispatch.CustomDispatchSource;
 import org.fusesource.hawtdispatch.Dispatch;
-import org.fusesource.hawtdispatch.EventAggregator;
 import org.fusesource.hawtdispatch.OrderedEventAggregator;
 import org.fusesource.stompjms.client.future.CallbackFuture;
 import org.fusesource.stompjms.message.StompJmsMessage;
@@ -21,7 +20,7 @@ import org.fusesource.stompjms.message.StompJmsMessage;
 import javax.jms.IllegalStateException;
 import javax.jms.*;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -29,15 +28,18 @@ import java.util.concurrent.locks.ReentrantLock;
  * implementation of a Jms Message Consumer
  */
 public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessageListener {
+    
     final StompJmsSession session;
     final StompJmsDestination destination;
     final AsciiBuffer id;
-    boolean closed;
+    final AtomicBoolean closed = new AtomicBoolean();
     boolean started;
     MessageListener messageListener;
     final String messageSelector;
-    final MessageQueue messageQueue = new MessageQueue();
+    final MessageQueue messageQueue;
     final Lock lock = new ReentrantLock();
+    final AtomicBoolean suspendedConnection = new AtomicBoolean();
+
 
     final CustomDispatchSource<AckCallbackFuture, AckCallbackFuture> ackSource;
 
@@ -62,44 +64,52 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
         this.session = s;
         this.destination = destination;
         this.messageSelector = selector;
+        this.messageQueue = new MessageQueue(session.consumerMessageBufferSize);
 
-        ackSource = Dispatch.createSource(new OrderedEventAggregator<AckCallbackFuture, AckCallbackFuture>() {
-//        ackSource = Dispatch.createSource(new EventAggregator<AsciiBuffer, AsciiBuffer>() {
-            public AckCallbackFuture mergeEvent(AckCallbackFuture previous, AckCallbackFuture events) {
-                return events;
-            }
-            public AckCallbackFuture mergeEvents(AckCallbackFuture previous, AckCallbackFuture events) {
-                return events;
-            }
-        }, session.channel.connection.getDispatchQueue());
-
-        ackSource.setEventHandler(new Runnable() {
-            public void run() {
-                AckCallbackFuture cb = ackSource.getData();
-                AsciiBuffer msgid = cb.getId();
-                try {
-                    switch( session.acknowledgementMode ) {
-                        case Session.CLIENT_ACKNOWLEDGE:
-                            session.channel.ackMessage(id, msgid, session.currentTransactionId, true);
-                            break;
-                        case Session.AUTO_ACKNOWLEDGE:
-                        case Session.DUPS_OK_ACKNOWLEDGE:
-                        case Session.SESSION_TRANSACTED:
-                            session.channel.ackMessage(id, msgid, session.currentTransactionId, false);
-                    }
-                    cb.success();
-                } catch (JMSException e) {
-                    cb.failure(e);
-                    session.connection.onException(e);
+        if( destination.getSubscribeHeaders()!=null && destination.getSubscribeHeaders().get("ack").equals("auto") ) {
+            // If the user wants really awesome performance then he will set the "ack:auto" header.
+            // Then the STOMP client does not need to issue acks to the server, the down side is that we
+            // need to flow control the TCP reads to avoid memory overruns.  But if the TCP reads have been stopped
+            // we will also stop receiving responses for sync requests on the same connection.
+            ackSource = null;
+        } else {
+            ackSource = Dispatch.createSource(new OrderedEventAggregator<AckCallbackFuture, AckCallbackFuture>() {
+    //        ackSource = Dispatch.createSource(new EventAggregator<AsciiBuffer, AsciiBuffer>() {
+                public AckCallbackFuture mergeEvent(AckCallbackFuture previous, AckCallbackFuture events) {
+                    return events;
                 }
-            }
-        });
-        ackSource.resume();
+                public AckCallbackFuture mergeEvents(AckCallbackFuture previous, AckCallbackFuture events) {
+                    return events;
+                }
+            }, session.channel.connection.getDispatchQueue());
 
+            ackSource.setEventHandler(new Runnable() {
+                public void run() {
+                    AckCallbackFuture cb = ackSource.getData();
+                    AsciiBuffer msgid = cb.getId();
+                    try {
+                        switch( session.acknowledgementMode ) {
+                            case Session.CLIENT_ACKNOWLEDGE:
+                                session.channel.ackMessage(id, msgid, session.currentTransactionId, true);
+                                break;
+                            case Session.AUTO_ACKNOWLEDGE:
+                            case Session.DUPS_OK_ACKNOWLEDGE:
+                            case Session.SESSION_TRANSACTED:
+                                session.channel.ackMessage(id, msgid, session.currentTransactionId, false);
+                        }
+                        cb.success();
+                    } catch (JMSException e) {
+                        cb.failure(e);
+                        session.connection.onException(e);
+                    }
+                }
+            });
+            ackSource.resume();
+        }
     }
 
     public void init() throws JMSException {
-        session.add(this, isDurableSubscription(), isBrowser());
+        session.add(this);
     }
 
     public boolean isDurableSubscription() {
@@ -116,8 +126,12 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
      * @see javax.jms.MessageConsumer#close()
      */
     public void close() throws JMSException {
-        this.closed = true;
-        this.session.remove(this);
+        if(closed.compareAndSet(false, true)) {
+            this.session.remove(this);
+            if( suspendedConnection.compareAndSet(true, false) ) {
+                session.channel.connection().resume();
+            }
+        }
     }
 
 
@@ -190,7 +204,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
 
 
     protected void checkClosed() throws IllegalStateException {
-        if (this.closed) {
+        if (this.closed.get()) {
             throw new IllegalStateException("The MessageProducer is closed");
         }
     }
@@ -205,16 +219,25 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
     }
 
     private void doAck(final StompJmsMessage message) {
-        final AckCallbackFuture future = new AckCallbackFuture(message.getMessageID());
-        ackSource.getTargetQueue().execute(new Runnable() {
-            public void run() {
-                ackSource.merge(future);
+        if( ackSource==null ) {
+            // We may need to resume the message flow.
+            if( !this.messageQueue.isFull() ) {
+                if( suspendedConnection.compareAndSet(true, false) ) {
+                    session.channel.connection().resume();
+                }
             }
-        });
-        try {
-            future.await();
-        } catch (Exception e) {
-            throw new RuntimeException("Exception occurred sending ACK for message id : " + message.getMessageID(), e);
+        } else {
+            final AckCallbackFuture future = new AckCallbackFuture(message.getMessageID());
+            ackSource.getTargetQueue().execute(new Runnable() {
+                public void run() {
+                    ackSource.merge(future);
+                }
+            });
+            try {
+                future.await();
+            } catch (Exception e) {
+                throw new RuntimeException("Exception occurred sending ACK for message id : " + message.getMessageID(), e);
+            }
         }
     }
 
@@ -233,6 +256,12 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
             }
 //            System.out.println(""+session.channel.getSocket().getLocalAddress() +" recv "+ message.getMessageID());
             this.messageQueue.enqueue(message);
+            // We may need to suspend the message flow.
+            if( ackSource==null && this.messageQueue.isFull() ) {
+                if(suspendedConnection.compareAndSet(false, true) ) {
+                    session.channel.connection().suspend();
+                }
+            }
         } finally {
             lock.unlock();
         }
@@ -308,5 +337,4 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
     protected int getMessageQueueSize() {
         return this.messageQueue.size();
     }
-
 }

@@ -75,7 +75,11 @@ public class JmsTestSupport extends CombinationTestSupport {
     }
 
     protected void sendMessages(Session session, Destination destination, int count) throws JMSException {
+        sendMessages(session, destination, count, true);
+    }
+    protected void sendMessages(Session session, Destination destination, int count, boolean persistent) throws JMSException {
         MessageProducer producer = session.createProducer(destination);
+        producer.setDeliveryMode(persistent ? DeliveryMode.PERSISTENT : DeliveryMode.NON_PERSISTENT);
         for (int i = 0; i < count; i++) {
             producer.send(session.createTextMessage(messageTextPrefix + i));
         }

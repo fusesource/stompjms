@@ -24,6 +24,7 @@ import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -45,6 +46,7 @@ public class StompChannel {
     AtomicBoolean connected = new AtomicBoolean();
     AsciiBuffer sessionId;
     AtomicInteger writeBufferRemaining = new AtomicInteger();
+    AtomicInteger autoAckSubscriptions = new AtomicInteger();
 
     public AsciiBuffer sessionId() {
         return sessionId;
@@ -118,6 +120,9 @@ public class StompChannel {
     }
 
     public void sendMessage(StompJmsMessage message, AsciiBuffer txid, boolean sync) throws JMSException {
+        if( sync && autoAckSubscriptions.get() >0 ) {
+            throw new JMSException("Sync message sends not allowed when a subscription is using 'ack:auto'.  Causes deadlocks.");
+        }
         StompJmsMessage copy = message.copy();
         copy.onSend();
         StompFrame frame = copy.getFrame();
@@ -138,6 +143,9 @@ public class StompChannel {
     }
 
     public void ackMessage(AsciiBuffer consumerId, AsciiBuffer messageId, AsciiBuffer txid, Boolean sync) throws JMSException {
+        if( sync && autoAckSubscriptions.get() >0 ) {
+            throw new JMSException("Sync acks not allowed when a subscription is using 'ack:auto'.  Causes deadlocks.");
+        }
         connection.getDispatchQueue().assertExecuting();
         StompFrame frame = new StompFrame();
         frame.action(ACK);
@@ -157,7 +165,7 @@ public class StompChannel {
         }
     }
 
-    public void subscribe(StompJmsDestination destination, AsciiBuffer consumerId, AsciiBuffer selector, boolean clientAck, boolean persistent, boolean browser) throws JMSException {
+    public void subscribe(StompJmsDestination destination, AsciiBuffer consumerId, AsciiBuffer selector, boolean clientAck, boolean persistent, boolean browser, Map<AsciiBuffer, AsciiBuffer> headers) throws JMSException {
         StompFrame frame = new StompFrame();
         frame.action(SUBSCRIBE);
         frame.headerMap().put(DESTINATION, destination.toBuffer());
@@ -177,19 +185,27 @@ public class StompChannel {
         if (browser) {
             frame.headerMap().put(BROWSER, TRUE);
         }
+        if(headers!=null) {
+            frame.headerMap().putAll(headers);
+        }
         try {
-            sendRequest(frame);
+            if( autoAckSubscriptions.get() > 0 ) {
+                // have to do async to avoid deadlocks.
+                sendFrame(frame);
+            } else {
+                // do it sync so that if a producer send to a topic we just
+                // subscribed on, we can ensure the subscription will receive
+                // the message.
+                sendRequest(frame);
+            }
         } catch (IOException e) {
             throw StompJmsExceptionSupport.create(e);
         }
     }
 
-    public void unsubscribe(StompJmsDestination destination, AsciiBuffer consumerId, boolean persistent, boolean browser) throws JMSException {
+    public void unsubscribe(AsciiBuffer consumerId, boolean persistent) throws JMSException {
         StompFrame frame = new StompFrame();
         frame.action(UNSUBSCRIBE);
-        if (destination != null) {
-            frame.headerMap().put(DESTINATION, destination.toBuffer());
-        }
         frame.headerMap().put(ID, consumerId);
         if (persistent) {
             frame.headerMap().put(PERSISTENT, TRUE);
@@ -218,6 +234,9 @@ public class StompChannel {
     }
 
     public void commitTransaction(AsciiBuffer txid) throws JMSException {
+        if( autoAckSubscriptions.get() >0 ) {
+            throw new JMSException("transactions not allowed when a subscription is using 'ack:auto'.  Causes deadlocks.");
+        }
         StompFrame frame = new StompFrame();
         frame.action(COMMIT);
         if (txid != null) {
@@ -231,6 +250,9 @@ public class StompChannel {
     }
 
     public void rollbackTransaction(AsciiBuffer txid) throws JMSException {
+        if( autoAckSubscriptions.get() >0 ) {
+            throw new JMSException("transactions not allowed when a subscription is using 'ack:auto'.  Causes deadlocks.");
+        }
         StompFrame frame = new StompFrame();
         frame.action(ABORT);
         if (txid != null) {

@@ -19,6 +19,7 @@ import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -391,4 +392,44 @@ public class JMSConsumerTest extends JmsTestSupport {
         // Make sure only 4 messages were delivered.
         assertEquals(4, counter.get());
     }
+    
+    public void testQueueBrowseForDurableSub() throws Exception {
+
+        final AtomicInteger counter = new AtomicInteger(0);
+        final CountDownLatch done = new CountDownLatch(1);
+
+        // Receive a message with the JMS API
+        connection.start();
+        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        destination = createDestination("/queue/");
+
+        HashMap<String, String> headers = new HashMap<String, String>();
+        headers.put("ack", "auto");
+        headers.put("browser", "true");
+        headers.put("browser-end", "false");
+        headers.put("include-seq", "seq");
+        headers.put("from-seq", "0");
+
+        // This should act like a browsing subscription..
+        ((StompJmsDestination) destination).setSubscribeHeaders(headers);
+        MessageConsumer consumer = session.createConsumer(destination);
+
+        // Send the messages
+        sendMessages(session, destination, 4, false);
+
+        assertEquals(1L, consumer.receive().getLongProperty("seq"));
+        assertEquals(2L, consumer.receive().getLongProperty("seq"));
+        assertEquals(3L, consumer.receive().getLongProperty("seq"));
+        assertEquals(4L, consumer.receive().getLongProperty("seq"));
+        consumer.close();
+
+        // Subscribe again starting from a different location
+        headers.put("from-seq", "3");
+        consumer = session.createConsumer(destination);
+        assertEquals(3L, consumer.receive().getLongProperty("seq"));
+        assertEquals(4L, consumer.receive().getLongProperty("seq"));
+        consumer.close();
+
+    }
+    
 }

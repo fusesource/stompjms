@@ -35,6 +35,7 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
     protected transient int hashValue;
     protected transient String toString;
     protected transient AsciiBuffer buffer;
+    protected transient Map<String, String> subscribeHeaders;
 
     protected StompJmsDestination(String prefix, String name) {
         this.prefix = prefix;
@@ -181,4 +182,11 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
 
     }
 
+    public Map<String, String> getSubscribeHeaders() {
+        return subscribeHeaders;
+    }
+
+    public void setSubscribeHeaders(Map<String, String> subscribeHeaders) {
+        this.subscribeHeaders = subscribeHeaders;
+    }
 }
