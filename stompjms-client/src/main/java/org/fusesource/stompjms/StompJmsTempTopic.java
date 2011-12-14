@@ -18,18 +18,21 @@ import javax.jms.TemporaryTopic;
  */
 public class StompJmsTempTopic extends StompJmsDestination implements TemporaryTopic {
 
+    private final StompJmsConnection connection;
+
     /**
      * Constructor
      *
      * @param name
      */
-    public StompJmsTempTopic(String name) {
-        super(name);
+    public StompJmsTempTopic(StompJmsConnection connection, String name) {
+        super(connection.tempTopicPrefix, name);
+        this.connection = connection;
         this.topic = true;
     }
 
     protected String getType() {
-        return StompJmsDestination.TEMP_TOPIC_QUALIFED_PREFIX;
+        return connection.tempTopicPrefix;
     }
 
     /**

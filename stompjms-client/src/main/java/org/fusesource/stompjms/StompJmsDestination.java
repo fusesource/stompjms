@@ -25,12 +25,10 @@ import java.util.Map;
 /**
  * Jms Destination
  */
-public abstract class StompJmsDestination extends JNDIStorable implements Externalizable, javax.jms.Destination,
+public class StompJmsDestination extends JNDIStorable implements Externalizable, javax.jms.Destination,
         Comparable<StompJmsDestination> {
-    public static final String QUEUE_QUALIFIED_PREFIX = "/queue/";
-    public static final String TOPIC_QUALIFIED_PREFIX = "/topic/";
-    public static final String TEMP_QUEUE_QUALIFED_PREFIX = "/temp-queue/";
-    public static final String TEMP_TOPIC_QUALIFED_PREFIX = "/temp-topic/";
+
+    protected transient String prefix;
     protected transient String physicalName;
     protected transient boolean topic;
     protected transient boolean temporary;
@@ -38,13 +36,14 @@ public abstract class StompJmsDestination extends JNDIStorable implements Extern
     protected transient String toString;
     protected transient AsciiBuffer buffer;
 
-    protected StompJmsDestination(String name) {
+    protected StompJmsDestination(String prefix, String name) {
+        this.prefix = prefix;
         setPhysicalName(name);
     }
 
     public String toString() {
         if (toString == null) {
-            toString = getType() + getPhysicalName();
+            toString = getPrefix() + getPhysicalName();
         }
         return toString;
     }
@@ -56,7 +55,9 @@ public abstract class StompJmsDestination extends JNDIStorable implements Extern
         return buffer;
     }
 
-    protected abstract String getType();
+    protected String getPrefix() {
+        return prefix;
+    }
 
 
     /**
@@ -164,18 +165,18 @@ public abstract class StompJmsDestination extends JNDIStorable implements Extern
         this.temporary = in.readBoolean();
     }
 
-    public static StompJmsDestination createDestination(String name) throws InvalidDestinationException {
+    public static StompJmsDestination createDestination(StompJmsConnection connection, String name) throws InvalidDestinationException {
 
-        if (name.startsWith(QUEUE_QUALIFIED_PREFIX)) {
-            return new StompJmsQueue(name.substring(QUEUE_QUALIFIED_PREFIX.length()));
-        } else if (name.startsWith(TOPIC_QUALIFIED_PREFIX)) {
-            return new StompJmsTopic(name.substring(TOPIC_QUALIFIED_PREFIX.length()));
-        } else if (name.startsWith(TEMP_QUEUE_QUALIFED_PREFIX)) {
-            return new StompJmsTempQueue(name.substring(TEMP_QUEUE_QUALIFED_PREFIX.length()));
-        } else if (name.startsWith(TEMP_TOPIC_QUALIFED_PREFIX)) {
-            return new StompJmsTempTopic(name.substring(TEMP_TOPIC_QUALIFED_PREFIX.length()));
+        if (connection.queuePrefix!=null && name.startsWith(connection.queuePrefix)) {
+            return new StompJmsQueue(connection, name.substring(connection.queuePrefix.length()));
+        } else if (connection.topicPrefix!=null && name.startsWith(connection.topicPrefix)) {
+            return new StompJmsTopic(connection, name.substring(connection.topicPrefix.length()));
+        } else if (connection.tempQueuePrefix!=null && name.startsWith(connection.tempQueuePrefix)) {
+            return new StompJmsTempQueue(connection, name.substring(connection.tempQueuePrefix.length()));
+        } else if (connection.tempTopicPrefix!=null && name.startsWith(connection.tempTopicPrefix)) {
+            return new StompJmsTempTopic(connection, name.substring(connection.tempTopicPrefix.length()));
         } else {
-            throw new InvalidDestinationException("Invalid Destination name: " + name);
+            return new StompJmsDestination("", name);
         }
 
     }

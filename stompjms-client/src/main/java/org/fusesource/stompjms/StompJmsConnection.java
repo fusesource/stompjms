@@ -34,6 +34,11 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     private Map<StompJmsSession, StompChannel> channelsMap = new ConcurrentHashMap<StompJmsSession, StompChannel>();
     private AtomicBoolean closed = new AtomicBoolean();
     private AtomicBoolean started = new AtomicBoolean();
+    String queuePrefix = "/queue/";
+    String topicPrefix = "/topic/";
+    String tempQueuePrefix = "/temp-queue/";
+    String tempTopicPrefix = "/temp-topic/";
+
     boolean forceAsyncSend;
 
     /**
@@ -131,14 +136,6 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
             result.start();
         }
         return result;
-    }
-
-    public boolean isForceAsyncSend() {
-        return forceAsyncSend;
-    }
-
-    public void setForceAsyncSend(boolean forceAsyncSend) {
-        this.forceAsyncSend = forceAsyncSend;
     }
 
     /**
@@ -371,5 +368,49 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
                 sc.connect();
             }
         }
+    }
+
+    public boolean isForceAsyncSend() {
+        return forceAsyncSend;
+    }
+
+    /**
+     * If set to true then all mesage sends are done async.
+     * @param forceAsyncSend
+     */
+    public void setForceAsyncSend(boolean forceAsyncSend) {
+        this.forceAsyncSend = forceAsyncSend;
+    }
+
+    public String getTopicPrefix() {
+        return topicPrefix;
+    }
+
+    public void setTopicPrefix(String topicPrefix) {
+        this.topicPrefix = topicPrefix;
+    }
+
+    public String getTempTopicPrefix() {
+        return tempTopicPrefix;
+    }
+
+    public void setTempTopicPrefix(String tempTopicPrefix) {
+        this.tempTopicPrefix = tempTopicPrefix;
+    }
+
+    public String getTempQueuePrefix() {
+        return tempQueuePrefix;
+    }
+
+    public void setTempQueuePrefix(String tempQueuePrefix) {
+        this.tempQueuePrefix = tempQueuePrefix;
+    }
+
+    public String getQueuePrefix() {
+        return queuePrefix;
+    }
+
+    public void setQueuePrefix(String queuePrefix) {
+        this.queuePrefix = queuePrefix;
     }
 }

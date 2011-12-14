@@ -31,6 +31,10 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
     private String username;
     private String password;
     boolean forceAsyncSend;
+    String queuePrefix = "/queue/";
+    String topicPrefix = "/topic/";
+    String tempQueuePrefix = "/temp-queue/";
+    String tempTopicPrefix = "/temp-topic/";
 
     /**
      * Constructor
@@ -227,5 +231,37 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
 
     public void setForceAsyncSend(boolean forceAsyncSend) {
         this.forceAsyncSend = forceAsyncSend;
+    }
+
+    public String getQueuePrefix() {
+        return queuePrefix;
+    }
+
+    public void setQueuePrefix(String queuePrefix) {
+        this.queuePrefix = queuePrefix;
+    }
+
+    public String getTempQueuePrefix() {
+        return tempQueuePrefix;
+    }
+
+    public void setTempQueuePrefix(String tempQueuePrefix) {
+        this.tempQueuePrefix = tempQueuePrefix;
+    }
+
+    public String getTempTopicPrefix() {
+        return tempTopicPrefix;
+    }
+
+    public void setTempTopicPrefix(String tempTopicPrefix) {
+        this.tempTopicPrefix = tempTopicPrefix;
+    }
+
+    public String getTopicPrefix() {
+        return topicPrefix;
+    }
+
+    public void setTopicPrefix(String topicPrefix) {
+        this.topicPrefix = topicPrefix;
     }
 }

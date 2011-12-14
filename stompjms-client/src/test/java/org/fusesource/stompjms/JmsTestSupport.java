@@ -54,8 +54,9 @@ public class JmsTestSupport extends CombinationTestSupport {
         if (testMethod.indexOf(" ") > 0) {
             testMethod = testMethod.substring(0, testMethod.indexOf(" "));
         }
+
         String name = type + "TEST." + getClass().getName() + "." + testMethod + "." + TEST_COUNTER.getAndIncrement();
-        return StompJmsDestination.createDestination(name);
+        return StompJmsDestination.createDestination(connection, name);
     }
 
 

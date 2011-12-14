@@ -214,7 +214,7 @@ public class StompJmsMessageProducer implements MessageProducer {
             throw new UnsupportedOperationException("This producer can only send messages to: "
                     + this.destination.getPhysicalName());
         }
-        this.destination = StompJmsMessageTransformation.transformDestination(destination);
+        this.destination = StompJmsMessageTransformation.transformDestination(session.connection, destination);
     }
 
     protected void checkClosed() throws IllegalStateException {

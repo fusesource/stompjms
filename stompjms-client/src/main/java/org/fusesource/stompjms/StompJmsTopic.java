@@ -16,13 +16,18 @@ import javax.jms.Topic;
  * TemporaryQueue
  */
 public class StompJmsTopic extends StompJmsDestination implements Topic {
+
+    public StompJmsTopic(StompJmsConnection connection, String name) {
+        this(connection.topicPrefix, name);
+    }
+
     /**
      * Constructor
      *
      * @param name
      */
-    public StompJmsTopic(String name) {
-        super(name);
+    public StompJmsTopic(String type, String name) {
+        super(type, name);
         this.topic = true;
     }
 
@@ -34,7 +39,4 @@ public class StompJmsTopic extends StompJmsDestination implements Topic {
         return getPhysicalName();
     }
 
-    protected String getType() {
-        return StompJmsDestination.TOPIC_QUALIFIED_PREFIX;
-    }
 }

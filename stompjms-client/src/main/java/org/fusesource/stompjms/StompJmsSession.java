@@ -105,7 +105,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public QueueBrowser createBrowser(Queue destination) throws JMSException {
         checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(destination);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
         StompJmsQueueBrowser result = new StompJmsQueueBrowser(this, channel.nextId(), dest, "");
         return result;
     }
@@ -140,7 +140,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public MessageConsumer createConsumer(Destination destination) throws JMSException {
         checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(destination);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
         StompJmsMessageConsumer result = new StompJmsMessageConsumer(channel.nextId(), this, dest, "");
         result.init();
         return result;
@@ -156,7 +156,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public MessageConsumer createConsumer(Destination destination, String messageSelector) throws JMSException {
         checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(destination);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
         StompJmsMessageConsumer result = new StompJmsMessageConsumer(channel.nextId(), this, dest,
                 messageSelector);
         result.init();
@@ -175,7 +175,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public MessageConsumer createConsumer(Destination destination, String messageSelector, boolean NoLocal)
             throws JMSException {
         checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(destination);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
         StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(channel.nextId(), this, dest, NoLocal,
                 messageSelector);
         result.init();
@@ -193,7 +193,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public TopicSubscriber createDurableSubscriber(Topic topic, String name) throws JMSException {
         checkClosed();
         AsciiBuffer id = StompFrame.encodeHeader(this.connection.getClientID() + ":" + name);
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(topic);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, topic);
         StompJmsTopicSubscriber result = new StompJmsDurableTopicSubscriber(id, this, dest, false, "");
         result.init();
         return result;
@@ -212,7 +212,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public TopicSubscriber createDurableSubscriber(Topic topic, String name, String messageSelector, boolean noLocal)
             throws JMSException {
         checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(topic);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, topic);
         StompJmsTopicSubscriber result = new StompJmsDurableTopicSubscriber(channel.nextId(), this, dest, noLocal,messageSelector);
         result.init();
         return result;
@@ -269,7 +269,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public MessageProducer createProducer(Destination destination) throws JMSException {
         checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(destination);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
         StompJmsMessageProducer result = new StompJmsMessageProducer(this, dest);
         add(result);
         return result;
@@ -283,7 +283,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public Queue createQueue(String queueName) throws JMSException {
         checkClosed();
-        return new StompJmsQueue(queueName);
+        return new StompJmsQueue(connection, queueName);
     }
 
     /**
@@ -303,7 +303,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public TemporaryQueue createTemporaryQueue() throws JMSException {
         checkClosed();
-        return new StompJmsTempQueue(UUID.randomUUID().toString());
+        return new StompJmsTempQueue(connection, UUID.randomUUID().toString());
     }
 
     /**
@@ -313,7 +313,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public TemporaryTopic createTemporaryTopic() throws JMSException {
         checkClosed();
-        return new StompJmsTempTopic(UUID.randomUUID().toString());
+        return new StompJmsTempTopic(connection, UUID.randomUUID().toString());
     }
 
     /**
@@ -347,7 +347,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public Topic createTopic(String topicName) throws JMSException {
         checkClosed();
-        return new StompJmsTopic(topicName);
+        return new StompJmsTopic(connection, topicName);
     }
 
     /**
@@ -445,7 +445,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public QueueReceiver createReceiver(Queue queue) throws JMSException {
         checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(queue);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, queue);
         StompJmsQueueReceiver result = new StompJmsQueueReceiver(channel.nextId(), this, dest, "");
         result.init();
         return result;
@@ -461,7 +461,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public QueueReceiver createReceiver(Queue queue, String messageSelector) throws JMSException {
         checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(queue);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, queue);
         StompJmsQueueReceiver result = new StompJmsQueueReceiver(channel.nextId(), this, dest, messageSelector);
         result.init();
         return result;
@@ -475,7 +475,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public QueueSender createSender(Queue queue) throws JMSException {
         checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(queue);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, queue);
         StompJmsQueueSender result = new StompJmsQueueSender(this, dest);
         return result;
     }
@@ -488,7 +488,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public TopicPublisher createPublisher(Topic topic) throws JMSException {
         checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(topic);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, topic);
         StompJmsTopicPublisher result = new StompJmsTopicPublisher(this, dest);
         add(result);
         return result;
@@ -502,7 +502,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public TopicSubscriber createSubscriber(Topic topic) throws JMSException {
         checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(topic);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, topic);
         StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(channel.nextId(), this, dest, false, "");
         result.init();
         return result;
@@ -519,7 +519,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public TopicSubscriber createSubscriber(Topic topic, String messageSelector, boolean noLocal) throws JMSException {
         checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(topic);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, topic);
         StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(channel.nextId(), this, dest, noLocal, messageSelector);
         return result;
     }
@@ -556,8 +556,8 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
 
     protected void send(Destination dest, Message msg, int deliveryMode, int priority, long timeToLive)
             throws JMSException {
-        StompJmsDestination destination = StompJmsMessageTransformation.transformDestination(dest);
-        StompJmsMessage message = StompJmsMessageTransformation.transformMessage(msg);
+        StompJmsDestination destination = StompJmsMessageTransformation.transformDestination(connection, dest);
+        StompJmsMessage message = StompJmsMessageTransformation.transformMessage(connection, msg);
         send(destination, message, deliveryMode, priority, timeToLive);
     }
 

@@ -17,13 +17,17 @@ import javax.jms.Queue;
  */
 public class StompJmsQueue extends StompJmsDestination implements Queue {
 
+    public StompJmsQueue(StompJmsConnection connection, String name) {
+        this(connection.queuePrefix, name);
+    }
+
     /**
      * Constructor
      *
      * @param name
      */
-    public StompJmsQueue(String name) {
-        super(name);
+    public StompJmsQueue(String type, String name) {
+        super(type, name);
     }
 
     /**
@@ -34,7 +38,4 @@ public class StompJmsQueue extends StompJmsDestination implements Queue {
         return getPhysicalName();
     }
 
-    protected String getType() {
-        return StompJmsDestination.QUEUE_QUALIFIED_PREFIX;
-    }
 }

@@ -51,7 +51,13 @@ public class StompJmsInitialContextFactory implements InitialContextFactory {
 
     private String connectionPrefix = "";
 
+    String queuePrefix = "/queue/";
+    String topicPrefix = "/topic/";
+    
     public Context getInitialContext(Hashtable environment) throws NamingException {
+
+        queuePrefix = getValue(environment, "queuePrefix", queuePrefix);
+        topicPrefix = getValue(environment, "topicPrefix", topicPrefix);
 
         // lets create a factory
         Map<String, Object> data = new ConcurrentHashMap<String, Object>();
@@ -78,7 +84,7 @@ public class StompJmsInitialContextFactory implements InitialContextFactory {
             private static final long serialVersionUID = 6503881346214855588L;
 
             protected Object createEntry(String name) {
-                return new StompJmsQueue(name);
+                return new StompJmsQueue(queuePrefix, name);
             }
         });
 
@@ -86,11 +92,20 @@ public class StompJmsInitialContextFactory implements InitialContextFactory {
             private static final long serialVersionUID = 2019166796234979615L;
 
             protected Object createEntry(String name) {
-                return new StompJmsTopic(name);
+                return new StompJmsTopic(topicPrefix, name);
             }
         });
 
         return createContext(environment, data);
+    }
+
+    static private String getValue(Hashtable environment, String key, String defaultValue) {
+        Object o = environment.get(key);
+        if( o!=null && o instanceof String) {
+            return (String) o;
+        } else {
+            return defaultValue;
+        }
     }
 
 
@@ -138,14 +153,14 @@ public class StompJmsInitialContextFactory implements InitialContextFactory {
      * Factory method to create new Queue instances
      */
     protected Queue createQueue(String name) {
-        return new StompJmsQueue(name);
+        return new StompJmsQueue(queuePrefix, name);
     }
 
     /**
      * Factory method to create new Topic instances
      */
     protected Topic createTopic(String name) {
-        return new StompJmsTopic(name);
+        return new StompJmsTopic(topicPrefix, name);
     }
 
     /**

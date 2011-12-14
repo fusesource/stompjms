@@ -36,7 +36,7 @@ public final class StompJmsMessageTransformation {
      * @throws JMSException
      * @throws JMSException if an error occurs
      */
-    public static StompJmsDestination transformDestination(Destination destination) throws JMSException {
+    public static StompJmsDestination transformDestination(StompJmsConnection connection, Destination destination) throws JMSException {
         StompJmsDestination result = null;
 
         if (destination != null) {
@@ -45,13 +45,13 @@ public final class StompJmsMessageTransformation {
 
             } else {
                 if (destination instanceof TemporaryQueue) {
-                    result = new StompJmsTempQueue(((Queue) destination).getQueueName());
+                    result = new StompJmsTempQueue(connection, ((Queue) destination).getQueueName());
                 } else if (destination instanceof TemporaryTopic) {
-                    result = new StompJmsTempTopic(((Topic) destination).getTopicName());
+                    result = new StompJmsTempTopic(connection, ((Topic) destination).getTopicName());
                 } else if (destination instanceof Queue) {
-                    result = new StompJmsQueue(((Queue) destination).getQueueName());
+                    result = new StompJmsQueue(connection, ((Queue) destination).getQueueName());
                 } else if (destination instanceof Topic) {
-                    result = new StompJmsTopic(((Topic) destination).getTopicName());
+                    result = new StompJmsTopic(connection, ((Topic) destination).getTopicName());
                 }
             }
         }
@@ -70,7 +70,7 @@ public final class StompJmsMessageTransformation {
      *         message.
      * @throws JMSException if an error occurs
      */
-    public static StompJmsMessage transformMessage(Message message)
+    public static StompJmsMessage transformMessage(StompJmsConnection connection, Message message)
             throws JMSException {
         if (message instanceof StompJmsMessage) {
             return (StompJmsMessage) message;
@@ -136,7 +136,7 @@ public final class StompJmsMessageTransformation {
                 activeMessage = new StompJmsMessage();
             }
 
-            copyProperties(message, activeMessage);
+            copyProperties(connection, message, activeMessage);
 
             return activeMessage;
         }
@@ -150,11 +150,11 @@ public final class StompJmsMessageTransformation {
      * @param toMessage   the message to add the properties to
      * @throws JMSException
      */
-    public static void copyProperties(Message fromMessage, Message toMessage) throws JMSException {
+    public static void copyProperties(StompJmsConnection connection, Message fromMessage, Message toMessage) throws JMSException {
         toMessage.setJMSMessageID(fromMessage.getJMSMessageID());
         toMessage.setJMSCorrelationID(fromMessage.getJMSCorrelationID());
-        toMessage.setJMSReplyTo(transformDestination(fromMessage.getJMSReplyTo()));
-        toMessage.setJMSDestination(transformDestination(fromMessage.getJMSDestination()));
+        toMessage.setJMSReplyTo(transformDestination(connection, fromMessage.getJMSReplyTo()));
+        toMessage.setJMSDestination(transformDestination(connection, fromMessage.getJMSDestination()));
         toMessage.setJMSDeliveryMode(fromMessage.getJMSDeliveryMode());
         toMessage.setJMSRedelivered(fromMessage.getJMSRedelivered());
         toMessage.setJMSType(fromMessage.getJMSType());

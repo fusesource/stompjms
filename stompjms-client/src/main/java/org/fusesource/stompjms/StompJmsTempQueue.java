@@ -18,18 +18,17 @@ import javax.jms.TemporaryQueue;
  */
 public class StompJmsTempQueue extends StompJmsDestination implements TemporaryQueue {
 
+    private final StompJmsConnection connection;
+
     /**
      * Constructor
      *
      * @param name
      */
-    public StompJmsTempQueue(String name) {
-        super(name);
+    public StompJmsTempQueue(StompJmsConnection connection, String name) {
+        super(connection.tempQueuePrefix, name);
+        this.connection = connection;
         this.topic = false;
-    }
-
-    protected String getType() {
-        return StompJmsDestination.TEMP_QUEUE_QUALIFED_PREFIX;
     }
 
     /**
