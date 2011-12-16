@@ -13,11 +13,9 @@ import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtdispatch.DispatchQueue;
 import org.fusesource.stompjms.client.ProtocolException;
 import org.fusesource.stompjms.client.StompFrame;
-import org.fusesource.stompjms.client.StompProtocolCodec;
-import org.fusesource.stompjms.client.transport.Transport;
-import org.fusesource.stompjms.client.transport.TransportListener;
+import org.fusesource.hawtdispatch.transport.Transport;
+import org.fusesource.hawtdispatch.transport.TransportListener;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.util.*;

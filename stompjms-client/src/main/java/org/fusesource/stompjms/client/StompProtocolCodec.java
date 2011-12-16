@@ -12,8 +12,7 @@ package org.fusesource.stompjms.client;
 import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtbuf.Buffer;
 import org.fusesource.hawtbuf.DataByteArrayOutputStream;
-import org.fusesource.stompjms.client.callback.Callback;
-import org.fusesource.stompjms.client.transport.ProtocolCodec;
+import org.fusesource.hawtdispatch.transport.ProtocolCodec;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -150,9 +149,9 @@ public class StompProtocolCodec implements ProtocolCodec {
         }
     }
 
-    public void unread(Buffer buffer) {
+    public void unread(byte[] buffer) {
         assert (read_counter == 0);
-        read_buffer.put(buffer.data, buffer.offset, buffer.length);
+        read_buffer.put(buffer);
         read_counter += buffer.length;
     }
 

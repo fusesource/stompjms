@@ -13,10 +13,10 @@ import org.fusesource.hawtdispatch.DispatchQueue;
 import org.fusesource.stompjms.client.Stomp;
 import org.fusesource.stompjms.client.StompFrame;
 import org.fusesource.stompjms.client.StompProtocolCodec;
-import org.fusesource.stompjms.client.transport.SslTransport;
-import org.fusesource.stompjms.client.transport.TcpTransport;
-import org.fusesource.stompjms.client.transport.Transport;
-import org.fusesource.stompjms.client.transport.TransportListener;
+import org.fusesource.hawtdispatch.transport.SslTransport;
+import org.fusesource.hawtdispatch.transport.TcpTransport;
+import org.fusesource.hawtdispatch.transport.Transport;
+import org.fusesource.hawtdispatch.transport.TransportListener;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
