@@ -144,10 +144,10 @@ public class ConnectionBuilder {
             final Transport transport;
             if( "tcp".equals(scheme) ) {
                 transport = new TcpTransport();
-            }  else if( SslTransport.SCHEME_MAPPINGS.containsKey(scheme)) {
+            }  else if( SslTransport.protocol(scheme)!=null ) {
                 SslTransport ssl = new SslTransport();
                 if( sslContext == null ) {
-                    sslContext = SSLContext.getInstance(SslTransport.SCHEME_MAPPINGS.get(scheme));
+                    sslContext = SSLContext.getInstance(SslTransport.protocol(scheme));
                 }
                 ssl.setSSLContext(sslContext);
                 if( blockingExecutor == null ) {
