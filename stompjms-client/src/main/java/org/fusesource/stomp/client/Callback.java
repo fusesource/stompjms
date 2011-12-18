@@ -17,10 +17,10 @@ package org.fusesource.stomp.client;
  */
 public class Callback<T> {
 
-    public void failure(Throwable value) {
+    public void onFailure(Throwable value) {
     }
 
-    public void success(T value) {
+    public void onSuccess(T value) {
     }
 
 }

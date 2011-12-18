@@ -99,7 +99,7 @@ public class CallbackConnection {
             if (id != null) {
                 Callback<StompFrame> cb = this.requests.remove(id);
                 if (cb != null) {
-                    cb.success(frame);
+                    cb.onSuccess(frame);
                 } else {
                     if( !toReceiver(frame) ) {
                         processFailure(new ProtocolException("Stomp Response without a valid receipt id: " + id + " for frame " + frame));
@@ -118,7 +118,7 @@ public class CallbackConnection {
     private boolean toReceiver(StompFrame frame) {
         if( receiver!=null ) {
             try {
-                receiver.success(frame);
+                receiver.onSuccess(frame);
             } catch (Exception e) {
                 processFailure(e);
             }
@@ -133,7 +133,7 @@ public class CallbackConnection {
             failRequests(failure);
             if( receiver!=null ) {
                 try {
-                    receiver.failure(failure);
+                    receiver.onFailure(failure);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -145,14 +145,14 @@ public class CallbackConnection {
         ArrayList<Callback<Void>> values = new ArrayList(requests.values());
         requests.clear();
         for (Callback<Void> value : values) {
-            value.failure(failure);
+            value.onFailure(failure);
         }
 
         ArrayList<OverflowEntry> overflowEntries = new ArrayList<OverflowEntry>(overflow);
         overflow.clear();
         for (OverflowEntry entry : overflowEntries) {
             if( entry.cb !=null ) {
-                entry.cb.failure(failure);
+                entry.cb.onFailure(failure);
             }
         }
     }
@@ -216,7 +216,7 @@ public class CallbackConnection {
         getDispatchQueue().assertExecuting();
         assert cb!=null : "Callback must not be null";
         if( failure !=null ) {
-            cb.failure(failure);
+            cb.onFailure(failure);
         } else {
             AsciiBuffer id = nextId();
             this.requests.put(id, cb);
@@ -235,7 +235,7 @@ public class CallbackConnection {
             if( offer(entry.frame) ) {
                 overflow.removeFirst();
                 if( entry.cb!=null ) {
-                    entry.cb.success(null);
+                    entry.cb.onSuccess(null);
                 }
             } else {
                 break;
@@ -256,12 +256,12 @@ public class CallbackConnection {
         getDispatchQueue().assertExecuting();
         if( failure !=null ) {
             if( cb!=null ) {
-                cb.failure(failure);
+                cb.onFailure(failure);
             }
         } else {
             if( overflow.isEmpty() && offer(frame) ) {
                 if( cb!=null ) {
-                    cb.success(null);
+                    cb.onSuccess(null);
                 }
             } else {
                 overflow.addLast(new OverflowEntry(frame, cb));

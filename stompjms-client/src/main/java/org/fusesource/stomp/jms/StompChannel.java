@@ -16,7 +16,7 @@ import org.fusesource.stomp.client.ProtocolException;
 import org.fusesource.stomp.client.Stomp;
 import org.fusesource.stomp.codec.StompFrame;
 import org.fusesource.stomp.client.Callback;
-import org.fusesource.stomp.client.CallbackFuture;
+import org.fusesource.stomp.client.Promise;
 import org.fusesource.stomp.jms.message.StompJmsMessage;
 import org.fusesource.stomp.jms.util.StompTranslator;
 
@@ -71,7 +71,7 @@ public class StompChannel {
 
             try {
 
-                final CallbackFuture<CallbackConnection> future = new CallbackFuture<CallbackConnection>();
+                final Promise<CallbackConnection> future = new Promise<CallbackConnection>();
                 Stomp stomp = new Stomp(brokerURI);
                 stomp.setLogin(userName);
                 stomp.setPasscode(password);
@@ -83,10 +83,10 @@ public class StompChannel {
                 connection.getDispatchQueue().execute(new Runnable() {
                     public void run() {
                         connection.receive(new Callback<StompFrame>() {
-                            public void failure(Throwable value) {
+                            public void onFailure(Throwable value) {
                                 handleException(value);
                             }
-                            public void success(StompFrame value) {
+                            public void onSuccess(StompFrame value) {
                                 onFrame(value);
                             }
                         });
@@ -276,11 +276,11 @@ public class StompChannel {
                 connection.getDispatchQueue().execute(new Runnable() {
                     public void run() {
                         connection.send(frame, new Callback<Void>(){
-                            public void failure(Throwable value) {
+                            public void onFailure(Throwable value) {
                                 handleException(value);
                             }
                             @Override
-                            public void success(Void value) {
+                            public void onSuccess(Void value) {
                                 writeBufferRemaining.getAndAdd(size);
                             }
                         });
@@ -289,11 +289,11 @@ public class StompChannel {
             } else {
                 // ran out of buffer space.. wait for the write to complete
                 // so that we don't blow out our memory buffers.
-                final CallbackFuture<Void> future = new CallbackFuture<Void>() {
+                final Promise<Void> future = new Promise<Void>() {
                     @Override
-                    public void success(Void value) {
+                    public void onSuccess(Void value) {
                         writeBufferRemaining.getAndAdd(size);
-                        super.success(value);
+                        super.onSuccess(value);
                     }
                 };
                 connection.getDispatchQueue().execute(new Runnable() {
@@ -312,7 +312,7 @@ public class StompChannel {
 
     public void sendRequest(final StompFrame frame) throws IOException {
         try {
-            final CallbackFuture<StompFrame> future = new CallbackFuture<StompFrame>();
+            final Promise<StompFrame> future = new Promise<StompFrame>();
             connection.getDispatchQueue().execute(new Runnable() {
                 public void run() {
                     connection.request(frame, future);

@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
  */
-public class CallbackFuture<T> extends Callback<T> implements Future<T> {
+public class Promise<T> extends Callback<T> implements Future<T> {
 
     private final CountDownLatch latch = new CountDownLatch(1);
 
@@ -26,13 +26,13 @@ public class CallbackFuture<T> extends Callback<T> implements Future<T> {
     T value;
 
     @Override
-    public void failure(Throwable value) {
+    public void onFailure(Throwable value) {
         error = value;
         latch.countDown();
     }
 
     @Override
-    public void success(T value) {
+    public void onSuccess(T value) {
         this.value = value;
         latch.countDown();
     }

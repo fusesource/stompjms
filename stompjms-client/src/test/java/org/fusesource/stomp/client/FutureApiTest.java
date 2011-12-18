@@ -42,12 +42,12 @@ public class FutureApiTest extends TestCase {
         FutureConnection connection = future.await();
 
         // Lets setup a receive.. this does not block until you await it..
-        CallbackFuture<StompFrame> receiveFuture = connection.receive();
+        Future<StompFrame> receiveFuture = connection.receive();
 
         StompFrame frame = new StompFrame(SUBSCRIBE);
         frame.addHeader(DESTINATION, StompFrame.encodeHeader("/queue/test"));
         frame.addHeader(ID, connection.nextId());
-        CallbackFuture<StompFrame> response = connection.request(frame);
+        Future<StompFrame> response = connection.request(frame);
 
         // This unblocks once the response frame is received.
         assertNotNull(response.await());
@@ -55,7 +55,7 @@ public class FutureApiTest extends TestCase {
         frame = new StompFrame(SEND);
         frame.addHeader(DESTINATION, StompFrame.encodeHeader("/queue/test"));
         frame.addHeader(MESSAGE_ID, StompFrame.encodeHeader("test"));
-        CallbackFuture<Void> sendFuture = connection.send(frame);
+        Future<Void> sendFuture = connection.send(frame);
 
         // This unblocks once the frame is accepted by the socket.  Use it
         // to avoid flow control issues.

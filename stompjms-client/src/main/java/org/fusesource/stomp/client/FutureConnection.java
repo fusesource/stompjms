@@ -26,29 +26,29 @@ public class FutureConnection {
 
     private final CallbackConnection connection;
 
-    private LinkedList<CallbackFuture<StompFrame>> receiveFutures = new LinkedList<CallbackFuture<StompFrame>>();
+    private LinkedList<Promise<StompFrame>> receiveFutures = new LinkedList<Promise<StompFrame>>();
     private LinkedList<StompFrame> receivedFrames = new LinkedList<StompFrame>();
 
     FutureConnection(CallbackConnection connection) {
         this.connection = connection;
         this.connection.receive(new Callback<StompFrame>() {
             @Override
-            public void failure(Throwable value) {
+            public void onFailure(Throwable value) {
                 getDispatchQueue().assertExecuting();
-                ArrayList<CallbackFuture<StompFrame>> tmp = new ArrayList<CallbackFuture<StompFrame>>(receiveFutures);
+                ArrayList<Promise<StompFrame>> tmp = new ArrayList<Promise<StompFrame>>(receiveFutures);
                 receiveFutures.clear();
-                for (CallbackFuture<StompFrame> future : tmp) {
-                    future.failure(value);
+                for (Promise<StompFrame> future : tmp) {
+                    future.onFailure(value);
                 }
             }
 
             @Override
-            public void success(StompFrame value) {
+            public void onSuccess(StompFrame value) {
                 getDispatchQueue().assertExecuting();
                 if( receiveFutures.isEmpty() ) {
                     receivedFrames.add(value);
                 } else {
-                    receiveFutures.removeFirst().success(value);
+                    receiveFutures.removeFirst().onSuccess(value);
                 }
             }
         });
@@ -63,11 +63,11 @@ public class FutureConnection {
         return this.connection.getDispatchQueue();
     }
 
-    public CallbackFuture<Void> close() {
-        final CallbackFuture<Void> future = new CallbackFuture<Void>();
+    public Future<Void> close() {
+        final Promise<Void> future = new Promise<Void>();
         connection.close(new Runnable() {
             public void run() {
-                future.success(null);
+                future.onSuccess(null);
             }
         });
         return future;
@@ -82,8 +82,8 @@ public class FutureConnection {
         return connection.nextId(prefix);
     }
 
-    public CallbackFuture<StompFrame> request(final StompFrame frame) {
-        final CallbackFuture<StompFrame> future = new CallbackFuture<StompFrame>();
+    public Future<StompFrame> request(final StompFrame frame) {
+        final Promise<StompFrame> future = new Promise<StompFrame>();
         connection.getDispatchQueue().execute(new Runnable() {
             public void run() {
                 connection.request(frame, future);
@@ -92,8 +92,8 @@ public class FutureConnection {
         return future;
     }
 
-    public CallbackFuture<Void> send(final StompFrame frame) {
-        final CallbackFuture<Void> future = new CallbackFuture<Void>();
+    public Future<Void> send(final StompFrame frame) {
+        final Promise<Void> future = new Promise<Void>();
         connection.getDispatchQueue().execute(new Runnable() {
             public void run() {
                 connection.send(frame, future);
@@ -102,17 +102,17 @@ public class FutureConnection {
         return future;
     }
 
-    public CallbackFuture<StompFrame> receive() {
-        final CallbackFuture<StompFrame> future = new CallbackFuture<StompFrame>();
+    public Future<StompFrame> receive() {
+        final Promise<StompFrame> future = new Promise<StompFrame>();
         getDispatchQueue().execute(new Runnable(){
             public void run() {
                 if( connection.getFailure()!=null ) {
-                    future.failure(connection.getFailure());
+                    future.onFailure(connection.getFailure());
                 } else {
                     if( receivedFrames.isEmpty() ) {
                         receiveFutures.add(future);
                     } else {
-                        future.success(receivedFrames.removeFirst());
+                        future.onSuccess(receivedFrames.removeFirst());
                     }
                 }
             }

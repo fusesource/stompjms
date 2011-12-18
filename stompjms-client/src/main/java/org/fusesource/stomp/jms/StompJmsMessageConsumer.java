@@ -14,7 +14,7 @@ import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtdispatch.CustomDispatchSource;
 import org.fusesource.hawtdispatch.Dispatch;
 import org.fusesource.hawtdispatch.OrderedEventAggregator;
-import org.fusesource.stomp.client.CallbackFuture;
+import org.fusesource.stomp.client.Promise;
 import org.fusesource.stomp.jms.message.StompJmsMessage;
 
 import javax.jms.IllegalStateException;
@@ -43,7 +43,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
 
     final CustomDispatchSource<AckCallbackFuture, AckCallbackFuture> ackSource;
 
-    class AckCallbackFuture extends CallbackFuture<Void> {
+    class AckCallbackFuture extends Promise<Void> {
         AsciiBuffer id;
 
         public AckCallbackFuture(AsciiBuffer id) {
@@ -51,7 +51,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
         }
 
         public void success() {
-            success(null);
+            onSuccess(null);
         }
 
         public AsciiBuffer getId() {
@@ -99,7 +99,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
                         }
                         cb.success();
                     } catch (JMSException e) {
-                        cb.failure(e);
+                        cb.onFailure(e);
                         session.connection.onException(e);
                     }
                 }

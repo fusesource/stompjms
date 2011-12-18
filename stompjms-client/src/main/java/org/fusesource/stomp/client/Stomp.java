@@ -176,19 +176,19 @@ public class Stomp {
                 public void onTransportCommand(Object command) {
                     StompFrame response = (StompFrame) command;
                     if (response.action().equals(ERROR)) {
-                        cb.failure(new IOException("Could not connect: " + response.errorMessage()));
+                        cb.onFailure(new IOException("Could not connect: " + response.errorMessage()));
                     } else if (!response.action().equals(CONNECTED)) {
-                        cb.failure(new IOException("Could not connect. Received unexpected frame: " + response.toString()));
+                        cb.onFailure(new IOException("Could not connect. Received unexpected frame: " + response.toString()));
                     } else {
                         transport.suspendRead();
-                        cb.success(new CallbackConnection(transport, response));
+                        cb.onSuccess(new CallbackConnection(transport, response));
                     }
                 }
 
                 public void onTransportFailure(final IOException error) {
                     transport.stop(new Runnable() {
                         public void run() {
-                            cb.failure(error);
+                            cb.onFailure(error);
                         }
                     });
                 }
@@ -203,20 +203,20 @@ public class Stomp {
             transport.start(NOOP);
 
         } catch (Throwable e) {
-            cb.failure(e);
+            cb.onFailure(e);
         }
 
     }
 
     public Future<FutureConnection> connectFuture() {
-        final CallbackFuture<FutureConnection> future = new CallbackFuture<FutureConnection>();
+        final Promise<FutureConnection> future = new Promise<FutureConnection>();
         connectCallback(new Callback<CallbackConnection>() {
-            public void failure(Throwable value) {
-                future.failure(value);
+            public void onFailure(Throwable value) {
+                future.onFailure(value);
             }
 
-            public void success(CallbackConnection value) {
-                future.success(new FutureConnection(value));
+            public void onSuccess(CallbackConnection value) {
+                future.onSuccess(new FutureConnection(value));
             }
         });
         return future;

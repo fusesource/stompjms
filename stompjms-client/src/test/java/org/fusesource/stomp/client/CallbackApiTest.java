@@ -36,26 +36,26 @@ public class CallbackApiTest extends TestCase {
     }
 
     public void testCallbackInterface() throws Exception {
-        final CallbackFuture<StompFrame> result = new CallbackFuture<StompFrame>();
+        final Promise<StompFrame> result = new Promise<StompFrame>();
         Stomp stomp = new Stomp("localhost", broker.port);
         stomp.connectCallback(new Callback<CallbackConnection>() {
             @Override
-            public void failure(Throwable value) {
-                result.failure(value);
+            public void onFailure(Throwable value) {
+                result.onFailure(value);
             }
 
             @Override
-            public void success(final CallbackConnection connection) {
+            public void onSuccess(final CallbackConnection connection) {
                 connection.receive(new Callback<StompFrame>() {
                     @Override
-                    public void failure(Throwable value) {
-                        result.failure(value);
+                    public void onFailure(Throwable value) {
+                        result.onFailure(value);
                         connection.close(null);
                     }
 
                     @Override
-                    public void success(StompFrame value) {
-                        result.success(value);
+                    public void onSuccess(StompFrame value) {
+                        result.onSuccess(value);
                         connection.close(null);
                     }
                 });
@@ -67,13 +67,13 @@ public class CallbackApiTest extends TestCase {
                 frame.addHeader(ID, connection.nextId());
                 connection.request(frame, new Callback<StompFrame>() {
                     @Override
-                    public void failure(Throwable value) {
-                        result.failure(value);
+                    public void onFailure(Throwable value) {
+                        result.onFailure(value);
                         connection.close(null);
                     }
 
                     @Override
-                    public void success(StompFrame reply) {
+                    public void onSuccess(StompFrame reply) {
                         StompFrame frame = new StompFrame(SEND);
                         frame.addHeader(DESTINATION, StompFrame.encodeHeader("/queue/test"));
                         frame.addHeader(MESSAGE_ID, StompFrame.encodeHeader("test"));
