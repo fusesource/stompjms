@@ -18,12 +18,12 @@
   <parent>
     <groupId>org.fusesource.stompjms</groupId>
     <artifactId>stompjms-project</artifactId>
-    <version>1.5-SNAPSHOT</version>
+    <version>1.5</version>
   </parent>
   
   <groupId>org.fusesource.stompjms</groupId>
   <artifactId>stompjms-website</artifactId>
-  <version>1.5-SNAPSHOT</version>
+  <version>1.5</version>
   <packaging>war</packaging>
 
   <name>${project.artifactId}</name>
