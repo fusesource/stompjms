@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -113,11 +114,36 @@ public class StompChannel {
 
     public void close() throws JMSException {
         if (connected.compareAndSet(true, false)) {
+            final CountDownLatch cd = new CountDownLatch(1);
             started.set(false);
-            this.connection.close(new Runnable() {
+
+            // Request a DISCONNECT so that we can ensure the socket
+            // is flushed out.
+            connection.getDispatchQueue().execute(new Runnable(){
                 public void run() {
+                    StompFrame frame = new StompFrame(DISCONNECT);
+                    connection.request(frame, new Callback<StompFrame>(){
+                        public void onFailure(Throwable value) {
+                            onSuccess(null);
+                        }
+                        public void onSuccess(StompFrame value) {
+                            // Then finally clean up the connection/socket.
+                            connection.close(new Runnable() {
+                                public void run() {
+                                    cd.countDown();
+                                }
+                            });
+                        }
+                    });
                 }
             });
+
+            // Wait for the socket to shutdown.
+            try {
+                cd.await();
+            } catch (InterruptedException e) {
+                throw new JMSException("Interrupted");
+            }
         }
     }
 
