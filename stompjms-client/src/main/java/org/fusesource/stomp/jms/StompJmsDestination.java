@@ -37,7 +37,13 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
     protected transient AsciiBuffer buffer;
     protected transient Map<String, String> subscribeHeaders;
 
-    protected StompJmsDestination(String prefix, String name) {
+    public StompJmsDestination() {
+    }
+    public StompJmsDestination(String name) {
+        this("", name);
+    }
+
+    public StompJmsDestination(String prefix, String name) {
         this.prefix = prefix;
         setPhysicalName(name);
     }
@@ -56,10 +62,12 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
         return buffer;
     }
 
-    protected String getPrefix() {
+    public String getPrefix() {
         return prefix;
     }
-
+    public void setPrefix(String prefix) {
+        this.prefix = prefix;
+    }
 
     /**
      * @return name of destination
@@ -101,7 +109,7 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
      */
     @Override
     protected void buildFromProperties(Map<String, String> props) {
-
+        setPrefix(getProperty(props, "prefix", ""));
         setPhysicalName(getProperty(props, "name", ""));
         Boolean bool = Boolean.valueOf(getProperty(props, "topic", Boolean.TRUE.toString()));
         this.topic = bool.booleanValue();
@@ -114,6 +122,7 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
      */
     @Override
     protected void populateProperties(Map<String, String> props) {
+        props.put("prefix", getPrefix());
         props.put("name", getPhysicalName());
         props.put("topic", Boolean.toString(isTopic()));
         props.put("temporary", Boolean.toString(isTemporary()));
@@ -155,12 +164,14 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
     }
 
     public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeUTF(getPrefix());
         out.writeUTF(getPhysicalName());
         out.writeBoolean(isTopic());
         out.writeBoolean(isTemporary());
     }
 
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        setPrefix(in.readUTF());
         setPhysicalName(in.readUTF());
         this.topic = in.readBoolean();
         this.temporary = in.readBoolean();
