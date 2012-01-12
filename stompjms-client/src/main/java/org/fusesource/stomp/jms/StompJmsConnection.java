@@ -30,7 +30,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     private ExceptionListener exceptionListener;
     private List<StompJmsSession> sessions = new CopyOnWriteArrayList<StompJmsSession>();
     private AtomicBoolean connected = new AtomicBoolean();
-    private StompChannel mainChannel;
+    StompChannel mainChannel;
     private Map<StompJmsSession, StompChannel> channelsMap = new ConcurrentHashMap<StompJmsSession, StompChannel>();
     private AtomicBoolean closed = new AtomicBoolean();
     private AtomicBoolean started = new AtomicBoolean();

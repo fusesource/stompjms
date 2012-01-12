@@ -66,15 +66,12 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
         this.messageSelector = selector;
         this.messageQueue = new MessageQueue(session.consumerMessageBufferSize);
 
-        if( destination.getSubscribeHeaders()!=null && destination.getSubscribeHeaders().get("ack").equals("auto") ) {
-            // If the user wants really awesome performance then he will set the "ack:auto" header.
-            // Then the STOMP client does not need to issue acks to the server, the down side is that we
-            // need to flow control the TCP reads to avoid memory overruns.  But if the TCP reads have been stopped
-            // we will also stop receiving responses for sync requests on the same connection.
+        if(  session.acknowledgementMode==Session.AUTO_ACKNOWLEDGE ) {
+            // Then the STOMP client does not need to issue acks to the server, we suspend
+            // TCP reads to avoid memory overruns.
             ackSource = null;
         } else {
             ackSource = Dispatch.createSource(new OrderedEventAggregator<AckCallbackFuture, AckCallbackFuture>() {
-    //        ackSource = Dispatch.createSource(new EventAggregator<AsciiBuffer, AsciiBuffer>() {
                 public AckCallbackFuture mergeEvent(AckCallbackFuture previous, AckCallbackFuture events) {
                     return events;
                 }
@@ -92,10 +89,11 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
                             case Session.CLIENT_ACKNOWLEDGE:
                                 session.channel.ackMessage(id, msgid, session.currentTransactionId, true);
                                 break;
-                            case Session.AUTO_ACKNOWLEDGE:
                             case Session.DUPS_OK_ACKNOWLEDGE:
                             case Session.SESSION_TRANSACTED:
                                 session.channel.ackMessage(id, msgid, session.currentTransactionId, false);
+                            case Session.AUTO_ACKNOWLEDGE:
+                                break;
                         }
                         cb.success();
                     } catch (JMSException e) {

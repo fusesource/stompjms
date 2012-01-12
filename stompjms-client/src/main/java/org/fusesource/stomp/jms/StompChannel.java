@@ -201,12 +201,11 @@ public class StompChannel {
         if (selector != null && selector.trim().isEmpty() == false) {
             frame.headerMap().put(SELECTOR, selector);
         }
-//        if (clientAck) {
-//            frame.headerMap().put(ACK_MODE, CLIENT);
-//        } else {
-//            frame.headerMap().put(ACK_MODE, AUTO);
-//        }
-        frame.headerMap().put(ACK_MODE, CLIENT);
+        if (clientAck) {
+            frame.headerMap().put(ACK_MODE, CLIENT);
+        } else {
+            frame.headerMap().put(ACK_MODE, AUTO);
+        }
         if (persistent) {
             frame.headerMap().put(PERSISTENT, TRUE);
         }

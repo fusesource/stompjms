@@ -530,7 +530,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             consumer.getDestination(),
             consumer.getId(),
             StompFrame.encodeHeader(consumer.getMessageSelector()),
-            this.acknowledgementMode == Session.CLIENT_ACKNOWLEDGE,
+            this.acknowledgementMode != Session.AUTO_ACKNOWLEDGE,
             consumer.isDurableSubscription(),
             consumer.isBrowser(),
             StompFrame.encodeHeaders(consumer.getDestination().getSubscribeHeaders())
@@ -586,7 +586,21 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             message.setJMSExpiration(System.currentTimeMillis() + timeToLive);
         }
         boolean sync = !forceAsyncSend && message.isPersistent() && !getTransacted();
-        this.channel.sendMessage(message, currentTransactionId, sync);
+        
+        // If we are doing transactions we HAVE to use the
+        // session's channel since that's how the UOWs are being
+        // delimited.  And if there are no consumers, then 
+        // we know the TCP connection will not be getting flow controlled
+        // by slow consumers, so it's safe to us it too. 
+        if( consumers.isEmpty() || getTransacted()) {
+            this.channel.sendMessage(message, currentTransactionId, sync);
+        } else {
+            // Non transacted session, with consumers.. they might end up
+            // flow controlling the channel so lets publish the message
+            // over the connection's main channel.
+            this.connection.mainChannel.sendMessage(message, currentTransactionId, sync);
+        }
+        
     }
 
     protected void checkClosed() throws IllegalStateException {
