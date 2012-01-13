@@ -24,8 +24,8 @@ public class StompJmsQueueSession extends StompJmsTopicSession {
      * @param connection
      * @param acknowledgementMode
      */
-    protected StompJmsQueueSession(StompJmsConnection connection, StompChannel channel, int acknowledgementMode, boolean forceAsyncSend) {
-        super(connection, channel, acknowledgementMode, forceAsyncSend);
+    protected StompJmsQueueSession(StompJmsConnection connection, int acknowledgementMode, boolean forceAsyncSend) {
+        super(connection, acknowledgementMode, forceAsyncSend);
     }
 
     public MessageConsumer createConsumer(Destination destination) throws JMSException {

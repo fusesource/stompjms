@@ -33,7 +33,6 @@ import static org.fusesource.hawtbuf.Buffer.ascii;
 public class StompJmsSession implements Session, QueueSession, TopicSession, StompJmsMessageListener {
     long nextMessageSwquence = 0;
     final StompJmsConnection connection;
-    final StompChannel channel;
     final int acknowledgementMode;
     final List<MessageProducer> producers = new CopyOnWriteArrayList<MessageProducer>();
     final Map<AsciiBuffer, StompJmsMessageConsumer> consumers = new ConcurrentHashMap<AsciiBuffer, StompJmsMessageConsumer>();
@@ -44,6 +43,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     boolean forceAsyncSend;
     long consumerMessageBufferSize = 1024*64;
     LinkedBlockingQueue<StompJmsMessage> stoppedMessages = new LinkedBlockingQueue<StompJmsMessage>(10000);
+    StompChannel channel;
 
     /**
      * Constructor
@@ -51,12 +51,17 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      * @param connection
      * @param acknowledgementMode
      */
-    protected StompJmsSession(StompJmsConnection connection, StompChannel channel, int acknowledgementMode, boolean forceAsyncSend) {
+    protected StompJmsSession(StompJmsConnection connection, int acknowledgementMode, boolean forceAsyncSend) {
         this.connection = connection;
-        this.channel = channel;
         this.acknowledgementMode = acknowledgementMode;
-        this.channel.setListener(this);
         this.forceAsyncSend = forceAsyncSend;
+    }
+
+    protected StompChannel getChannel() throws JMSException {
+        if(this.channel == null) {
+            this.channel = this.connection.createChannel(this);
+        }
+        return this.channel;
     }
 
     public boolean isForceAsyncSend() {
@@ -73,12 +78,13 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public void close() throws JMSException {
         if (closed.compareAndSet(false, true)) {
-            this.connection.removeSession(this);
+            this.connection.removeSession(this, channel);
             for (StompJmsMessageConsumer c : new ArrayList<StompJmsMessageConsumer>(this.consumers.values())) {
                 c.close();
             }
+            this.connection.removeSession(this, channel);
+            channel = null;
         }
-        this.connection.removeSession(this);
     }
 
     /**
@@ -90,8 +96,8 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         if (!getTransacted()) {
             throw new javax.jms.IllegalStateException("Not a transacted session");
         }
-        this.channel.commitTransaction(currentTransactionId);
-        this.currentTransactionId = this.channel.startTransaction();
+        getChannel().commitTransaction(currentTransactionId);
+        this.currentTransactionId = getChannel().startTransaction();
     }
 
     /**
@@ -103,7 +109,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public QueueBrowser createBrowser(Queue destination) throws JMSException {
         checkClosed();
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
-        StompJmsQueueBrowser result = new StompJmsQueueBrowser(this, channel.nextId(), dest, "");
+        StompJmsQueueBrowser result = new StompJmsQueueBrowser(this, getChannel().nextId(), dest, "");
         return result;
     }
 
@@ -138,7 +144,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public MessageConsumer createConsumer(Destination destination) throws JMSException {
         checkClosed();
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
-        StompJmsMessageConsumer result = new StompJmsMessageConsumer(channel.nextId(), this, dest, "");
+        StompJmsMessageConsumer result = new StompJmsMessageConsumer(getChannel().nextId(), this, dest, "");
         result.init();
         return result;
     }
@@ -154,7 +160,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public MessageConsumer createConsumer(Destination destination, String messageSelector) throws JMSException {
         checkClosed();
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
-        StompJmsMessageConsumer result = new StompJmsMessageConsumer(channel.nextId(), this, dest,
+        StompJmsMessageConsumer result = new StompJmsMessageConsumer(getChannel().nextId(), this, dest,
                 messageSelector);
         result.init();
         return result;
@@ -173,7 +179,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             throws JMSException {
         checkClosed();
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
-        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(channel.nextId(), this, dest, NoLocal,
+        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(getChannel().nextId(), this, dest, NoLocal,
                 messageSelector);
         result.init();
         return result;
@@ -210,7 +216,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             throws JMSException {
         checkClosed();
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, topic);
-        StompJmsTopicSubscriber result = new StompJmsDurableTopicSubscriber(channel.nextId(), this, dest, noLocal,messageSelector);
+        StompJmsTopicSubscriber result = new StompJmsDurableTopicSubscriber(getChannel().nextId(), this, dest, noLocal,messageSelector);
         result.init();
         return result;
     }
@@ -397,8 +403,8 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         for (StompJmsMessageConsumer c : consumers.values()) {
             c.rollback(this.currentTransactionId);
         }
-        this.channel.rollbackTransaction(currentTransactionId);
-        this.currentTransactionId = this.channel.startTransaction();
+        getChannel().rollbackTransaction(currentTransactionId);
+        this.currentTransactionId = getChannel().startTransaction();
     }
 
     /**
@@ -430,7 +436,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         if (consumer != null) {
             consumer.close();
         }
-        this.channel.unsubscribe(id, true);
+        getChannel().unsubscribe(id, true);
 
     }
 
@@ -443,7 +449,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public QueueReceiver createReceiver(Queue queue) throws JMSException {
         checkClosed();
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, queue);
-        StompJmsQueueReceiver result = new StompJmsQueueReceiver(channel.nextId(), this, dest, "");
+        StompJmsQueueReceiver result = new StompJmsQueueReceiver(getChannel().nextId(), this, dest, "");
         result.init();
         return result;
     }
@@ -459,7 +465,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public QueueReceiver createReceiver(Queue queue, String messageSelector) throws JMSException {
         checkClosed();
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, queue);
-        StompJmsQueueReceiver result = new StompJmsQueueReceiver(channel.nextId(), this, dest, messageSelector);
+        StompJmsQueueReceiver result = new StompJmsQueueReceiver(getChannel().nextId(), this, dest, messageSelector);
         result.init();
         return result;
     }
@@ -500,7 +506,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public TopicSubscriber createSubscriber(Topic topic) throws JMSException {
         checkClosed();
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, topic);
-        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(channel.nextId(), this, dest, false, "");
+        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(getChannel().nextId(), this, dest, false, "");
         result.init();
         return result;
     }
@@ -517,23 +523,23 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public TopicSubscriber createSubscriber(Topic topic, String messageSelector, boolean noLocal) throws JMSException {
         checkClosed();
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, topic);
-        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(channel.nextId(), this, dest, noLocal, messageSelector);
+        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(getChannel().nextId(), this, dest, noLocal, messageSelector);
         return result;
     }
 
     protected void add(StompJmsMessageConsumer consumer) throws JMSException {
         this.consumers.put(consumer.getId(), consumer);
         if(consumer.ackSource == null) {
-            this.channel.autoAckSubscriptions.incrementAndGet();
+            getChannel().autoAckSubscriptions.incrementAndGet();
         }
-        this.channel.subscribe(
-            consumer.getDestination(),
-            consumer.getId(),
-            StompFrame.encodeHeader(consumer.getMessageSelector()),
-            this.acknowledgementMode != Session.AUTO_ACKNOWLEDGE,
-            consumer.isDurableSubscription(),
-            consumer.isBrowser(),
-            StompFrame.encodeHeaders(consumer.getDestination().getSubscribeHeaders())
+        getChannel().subscribe(
+                consumer.getDestination(),
+                consumer.getId(),
+                StompFrame.encodeHeader(consumer.getMessageSelector()),
+                this.acknowledgementMode != Session.AUTO_ACKNOWLEDGE,
+                consumer.isDurableSubscription(),
+                consumer.isBrowser(),
+                StompFrame.encodeHeaders(consumer.getDestination().getSubscribeHeaders())
         );
         if (started.get()) {
             consumer.start();
@@ -541,12 +547,12 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     }
 
     protected void remove(StompJmsMessageConsumer consumer) throws JMSException {
-        if (this.channel.isStarted()) {
-            this.channel.unsubscribe(consumer.getId(), false);
+        if (getChannel().isStarted()) {
+            getChannel().unsubscribe(consumer.getId(), false);
         }
         this.consumers.remove(consumer.getId());
         if(consumer.ackSource == null) {
-            this.channel.autoAckSubscriptions.decrementAndGet();
+            getChannel().autoAckSubscriptions.decrementAndGet();
         }
     }
 
@@ -576,7 +582,6 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
 
     private void send(StompJmsDestination destination, StompJmsMessage message, int deliveryMode, int priority,
                       long timeToLive) throws JMSException {
-        message.setMessageID(getNextMessageId());
         message.setJMSDestination(destination);
         message.setJMSDeliveryMode(deliveryMode);
         message.setJMSPriority(priority);
@@ -593,12 +598,15 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         // we know the TCP connection will not be getting flow controlled
         // by slow consumers, so it's safe to us it too. 
         if( consumers.isEmpty() || getTransacted()) {
-            this.channel.sendMessage(message, currentTransactionId, sync);
+            StompChannel channel = getChannel();
+            message.setMessageID(getNextMessageId());
+            channel.sendMessage(message, currentTransactionId, sync);
         } else {
             // Non transacted session, with consumers.. they might end up
             // flow controlling the channel so lets publish the message
             // over the connection's main channel.
-            this.connection.mainChannel.sendMessage(message, currentTransactionId, sync);
+            message.setMessageID(getNextMessageId());
+            this.connection.getChannel().sendMessage(message, currentTransactionId, sync);
         }
         
     }
@@ -625,7 +633,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
                 dispatch(message);
             }
             if (getTransacted() && this.currentTransactionId == null) {
-                this.currentTransactionId = this.channel.startTransaction();
+                this.currentTransactionId = getChannel().startTransaction();
             }
             for (StompJmsMessageConsumer consumer : consumers.values()) {
                 consumer.start();
@@ -646,10 +654,6 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
 
     protected boolean isStarted() {
         return this.started.get();
-    }
-
-    protected StompChannel getChannel() {
-        return this.channel;
     }
 
     protected StompJmsConnection getConnection() {
@@ -680,8 +684,13 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         }
     }
 
-    private AsciiBuffer getNextMessageId() {
-        AsciiBuffer session = channel.sessionId();
+    private AsciiBuffer getNextMessageId() throws JMSException {
+        AsciiBuffer session = null;
+        if(channel!=null) {
+            session = channel.sessionId();
+        } else {
+            session = connection.getChannel().sessionId();
+        }
         AsciiBuffer id = ascii(Long.toString(nextMessageSwquence++));
         ByteArrayOutputStream out = new ByteArrayOutputStream(session.length() + 1 + id.length());
         out.write(session);

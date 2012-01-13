@@ -23,8 +23,8 @@ public class StompJmsTopicSession extends StompJmsSession {
      * @param connection
      * @param acknowledgementMode
      */
-    protected StompJmsTopicSession(StompJmsConnection connection, StompChannel channel, int acknowledgementMode, boolean forceAsyncSend) {
-        super(connection, channel, acknowledgementMode, forceAsyncSend);
+    protected StompJmsTopicSession(StompJmsConnection connection, int acknowledgementMode, boolean forceAsyncSend) {
+        super(connection, acknowledgementMode, forceAsyncSend);
     }
 
     /**

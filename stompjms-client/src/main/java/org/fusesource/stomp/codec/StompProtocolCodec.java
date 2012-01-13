@@ -78,7 +78,7 @@ public class StompProtocolCodec implements ProtocolCodec {
         return write_counter;
     }
 
-    public int getLastWriteSize() {
+    public long getLastWriteSize() {
         return last_write_io_size;
     }
 
@@ -159,7 +159,7 @@ public class StompProtocolCodec implements ProtocolCodec {
         return read_counter;
     }
 
-    public int getLastReadSize() {
+    public long getLastReadSize() {
         return last_read_io_size;
     }
 

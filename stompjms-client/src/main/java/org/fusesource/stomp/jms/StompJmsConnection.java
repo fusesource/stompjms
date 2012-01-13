@@ -14,8 +14,6 @@ import javax.jms.*;
 import javax.jms.IllegalStateException;
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -30,8 +28,6 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     private ExceptionListener exceptionListener;
     private List<StompJmsSession> sessions = new CopyOnWriteArrayList<StompJmsSession>();
     private AtomicBoolean connected = new AtomicBoolean();
-    StompChannel mainChannel;
-    private Map<StompJmsSession, StompChannel> channelsMap = new ConcurrentHashMap<StompJmsSession, StompChannel>();
     private AtomicBoolean closed = new AtomicBoolean();
     private AtomicBoolean started = new AtomicBoolean();
     String queuePrefix = "/queue/";
@@ -41,6 +37,12 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
 
     boolean forceAsyncSend;
 
+    private final URI brokerURI;
+    private final URI localURI;
+    private final String userName;
+    private final String password;
+    private StompChannel channel;
+
     /**
      * @param brokerURI
      * @param localURI
@@ -49,12 +51,10 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
      * @throws JMSException
      */
     protected StompJmsConnection(URI brokerURI, URI localURI, String userName, String password) throws JMSException {
-        mainChannel = new StompChannel();
-        mainChannel.setBrokerURI(brokerURI);
-        mainChannel.setLocalURI(localURI);
-        mainChannel.setUserName(userName);
-        mainChannel.setPassword(password);
-        mainChannel.setExceptionListener(this.exceptionListener);
+        this.brokerURI = brokerURI;
+        this.localURI = localURI;
+        this.userName = userName;
+        this.password = password;
     }
 
     /**
@@ -68,13 +68,9 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
                     s.close();
                 }
                 this.sessions.clear();
-                for (StompChannel c : channelsMap.values()) {
-                    c.close();
-                }
-                channelsMap.clear();
-                if (mainChannel != null) {
-                    mainChannel.close();
-                    mainChannel = null;
+                if (channel != null) {
+                    channel.close();
+                    channel = null;
                 }
             } catch (Exception e) {
                 throw StompJmsExceptionSupport.create(e);
@@ -129,9 +125,8 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         checkClosed();
         connect();
         int ackMode = getSessionAcknowledgeMode(transacted, acknowledgeMode);
-        StompChannel c = getChannel();
-        StompJmsSession result = new StompJmsSession(this, c, ackMode, forceAsyncSend);
-        addSession(result, c);
+        StompJmsSession result = new StompJmsSession(this, ackMode, forceAsyncSend);
+        addSession(result);
         if (started.get()) {
             result.start();
         }
@@ -250,9 +245,8 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         checkClosed();
         connect();
         int ackMode = getSessionAcknowledgeMode(transacted, acknowledgeMode);
-        StompChannel c = getChannel();
-        StompJmsTopicSession result = new StompJmsTopicSession(this, c, ackMode, forceAsyncSend);
-        addSession(result, c);
+        StompJmsTopicSession result = new StompJmsTopicSession(this, ackMode, forceAsyncSend);
+        addSession(result);
         if (started.get()) {
             result.start();
         }
@@ -287,9 +281,8 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         checkClosed();
         connect();
         int ackMode = getSessionAcknowledgeMode(transacted, acknowledgeMode);
-        StompChannel c = getChannel();
-        StompJmsQueueSession result = new StompJmsQueueSession(this, c, ackMode, forceAsyncSend);
-        addSession(result, c);
+        StompJmsQueueSession result = new StompJmsQueueSession(this, ackMode, forceAsyncSend);
+        addSession(result);
         if (started.get()) {
             result.start();
         }
@@ -324,35 +317,61 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         return result;
     }
 
-    protected synchronized StompChannel getChannel() throws JMSException {
-        StompChannel result = null;
-        if (this.channelsMap.isEmpty()) {
-            result = this.mainChannel;
-        } else {
-            result = this.mainChannel.copy();
-            result.setExceptionListener(this.exceptionListener);
-            result.setChannelId(clientId + "-" + clientNumber++);
-            result.connect();
-        }
-        return result;
+    protected synchronized StompChannel createChannel() throws JMSException {
+        StompChannel rc = new StompChannel();
+        rc.setBrokerURI(brokerURI);
+        rc.setLocalURI(localURI);
+        rc.setUserName(userName);
+        rc.setPassword(password);
+        rc.setExceptionListener(this.exceptionListener);
+        rc.setChannelId(clientId + "-" + clientNumber++);
+        return rc;
     }
 
-    protected synchronized void removeSession(StompJmsSession s) throws JMSException {
-        this.sessions.remove(s);
-        StompChannel c = this.channelsMap.remove(s);
-        if (c != null) {
+    protected StompChannel getChannel() throws JMSException {
+        StompChannel rc;
+        synchronized (this) {
+            if(channel == null) {
+                channel = createChannel();
+            }
+            rc = channel;
+        }
+        rc.connect();
+        return rc;
+    }
 
-            c.setListener(null);
-            if (c != this.mainChannel) {
-                c.setExceptionListener(null);
-                c.close();
+    protected StompChannel createChannel(StompJmsSession s) throws JMSException {
+        StompChannel rc;
+        synchronized (this) {
+            if(channel != null) {
+                rc = channel;
+                channel = null;
+            } else {
+                rc = createChannel();
             }
         }
+        rc.connect();
+        rc.setListener(s);
+        return rc;
     }
 
-    protected void addSession(StompJmsSession s, StompChannel c) {
+    protected void removeSession(StompJmsSession s, StompChannel channel) throws JMSException {
+        synchronized (this) {
+            this.sessions.remove(s);
+            if( channel!=null && this.channel==null ) {
+                // just in case some one is in a loop creating/closing sessions.
+                this.channel = channel;
+                channel = null;
+            }
+        }
+        if(channel!=null) {
+            channel.setListener(null);
+            channel.close();
+        }
+    }
+
+    protected void addSession(StompJmsSession s) {
         this.sessions.add(s);
-        this.channelsMap.put(s, c);
     }
 
     protected void checkClosed() throws IllegalStateException {
@@ -363,10 +382,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
 
     private void connect() throws JMSException {
         if (connected.compareAndSet(false, true)) {
-            this.mainChannel.connect();
-            for (StompChannel sc : this.channelsMap.values()) {
-                sc.connect();
-            }
+            getChannel();
         }
     }
 
