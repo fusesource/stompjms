@@ -59,6 +59,15 @@ public class JmsTestSupport extends CombinationTestSupport {
         return StompJmsDestination.createDestination(connection, name);
     }
 
+    protected StompJmsDestination reCreateDestination(String type) throws JMSException {
+        String testMethod = getName();
+        if (testMethod.indexOf(" ") > 0) {
+            testMethod = testMethod.substring(0, testMethod.indexOf(" "));
+        }
+
+        String name = type + "TEST." + getClass().getName() + "." + testMethod + "." + TEST_COUNTER.get();
+        return StompJmsDestination.createDestination(connection, name);
+    }
 
     protected void sendMessages(Destination destination, int count) throws Exception {
         ConnectionFactory factory = createConnectionFactory();
@@ -108,15 +117,14 @@ public class JmsTestSupport extends CombinationTestSupport {
         broker = createBroker();
         ServiceControl.start(broker, "Starting Apollo Broker");
         this.port = ((InetSocketAddress)broker.get_socket_address()).getPort();
-//        this.port = ((InetSocketAddress)broker.get_socket_address()).getPort();
         factory = createConnectionFactory();
         connection = (StompJmsConnection) factory.createConnection(userName, password);
         connections.add(connection);
     }
 
     protected void tearDown() throws Exception {
-        for (Iterator iter = connections.iterator(); iter.hasNext();) {
-            Connection conn = (Connection) iter.next();
+        for (Iterator<Connection> iter = connections.iterator(); iter.hasNext();) {
+            Connection conn = iter.next();
             try {
                 conn.close();
             } catch (Throwable e) {
@@ -162,11 +170,21 @@ public class JmsTestSupport extends CombinationTestSupport {
         }
     }
 
+    protected void reconnect() throws Exception {
+
+    	if (connection != null) {
+    		safeClose(connection);
+    		connections.remove(connection);
+    	}
+
+        connection = (StompJmsConnection) factory.createConnection(userName, password);
+        connections.add(connection);
+    }
+
     protected void pause(String prompt) throws IOException {
         System.out.println();
         System.out.println(prompt + "> Press enter to continue: ");
         while (System.in.read() != '\n') {
         }
     }
-
 }

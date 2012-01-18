@@ -150,7 +150,8 @@ public class JMSConsumerTest extends JmsTestSupport {
 
 
     static class Pizza implements Serializable {
-        String description;
+		private static final long serialVersionUID = 8313543496508740424L;
+		String description;
     }
 
     public void initCombosForTestTransactions() {
@@ -192,7 +193,6 @@ public class JMSConsumerTest extends JmsTestSupport {
 
         // no more messages should be received.
         assertNull(consumer.receive(500));
-
     }
 
     public void testMessageProperties() throws Exception {
@@ -249,12 +249,12 @@ public class JMSConsumerTest extends JmsTestSupport {
         expected.add("3");
 
         ArrayList<String> results = new ArrayList<String>();
-        Enumeration enumeration = browser.getEnumeration();
+        Enumeration<?> enumeration = browser.getEnumeration();
         while (browser.getEnumeration().hasMoreElements()) {
             TextMessage m = (TextMessage) enumeration.nextElement();
             results.add(m.getText());
         }
-        System.out.println(results);
+        LOG.debug(results.toString());
         assertEquals(expected, results);
 
         browser = session.createBrowser((Queue) destination);
@@ -264,7 +264,7 @@ public class JMSConsumerTest extends JmsTestSupport {
             TextMessage m = (TextMessage) enumeration.nextElement();
             results.add(m.getText());
         }
-        System.out.println(results);
+        LOG.debug(results.toString());
         assertEquals(expected, results);
     }
 
@@ -357,7 +357,6 @@ public class JMSConsumerTest extends JmsTestSupport {
         addCombinationValues("destinationType", new Object[]{"queue/", "topic/"});
     }
 
-
     public void initCombosForTestMessageListenerWithConsumer() {
         addCombinationValues("deliveryMode", new Object[]{Integer.valueOf(DeliveryMode.NON_PERSISTENT), Integer.valueOf(DeliveryMode.PERSISTENT)});
         addCombinationValues("destinationType", new Object[]{"/queue/", "/topic/"});
@@ -391,11 +390,8 @@ public class JMSConsumerTest extends JmsTestSupport {
         // Make sure only 4 messages were delivered.
         assertEquals(4, counter.get());
     }
-    
-    public void testQueueBrowseForDurableSub() throws Exception {
 
-        final AtomicInteger counter = new AtomicInteger(0);
-        final CountDownLatch done = new CountDownLatch(1);
+    public void testQueueBrowseForDurableSub() throws Exception {
 
         // Receive a message with the JMS API
         connection.start();
@@ -428,7 +424,5 @@ public class JMSConsumerTest extends JmsTestSupport {
         assertEquals(3L, consumer.receive().getLongProperty("seq"));
         assertEquals(4L, consumer.receive().getLongProperty("seq"));
         consumer.close();
-
     }
-    
 }
