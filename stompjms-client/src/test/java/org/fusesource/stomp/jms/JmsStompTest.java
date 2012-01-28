@@ -38,10 +38,10 @@ public class JmsStompTest extends TestCase {
         super.tearDown();
     }
 
-    public void testJmsInterface() throws Exception {
+	public void testJmsInterface() throws Exception {
 
         // You can use JNDI to avoid a compile time dependency on the stompjms library
-        Hashtable jndiConfig = new Hashtable();
+        Hashtable<Object, Object> jndiConfig = new Hashtable<Object, Object>();
         jndiConfig.put("java.naming.factory.initial", "org.fusesource.stomp.jms.jndi.StompJmsInitialContextFactory");
         jndiConfig.put("java.naming.provider.url", "tcp://localhost:" + broker.port);
         jndiConfig.put("java.naming.security.principal", "admin");

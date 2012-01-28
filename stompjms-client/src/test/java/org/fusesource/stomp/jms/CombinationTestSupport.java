@@ -49,7 +49,7 @@ public abstract class CombinationTestSupport extends AutoFailTestSupport {
 
     private HashMap<String, ComboOption> comboOptions = new HashMap<String, ComboOption>();
     private boolean combosEvaluated;
-    private Map options;
+    private Map<String, Object> options;
 
     static class ComboOption {
         final String attribute;
@@ -84,10 +84,9 @@ public abstract class CombinationTestSupport extends AutoFailTestSupport {
         }
     }
 
-    private void setOptions(Map options) throws NoSuchFieldException, IllegalAccessException {
+    private void setOptions(Map<String, Object> options) throws NoSuchFieldException, IllegalAccessException {
         this.options = options;
-        for (Iterator iterator = options.keySet().iterator(); iterator.hasNext();) {
-            String attribute = (String) iterator.next();
+        for (String attribute : options.keySet()) {
             Object value = options.get(attribute);
             try {
                 Field field = getClass().getField(attribute);
@@ -139,7 +138,6 @@ public abstract class CombinationTestSupport extends AutoFailTestSupport {
             combosEvaluated = true;
             return new CombinationTestSupport[]{this};
         }
-
     }
 
     private void expandCombinations(List<ComboOption> optionsLeft, List<HashMap<String, Object>> expandedCombos) {
@@ -198,8 +196,8 @@ public abstract class CombinationTestSupport extends AutoFailTestSupport {
 
     private static boolean isTestMethod(Method m) {
         String name = m.getName();
-        Class[] parameters = m.getParameterTypes();
-        Class returnType = m.getReturnType();
+        Class<?>[] parameters = m.getParameterTypes();
+        Class<?> returnType = m.getReturnType();
         return parameters.length == 0 && name.startsWith("test") && returnType.equals(Void.TYPE);
     }
 
