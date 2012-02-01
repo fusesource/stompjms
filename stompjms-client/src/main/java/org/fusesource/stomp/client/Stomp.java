@@ -10,10 +10,7 @@
 package org.fusesource.stomp.client;
 
 import org.fusesource.hawtdispatch.DispatchQueue;
-import org.fusesource.hawtdispatch.transport.SslTransport;
-import org.fusesource.hawtdispatch.transport.TcpTransport;
-import org.fusesource.hawtdispatch.transport.Transport;
-import org.fusesource.hawtdispatch.transport.TransportListener;
+import org.fusesource.hawtdispatch.transport.*;
 import org.fusesource.stomp.codec.StompFrame;
 import org.fusesource.stomp.codec.StompProtocolCodec;
 
@@ -142,7 +139,7 @@ public class Stomp {
                 tcp.connecting(remoteURI, localURI);
             }
 
-            TransportListener commandListener = new TransportListener() {
+            TransportListener commandListener = new DefaultTransportListener() {
                 public void onTransportConnected() {
                     transport.resumeRead();
 
@@ -191,12 +188,6 @@ public class Stomp {
                             cb.onFailure(error);
                         }
                     });
-                }
-
-                public void onRefill() {
-                }
-
-                public void onTransportDisconnected(boolean reconnecting) {
                 }
             };
             transport.setTransportListener(commandListener);

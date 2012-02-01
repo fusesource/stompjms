@@ -11,6 +11,7 @@ package org.fusesource.stomp.client;
 
 import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtdispatch.DispatchQueue;
+import org.fusesource.hawtdispatch.transport.DefaultTransportListener;
 import org.fusesource.stomp.codec.StompFrame;
 import org.fusesource.hawtdispatch.transport.Transport;
 import org.fusesource.hawtdispatch.transport.TransportListener;
@@ -54,7 +55,7 @@ public class CallbackConnection {
     CallbackConnection(Transport transport, StompFrame connectedFrame) {
         this.transport = transport;
         this.connectedFrame = connectedFrame;
-        this.transport.setTransportListener(new TransportListener() {
+        this.transport.setTransportListener(new DefaultTransportListener() {
             public void onTransportCommand(Object command) {
                 processStompFrame((StompFrame)command);
             }
@@ -63,10 +64,6 @@ public class CallbackConnection {
             }
             public void onTransportFailure(IOException error) {
                 processFailure(error);
-            }
-            public void onTransportConnected() {
-            }
-            public void onTransportDisconnected(boolean reconnecting) {
             }
         });
     }
