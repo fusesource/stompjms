@@ -14,6 +14,7 @@ import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtdispatch.CustomDispatchSource;
 import org.fusesource.hawtdispatch.Dispatch;
 import org.fusesource.hawtdispatch.OrderedEventAggregator;
+import org.fusesource.hawtdispatch.Task;
 import org.fusesource.stomp.client.Promise;
 import org.fusesource.stomp.jms.message.StompJmsMessage;
 
@@ -80,7 +81,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
                 }
             }, session.channel.connection.getDispatchQueue());
 
-            ackSource.setEventHandler(new Runnable() {
+            ackSource.setEventHandler(new Task() {
                 public void run() {
                     AckCallbackFuture cb = ackSource.getData();
                     AsciiBuffer msgid = cb.getId();
@@ -226,7 +227,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
             }
         } else {
             final AckCallbackFuture future = new AckCallbackFuture(message.getMessageID());
-            ackSource.getTargetQueue().execute(new Runnable() {
+            ackSource.getTargetQueue().execute(new Task() {
                 public void run() {
                     ackSource.merge(future);
                 }

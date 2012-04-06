@@ -11,6 +11,7 @@ package org.fusesource.stomp.client;
 
 import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtdispatch.DispatchQueue;
+import org.fusesource.hawtdispatch.Task;
 import org.fusesource.hawtdispatch.transport.DefaultTransportListener;
 import org.fusesource.stomp.codec.StompFrame;
 import org.fusesource.hawtdispatch.transport.Transport;
@@ -166,7 +167,7 @@ public class CallbackConnection {
     }
 
     public void close(final Runnable onComplete) {
-        this.transport.stop(new Runnable() {
+        this.transport.stop(new Task() {
             public void run() {
                 if( onComplete!=null ) {
                     failRequests(new ClosedChannelException());

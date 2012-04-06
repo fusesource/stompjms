@@ -10,6 +10,7 @@
 package org.fusesource.stomp.client;
 
 import org.fusesource.hawtdispatch.DispatchQueue;
+import org.fusesource.hawtdispatch.Task;
 import org.fusesource.hawtdispatch.transport.*;
 import org.fusesource.stomp.codec.StompFrame;
 import org.fusesource.stomp.codec.StompProtocolCodec;
@@ -183,7 +184,7 @@ public class Stomp {
                 }
 
                 public void onTransportFailure(final IOException error) {
-                    transport.stop(new Runnable() {
+                    transport.stop(new Task() {
                         public void run() {
                             cb.onFailure(error);
                         }

@@ -11,6 +11,7 @@
 package org.fusesource.stomp.jms;
 
 import org.fusesource.hawtbuf.AsciiBuffer;
+import org.fusesource.hawtdispatch.Task;
 import org.fusesource.stomp.client.CallbackConnection;
 import org.fusesource.stomp.client.ProtocolException;
 import org.fusesource.stomp.client.Stomp;
@@ -81,7 +82,7 @@ public class StompChannel {
 
                 connection = future.await();
                 writeBufferRemaining.set(connection.transport().getProtocolCodec().getWriteBufferSize());
-                connection.getDispatchQueue().execute(new Runnable() {
+                connection.getDispatchQueue().execute(new Task() {
                     public void run() {
                         connection.receive(new Callback<StompFrame>() {
                             public void onFailure(Throwable value) {
@@ -119,7 +120,7 @@ public class StompChannel {
 
             // Request a DISCONNECT so that we can ensure the socket
             // is flushed out.
-            connection.getDispatchQueue().execute(new Runnable(){
+            connection.getDispatchQueue().execute(new Task(){
                 public void run() {
                     StompFrame frame = new StompFrame(DISCONNECT);
                     connection.request(frame, new Callback<StompFrame>(){
@@ -298,7 +299,7 @@ public class StompChannel {
             final int size = frame.size();
             if( writeBufferRemaining.getAndAdd(-size) > 0 ) {
                 // just send it without blocking...
-                connection.getDispatchQueue().execute(new Runnable() {
+                connection.getDispatchQueue().execute(new Task() {
                     public void run() {
                         connection.send(frame, new Callback<Void>(){
                             public void onFailure(Throwable value) {
@@ -321,7 +322,7 @@ public class StompChannel {
                         super.onSuccess(value);
                     }
                 };
-                connection.getDispatchQueue().execute(new Runnable() {
+                connection.getDispatchQueue().execute(new Task() {
                     public void run() {
                         connection.send(frame, future);
                     }
@@ -338,7 +339,7 @@ public class StompChannel {
     public void sendRequest(final StompFrame frame) throws IOException {
         try {
             final Promise<StompFrame> future = new Promise<StompFrame>();
-            connection.getDispatchQueue().execute(new Runnable() {
+            connection.getDispatchQueue().execute(new Task() {
                 public void run() {
                     connection.request(frame, future);
                 }
