@@ -72,7 +72,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.activemq</groupId>
-      <artifactId>apollo-jdbm2</artifactId>
+      <artifactId>apollo-leveldb</artifactId>
       <version>${apollo-version}</version>
       <scope>test</scope>
     </dependency>

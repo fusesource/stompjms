@@ -132,7 +132,6 @@ public class JmsTestSupport extends CombinationTestSupport {
             iter.remove();
         }
         ServiceControl.stop(broker, "Stopped Apollo Broker");
-        broker.stop();
         super.tearDown();
     }
 
