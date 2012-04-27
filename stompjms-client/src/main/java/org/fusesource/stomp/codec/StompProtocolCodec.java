@@ -51,9 +51,9 @@ public class StompProtocolCodec extends AbstractProtocolCodec {
 
     final Action read_action = new Action() {
         public Object apply() throws IOException {
-            Buffer line = readUntil((byte) '\n', max_command_length, "The maximum command length was exceeded").moveTail(-1);
+            Buffer line = readUntil((byte) '\n', max_command_length, "The maximum command length was exceeded");
             if (line != null) {
-                Buffer action = line;
+                Buffer action = line.moveTail(-1);
                 if (trim) {
                     action = action.trim();
                 }
@@ -71,9 +71,10 @@ public class StompProtocolCodec extends AbstractProtocolCodec {
         final ArrayList<StompFrame.HeaderEntry> headers = new ArrayList<StompFrame.HeaderEntry>(10);
         return new Action() {
             public Object apply() throws IOException {
-                Buffer line = readUntil((byte) '\n', max_header_length, "The maximum header length was exceeded").moveTail(-1);
+                Buffer line = readUntil((byte) '\n', max_header_length, "The maximum header length was exceeded");
                 if (line != null) {
-                    if (line.trim().length > 0) {
+                    line = line.moveTail(-1);
+                    if (line.length > 0) {
 
                         if (max_headers != -1 && headers.size() > max_headers) {
                             throw new IOException("The maximum number of headers was exceeded");
