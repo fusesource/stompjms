@@ -11,19 +11,14 @@ package org.fusesource.stomp.codec;
 
 import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtbuf.Buffer;
-import org.fusesource.hawtbuf.DataByteArrayOutputStream;
-import org.fusesource.hawtdispatch.transport.*;
+import org.fusesource.hawtdispatch.transport.AbstractProtocolCodec;
+import org.fusesource.hawtdispatch.util.BufferPools;
 
-import java.io.EOFException;
 import java.io.IOException;
-import java.net.SocketException;
-import java.nio.ByteBuffer;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.SocketChannel;
-import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
 
-import static org.fusesource.stomp.client.Constants.*;
+import static org.fusesource.stomp.client.Constants.COLON_BYTE;
+import static org.fusesource.stomp.client.Constants.CONTENT_LENGTH;
 
 /**
  * <p>
@@ -33,10 +28,17 @@ import static org.fusesource.stomp.client.Constants.*;
  */
 public class StompProtocolCodec extends AbstractProtocolCodec {
 
+    private static final BufferPools BUFFER_POOLS = new BufferPools();
+
     private static final int max_command_length = 20;
-    int max_header_length = 1024 * 10;
-    int max_headers = 1000;
-    int max_data_length = 1024 * 1024 * 100;
+    public int max_header_length = 1024 * 10;
+    public int max_headers = 1000;
+    public int max_data_length = 1024 * 1024 * 100;
+    public boolean trim = false;
+
+    public StompProtocolCodec() {
+        this.bufferPools = BUFFER_POOLS;
+    }
 
     @Override
     protected void encode(Object value) throws IOException {
@@ -60,6 +62,7 @@ public class StompProtocolCodec extends AbstractProtocolCodec {
                 if (action.length() > 0) {
                     StompFrame frame = new StompFrame(action.ascii());
                     nextDecodeAction = read_headers(frame);
+                    return nextDecodeAction.apply();
                 }
             }
             return null;
@@ -123,6 +126,7 @@ public class StompProtocolCodec extends AbstractProtocolCodec {
                         } else {
                             nextDecodeAction = read_text_body(frame);
                         }
+                        return nextDecodeAction.apply();
                     }
                 }
                 return null;
