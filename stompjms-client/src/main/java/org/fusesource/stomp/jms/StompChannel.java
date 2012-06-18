@@ -39,6 +39,7 @@ public class StompChannel {
     String userName;
     String password;
     String ackMode;
+    boolean omitHost;
     URI brokerURI;
     URI localURI;
     CallbackConnection connection;
@@ -65,6 +66,7 @@ public class StompChannel {
         copy.userName = this.userName;
         copy.password = this.password;
         copy.ackMode = this.ackMode;
+        copy.omitHost = this.omitHost;
         return copy;
     }
 
@@ -79,6 +81,9 @@ public class StompChannel {
                 stomp.setPasscode(password);
                 stomp.setLocalURI(localURI);
                 stomp.connectCallback(future);
+                if( omitHost ) {
+                    stomp.setHost(null);
+                }
 
                 connection = future.await();
                 writeBufferRemaining.set(connection.transport().getProtocolCodec().getWriteBufferSize());
@@ -456,7 +461,14 @@ public class StompChannel {
     public void setLocalURI(URI localURI) {
         this.localURI = localURI;
     }
+    
+    public boolean isOmitHost() {
+        return omitHost;
+    }
 
+    public void setOmitHost(boolean omitHost) {
+        this.omitHost = omitHost;
+    }
     /**
      * @return the listener
      */

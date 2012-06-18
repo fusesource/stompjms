@@ -31,6 +31,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
     private String username;
     private String password;
     boolean forceAsyncSend;
+    boolean omitHost;
     String queuePrefix = "/queue/";
     String topicPrefix = "/topic/";
     String tempQueuePrefix = "/temp-queue/";
@@ -233,6 +234,14 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
         this.forceAsyncSend = forceAsyncSend;
     }
 
+    public boolean isOmitHost() {
+        return omitHost;
+    }
+
+    public void setOmitHost(boolean omitHost) {
+        this.omitHost = omitHost;
+    }
+    
     public String getQueuePrefix() {
         return queuePrefix;
     }

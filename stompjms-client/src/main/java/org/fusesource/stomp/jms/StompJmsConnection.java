@@ -36,6 +36,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     String tempTopicPrefix = "/temp-topic/";
 
     boolean forceAsyncSend;
+    boolean omitHost;
 
     private final URI brokerURI;
     private final URI localURI;
@@ -323,6 +324,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         rc.setLocalURI(localURI);
         rc.setUserName(userName);
         rc.setPassword(password);
+        rc.setOmitHost(omitHost);
         rc.setExceptionListener(this.exceptionListener);
         rc.setChannelId(clientId + "-" + clientNumber++);
         return rc;
@@ -428,5 +430,13 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
 
     public void setQueuePrefix(String queuePrefix) {
         this.queuePrefix = queuePrefix;
+    }
+    
+    public boolean isOmitHost() {
+        return omitHost;
+    }
+
+    public void setOmitHost(boolean omitHost) {
+        this.omitHost = omitHost;
     }
 }
