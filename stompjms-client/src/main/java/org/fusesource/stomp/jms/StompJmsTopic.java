@@ -17,6 +17,10 @@ import javax.jms.Topic;
  */
 public class StompJmsTopic extends StompJmsDestination implements Topic {
 
+    public StompJmsTopic() {
+        super(null, null);
+    }
+
     public StompJmsTopic(StompJmsConnection connection, String name) {
         this(connection.topicPrefix, name);
     }

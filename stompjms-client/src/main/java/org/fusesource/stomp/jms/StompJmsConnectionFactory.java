@@ -59,7 +59,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
 
     @Override
     public void setProperties(Map<String, String> map) {
-        populateProperties(map);
+        buildFromProperties(map);
     }
 
     /**
@@ -164,6 +164,9 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      * @param brokerURI the brokerURI to set
      */
     public void setBrokerURI(String brokerURI) {
+        if( brokerURI == null ) {
+            throw new IllegalArgumentException("brokerURI cannot be null");
+        }
         this.brokerURI = createURI(brokerURI);
     }
 

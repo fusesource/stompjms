@@ -17,6 +17,10 @@ import javax.jms.Queue;
  */
 public class StompJmsQueue extends StompJmsDestination implements Queue {
 
+    public StompJmsQueue() {
+        super(null, null);
+    }
+
     public StompJmsQueue(StompJmsConnection connection, String name) {
         this(connection.queuePrefix, name);
     }

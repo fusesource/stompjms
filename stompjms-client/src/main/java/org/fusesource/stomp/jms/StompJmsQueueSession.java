@@ -17,7 +17,7 @@ import javax.jms.IllegalStateException;
 /**
  * Jms QueueSession implementation
  */
-public class StompJmsQueueSession extends StompJmsTopicSession {
+public class StompJmsQueueSession extends StompJmsSession {
     /**
      * Constructor
      *
