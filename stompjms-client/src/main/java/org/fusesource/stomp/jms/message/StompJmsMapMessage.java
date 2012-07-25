@@ -80,7 +80,6 @@ import java.util.Map;
  */
 public class StompJmsMapMessage extends StompJmsMessage implements MapMessage {
 
-
     protected transient Map<String, Object> map = new HashMap<String, Object>();
 
     public JmsMsgType getMsgType() {

@@ -10,7 +10,6 @@
 
 package org.fusesource.stomp.jms;
 
-import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.stomp.jms.message.StompJmsMessage;
 
 import java.util.ArrayList;
@@ -20,70 +19,48 @@ import java.util.List;
 
 public class MessageQueue {
 
-    static class QueueEntry {
-        private final StompJmsMessage message;
-        private final int size;
+    protected static class QueueEntry {
+        final StompJmsMessage message;
+        final int size;
         QueueEntry(StompJmsMessage message, int size) {
             this.message = message;
             this.size = size;
         }
     }
 
-    private final long maxSize;
-    private final Object mutex = new Object();
-    private final LinkedList<QueueEntry> list = new LinkedList<QueueEntry>();
-    private boolean closed;
-    private boolean running;
-    private long size;
+    protected final long maxSize;
+    protected final LinkedList<QueueEntry> list = new LinkedList<QueueEntry>();
+    protected boolean closed;
+    protected boolean running;
+    protected long size;
 
     public MessageQueue(long maxSize) {
         this.maxSize = maxSize;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.activemq.MessageDispatchChannelI#enqueue(org.apache.activemq.command.MessageDispatch)
-     */
     public void enqueue(StompJmsMessage message) {
         QueueEntry entry = new QueueEntry(message,  message.getFrame().size());
-        synchronized (mutex) {
+        synchronized (this) {
             list.addLast(entry);
             size += entry.size;
-            mutex.notify();
+            this.notify();
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.activemq.MessageDispatchChannelI#enqueueFirst(org.apache.activemq.command.MessageDispatch)
-     */
-    public void enqueueFirst(StompJmsMessage message) {
-        QueueEntry entry = new QueueEntry(message,  message.getFrame().size());
-        synchronized (mutex) {
-            list.addFirst(entry);
-            size += entry.size;
-            mutex.notify();
-        }
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.activemq.MessageDispatchChannelI#isEmpty()
-     */
     public boolean isEmpty() {
-        synchronized (mutex) {
+        synchronized (this) {
             return list.isEmpty();
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.activemq.MessageDispatchChannelI#dequeue(long)
-     */
     public StompJmsMessage dequeue(long timeout) throws InterruptedException {
-        synchronized (mutex) {
+        synchronized (this) {
             // Wait until the consumer is ready to deliver messages.
             while (timeout != 0 && !closed && (list.isEmpty() || !running)) {
                 if (timeout == -1) {
-                    mutex.wait();
+                    this.wait();
                 } else {
-                    mutex.wait(timeout);
+                    this.wait(timeout);
                     break;
                 }
             }
@@ -92,6 +69,7 @@ public class MessageQueue {
             }
             QueueEntry entry = list.removeFirst();
             size -= entry.size;
+            removed(entry);
             return entry.message;
         }
     }
@@ -100,105 +78,66 @@ public class MessageQueue {
      * @see org.apache.activemq.MessageDispatchChannelI#dequeueNoWait()
      */
     public StompJmsMessage dequeueNoWait() {
-        synchronized (mutex) {
+        synchronized (this) {
             if (closed || !running || list.isEmpty()) {
                 return null;
             }
             QueueEntry entry = list.removeFirst();
             size -= entry.size;
+            removed(entry);
             return entry.message;
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.activemq.MessageDispatchChannelI#peek()
-     */
-    public StompJmsMessage peek() {
-        synchronized (mutex) {
-            if (closed || !running || list.isEmpty()) {
-                return null;
-            }
-            return list.getFirst().message;
-        }
+    protected void removed(QueueEntry entry) {
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.activemq.MessageDispatchChannelI#start()
-     */
     public void start() {
-        synchronized (mutex) {
+        synchronized (this) {
             running = true;
-            mutex.notifyAll();
+            this.notifyAll();
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.activemq.MessageDispatchChannelI#stop()
-     */
     public void stop() {
-        synchronized (mutex) {
+        synchronized (this) {
             running = false;
-            mutex.notifyAll();
+            this.notifyAll();
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.activemq.MessageDispatchChannelI#close()
-     */
-    public void close() {
-        synchronized (mutex) {
-            if (!closed) {
-                running = false;
-                closed = true;
-            }
-            mutex.notifyAll();
-        }
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.activemq.MessageDispatchChannelI#clear()
-     */
-    public void clear() {
-        synchronized (mutex) {
-            list.clear();
-        }
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.activemq.MessageDispatchChannelI#isClosed()
-     */
-    public boolean isClosed() {
-        return closed;
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.activemq.MessageDispatchChannelI#size()
-     */
-    public int size() {
-        synchronized (mutex) {
-            return list.size();
-        }
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.activemq.MessageDispatchChannelI#getMutex()
-     */
-    public Object getMutex() {
-        return mutex;
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.activemq.MessageDispatchChannelI#isRunning()
-     */
     public boolean isRunning() {
         return running;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.activemq.MessageDispatchChannelI#removeAll()
-     */
+    public void close() {
+        synchronized (this) {
+            if (!closed) {
+                running = false;
+                closed = true;
+            }
+            this.notifyAll();
+        }
+    }
+
+    public boolean isClosed() {
+        return closed;
+    }
+
+    public int size() {
+        synchronized (this) {
+            return list.size();
+        }
+    }
+
+    public void clear() {
+        synchronized (this) {
+            list.clear();
+        }
+    }
+
     public List<StompJmsMessage> removeAll() {
-        synchronized (mutex) {
+        synchronized (this) {
             ArrayList<StompJmsMessage> rc = new ArrayList<StompJmsMessage>(list.size());
             for (QueueEntry entry : list) {
                 rc.add(entry.message);
@@ -209,29 +148,16 @@ public class MessageQueue {
         }
     }
 
-    public void rollback(AsciiBuffer transactionId) {
-        synchronized (mutex) {
-            if (transactionId != null && transactionId.isEmpty() == false) {
-                List<QueueEntry> tmp = new ArrayList<QueueEntry>(this.list);
-                for (QueueEntry entry : tmp) {
-                    AsciiBuffer tid = entry.message.getTransactionId();
-                    if (tid != null && tid.equals(transactionId)) {
-                        this.list.remove(entry);
-                        this.size -= entry.size;
-                    }
-                }
-            }
-        }
-    }
-
     @Override
     public String toString() {
-        synchronized (mutex) {
+        synchronized (this) {
             return list.toString();
         }
     }
 
     public boolean isFull() {
-        return this.size >= maxSize;
+        synchronized (this) {
+            return this.size >= maxSize;
+        }
     }
 }

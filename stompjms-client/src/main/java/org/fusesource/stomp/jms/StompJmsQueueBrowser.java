@@ -70,7 +70,6 @@ public class StompJmsQueueBrowser implements QueueBrowser, Enumeration {
         this.id = id;
         this.destination = destination;
         this.selector = selector;
-        this.consumer = createConsumer();
     }
 
 

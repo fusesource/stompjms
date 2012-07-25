@@ -23,7 +23,11 @@ public class StompJmsTextMessage extends StompJmsMessage implements TextMessage 
     protected String text;
 
     public JmsMsgType getMsgType() {
-        return JmsMsgType.TEXT;
+        if( text == null ) {
+            return JmsMsgType.TEXT_NULL;
+        } else {
+            return JmsMsgType.TEXT;
+        }
     }
 
     public StompJmsMessage copy() throws JMSException {
@@ -54,7 +58,11 @@ public class StompJmsTextMessage extends StompJmsMessage implements TextMessage 
 
     public void storeContent() throws JMSException {
         try {
-            setContent(new Buffer(text.getBytes("UTF-8")));
+            if( text == null ) {
+                setContent(new Buffer(0));
+            } else {
+                setContent(new Buffer(text.getBytes("UTF-8")));
+            }
         } catch (UnsupportedEncodingException e) {
             throw StompJmsExceptionSupport.create(e.getMessage(), e);
         }

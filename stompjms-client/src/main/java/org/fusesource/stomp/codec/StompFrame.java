@@ -48,6 +48,12 @@ public class StompFrame {
         public AsciiBuffer getValue() {
             return value;
         }
+
+        @Override
+        public String toString() {
+            return "" + key +
+                    "=" + value;
+        }
     }
 
     private AsciiBuffer action;
@@ -104,12 +110,17 @@ public class StompFrame {
     }
 
     public Map<AsciiBuffer, AsciiBuffer> headerMap() {
+        return headerMap(Collections.EMPTY_SET);
+    }
+
+    public Map<AsciiBuffer, AsciiBuffer> headerMap(Set<AsciiBuffer> reversedHeaderHandling) {
         if( headerMap==null ) {
             headerMap = new HashMap<AsciiBuffer, AsciiBuffer>();
             for (HeaderEntry HeaderEntry : headerList) {
-                AsciiBuffer old = headerMap.put(HeaderEntry.getKey(), HeaderEntry.getValue());
-                if( old !=null ) {
-                    headerMap.put(HeaderEntry.getKey(), old);
+                final AsciiBuffer key = HeaderEntry.getKey();
+                AsciiBuffer old = headerMap.put(key, HeaderEntry.getValue());
+                if( old !=null && !reversedHeaderHandling.contains(key) ) {
+                    headerMap.put(key, old);
                 }
             }
             headerList = null;

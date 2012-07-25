@@ -170,6 +170,9 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         if (clientID == null) {
             throw new IllegalStateException("Cannot have a null clientID");
         }
+        if( connected.get() ) {
+            throw new IllegalStateException("Cannot set the client id once connected.");
+        }
         this.clientId = clientID;
         this.clientIdSet = true;
     }

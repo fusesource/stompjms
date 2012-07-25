@@ -102,7 +102,13 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      * @see javax.jms.TopicConnectionFactory#createTopicConnection(java.lang.String, java.lang.String)
      */
     public TopicConnection createTopicConnection(String userName, String password) throws JMSException {
-        return (TopicConnection) createConnection(userName, password);
+        try {
+            StompJmsTopicConnection result = new StompJmsTopicConnection(this.brokerURI, this.localURI, userName, password);
+            PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
+            return result;
+        } catch (Exception e) {
+            throw StompJmsExceptionSupport.create(e);
+        }
     }
 
     /**
@@ -123,7 +129,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      */
     public Connection createConnection(String userName, String password) throws JMSException {
         try {
-            Connection result = new StompJmsConnection(this.brokerURI, this.localURI, userName, password);
+            StompJmsConnection result = new StompJmsConnection(this.brokerURI, this.localURI, userName, password);
             PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
             return result;
         } catch (Exception e) {
@@ -148,7 +154,13 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      * @see javax.jms.QueueConnectionFactory#createQueueConnection(java.lang.String, java.lang.String)
      */
     public QueueConnection createQueueConnection(String userName, String password) throws JMSException {
-        return (QueueConnection) createConnection(userName, password);
+        try {
+            StompJmsQueueConnection result = new StompJmsQueueConnection(this.brokerURI, this.localURI, userName, password);
+            PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
+            return result;
+        } catch (Exception e) {
+            throw StompJmsExceptionSupport.create(e);
+        }
     }
 
 

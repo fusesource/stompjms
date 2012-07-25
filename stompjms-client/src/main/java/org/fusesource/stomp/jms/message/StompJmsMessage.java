@@ -23,6 +23,7 @@ import javax.jms.*;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
+import java.util.concurrent.Callable;
 
 import static org.fusesource.hawtbuf.Buffer.ascii;
 import static org.fusesource.stomp.client.Constants.*;
@@ -32,7 +33,7 @@ public class StompJmsMessage implements javax.jms.Message {
 
     private static final Map<String, PropertySetter> JMS_PROPERTY_SETERS = new HashMap<String, PropertySetter>();
 
-    private static HashSet<AsciiBuffer> RESERVED_HEADER_NAMES = new HashSet<AsciiBuffer>();
+    static HashSet<AsciiBuffer> RESERVED_HEADER_NAMES = new HashSet<AsciiBuffer>();
     static{
         RESERVED_HEADER_NAMES.add(DESTINATION);
         RESERVED_HEADER_NAMES.add(REPLY_TO);
@@ -50,13 +51,20 @@ public class StompJmsMessage implements javax.jms.Message {
         RESERVED_HEADER_NAMES.add(CONTENT_LENGTH);
     }
 
+    public static HashSet<AsciiBuffer> REVERSED_HEADER_NAMES = new HashSet<AsciiBuffer>();
+    static{
+        REVERSED_HEADER_NAMES.add(DESTINATION);
+        REVERSED_HEADER_NAMES.add(REPLY_TO);
+    }
+
     public static enum JmsMsgType {
         MESSAGE("jms/message"),
         BYTES("jms/bytes-message"),
         MAP("jms/map-message"),
         OBJECT("jms/object-message"),
         STREAM("jms/stream-message"),
-        TEXT("jms/text-message");
+        TEXT("jms/text-message"),
+        TEXT_NULL("jms/text-message-null");
 
         public final AsciiBuffer buffer = new AsciiBuffer(this.name());
         public final AsciiBuffer mime;
@@ -66,7 +74,7 @@ public class StompJmsMessage implements javax.jms.Message {
         }
     }
 
-    protected transient Runnable acknowledgeCallback;
+    protected transient Callable<Void> acknowledgeCallback;
     protected transient StompJmsConnection connection;
 
     protected boolean readOnlyBody;
@@ -77,7 +85,7 @@ public class StompJmsMessage implements javax.jms.Message {
     protected int redeliveryCounter=0;
 
     public StompJmsMessage() {
-        frame.headerMap().put(TRANSFORMATION, getMsgType().buffer);
+        getHeaderMap().put(TRANSFORMATION, getMsgType().buffer);
     }
 
     public StompJmsMessage copy() throws JMSException {
@@ -138,7 +146,7 @@ public class StompJmsMessage implements javax.jms.Message {
     public void acknowledge() throws JMSException {
         if (acknowledgeCallback != null) {
             try {
-                acknowledgeCallback.run();
+                acknowledgeCallback.call();
             } catch (Throwable e) {
                 throw StompJmsExceptionSupport.create(e);
             }
@@ -179,7 +187,7 @@ public class StompJmsMessage implements javax.jms.Message {
     }
 
     private String getStringHeader(AsciiBuffer key) {
-        AsciiBuffer buffer = frame.headerMap().get(key);
+        AsciiBuffer buffer = getHeaderMap().get(key);
         if( buffer == null ) {
             return null;
         } else {
@@ -188,14 +196,14 @@ public class StompJmsMessage implements javax.jms.Message {
     }
     private void setStringHeader(AsciiBuffer key, String value) {
         if(value==null) {
-            frame.headerMap().remove(key);
+            getHeaderMap().remove(key);
         } else {
-            frame.headerMap().put(key, ascii(value));
+            getHeaderMap().put(key, ascii(value));
         }
     }
 
     private byte[] getBytesHeader(AsciiBuffer key) {
-        AsciiBuffer buffer = frame.headerMap().get(key);
+        AsciiBuffer buffer = getHeaderMap().get(key);
         if( buffer == null ) {
             return null;
         } else {
@@ -204,14 +212,14 @@ public class StompJmsMessage implements javax.jms.Message {
     }
     private void setBytesHeader(AsciiBuffer key, byte[]  value) {
         if(value==null) {
-            frame.headerMap().remove(key);
+            getHeaderMap().remove(key);
         } else {
-            frame.headerMap().put(key, new Buffer(value).deepCopy().ascii());
+            getHeaderMap().put(key, new Buffer(value).deepCopy().ascii());
         }
     }
 
     private Integer getIntegerHeader(AsciiBuffer key) {
-        AsciiBuffer buffer = frame.headerMap().get(key);
+        AsciiBuffer buffer = getHeaderMap().get(key);
         if( buffer == null ) {
             return null;
         } else {
@@ -220,14 +228,14 @@ public class StompJmsMessage implements javax.jms.Message {
     }
     private void setIntegerHeader(AsciiBuffer key, Integer value) {
         if(value==null) {
-            frame.headerMap().remove(key);
+            getHeaderMap().remove(key);
         } else {
-            frame.headerMap().put(key, ascii(value.toString()));
+            getHeaderMap().put(key, ascii(value.toString()));
         }
     }
 
     private Long getLongHeader(AsciiBuffer key) {
-        AsciiBuffer buffer = frame.headerMap().get(key);
+        AsciiBuffer buffer = getHeaderMap().get(key);
         if( buffer == null ) {
             return null;
         } else {
@@ -236,14 +244,14 @@ public class StompJmsMessage implements javax.jms.Message {
     }
     private void setLongHeader(AsciiBuffer key, Long value) {
         if(value==null) {
-            frame.headerMap().remove(key);
+            getHeaderMap().remove(key);
         } else {
-            frame.headerMap().put(key, ascii(value.toString()));
+            getHeaderMap().put(key, ascii(value.toString()));
         }
     }
 
     private Boolean getBooleanHeader(AsciiBuffer key) {
-        AsciiBuffer buffer = frame.headerMap().get(key);
+        AsciiBuffer buffer = getHeaderMap().get(key);
         if( buffer == null ) {
             return null;
         } else {
@@ -252,14 +260,14 @@ public class StompJmsMessage implements javax.jms.Message {
     }
     private void setBooleanHeader(AsciiBuffer key, Boolean value) {
         if(value==null) {
-            frame.headerMap().remove(key);
+            getHeaderMap().remove(key);
         } else {
-            frame.headerMap().put(key, value.booleanValue() ? TRUE : FALSE);
+            getHeaderMap().put(key, value.booleanValue() ? TRUE : FALSE);
         }
     }
 
     private StompJmsDestination getDestinationHeader(AsciiBuffer key) throws InvalidDestinationException {
-        AsciiBuffer buffer = frame.headerMap().get(key);
+        AsciiBuffer buffer = getHeaderMap().get(key);
         if( buffer == null ) {
             return null;
         } else {
@@ -268,14 +276,14 @@ public class StompJmsMessage implements javax.jms.Message {
     }
     private void setDestinationHeader(AsciiBuffer key, StompJmsDestination value) {
         if(value==null) {
-            frame.headerMap().remove(key);
+            getHeaderMap().remove(key);
         } else {
-            frame.headerMap().put(key, ascii(value.toString()));
+            getHeaderMap().put(key, ascii(value.toString()));
         }
     }
 
     public AsciiBuffer getMessageID() {
-        return frame.headerMap().get(MESSAGE_ID);
+        return getHeaderMap().get(MESSAGE_ID);
     }
 
     public String getJMSMessageID() {
@@ -293,7 +301,7 @@ public class StompJmsMessage implements javax.jms.Message {
         setStringHeader(MESSAGE_ID, value);
     }
     public void setMessageID(AsciiBuffer value) {
-        frame.headerMap().put(MESSAGE_ID, value);
+        getHeaderMap().put(MESSAGE_ID, value);
     }
 
 
@@ -467,7 +475,7 @@ public class StompJmsMessage implements javax.jms.Message {
 
     public void clearProperties() {
         if (this.frame != null) {
-            this.frame.headerMap().clear();
+            getHeaderMap().clear();
         }
         properties = null;
     }
@@ -475,7 +483,7 @@ public class StompJmsMessage implements javax.jms.Message {
     public void setProperty(String name, Object value) throws IOException {
         lazyCreateProperties();
         properties.put(name, value);
-        this.frame.headerMap().put(encodeHeader(name), encodeHeader(value.toString()));
+        getHeaderMap().put(encodeHeader(name), encodeHeader(value.toString()));
     }
 
     public void removeProperty(String name) throws IOException {
@@ -486,8 +494,8 @@ public class StompJmsMessage implements javax.jms.Message {
     protected void lazyCreateProperties() throws IOException {
         if (properties == null) {
             if (this.frame != null) {
-                properties = new HashMap<String, Object>(this.frame.headerMap().size());
-                for (Map.Entry<AsciiBuffer, AsciiBuffer> entry: this.frame.headerMap().entrySet()){
+                properties = new HashMap<String, Object>(getHeaderMap().size());
+                for (Map.Entry<AsciiBuffer, AsciiBuffer> entry: getHeaderMap().entrySet()){
                     if( !RESERVED_HEADER_NAMES.contains(entry.getKey()) ) {
                         properties.put(decodeHeader(entry.getKey()), decodeHeader(entry.getValue()));
                     }
@@ -831,11 +839,11 @@ public class StompJmsMessage implements javax.jms.Message {
         }
     }
 
-    public Runnable getAcknowledgeCallback() {
+    public Callable<Void> getAcknowledgeCallback() {
         return acknowledgeCallback;
     }
 
-    public void setAcknowledgeCallback(Runnable acknowledgeCallback) {
+    public void setAcknowledgeCallback(Callable<Void> acknowledgeCallback) {
         this.acknowledgeCallback = acknowledgeCallback;
     }
 
@@ -862,7 +870,11 @@ public class StompJmsMessage implements javax.jms.Message {
      * @return the consumerId
      */
     public AsciiBuffer getConsumerId() {
-        return this.frame.headerMap().get(SUBSCRIPTION);
+        return getHeaderMap().get(SUBSCRIPTION);
+    }
+
+    private Map<AsciiBuffer, AsciiBuffer> getHeaderMap() {
+        return this.frame.headerMap(REVERSED_HEADER_NAMES);
     }
 
     /**
@@ -877,5 +889,13 @@ public class StompJmsMessage implements javax.jms.Message {
      */
     public void setTransactionId(AsciiBuffer transactionId) {
         this.transactionId = transactionId;
+    }
+
+    public StompJmsConnection getConnection() {
+        return connection;
+    }
+
+    public void setConnection(StompJmsConnection connection) {
+        this.connection = connection;
     }
 }

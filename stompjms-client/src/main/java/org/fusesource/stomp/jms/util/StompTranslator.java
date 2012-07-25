@@ -68,13 +68,19 @@ public class StompTranslator {
 //    }
 
     public static StompJmsMessage convert(StompFrame frame) throws JMSException {
-        Map<AsciiBuffer, AsciiBuffer> headers = frame.headerMap();
+        Map<AsciiBuffer, AsciiBuffer> headers = frame.headerMap(StompJmsMessage.REVERSED_HEADER_NAMES);
         StompJmsMessage result = null;
         AsciiBuffer type = headers.get(TRANSFORMATION);
         if (type != null) {
             switch (StompJmsMessage.JmsMsgType.valueOf(type.toString())) {
                 case BYTES:
                     result = new StompJmsBytesMessage();
+                    break;
+                case TEXT:
+                    result = new StompJmsTextMessage();
+                    break;
+                case TEXT_NULL:
+                    result = new StompJmsTextMessage();
                     break;
                 case MAP:
                     result = new StompJmsMapMessage();
@@ -89,7 +95,7 @@ public class StompTranslator {
                     result = new StompJmsMessage();
                     break;
                 default:
-                    result = new StompJmsTextMessage();
+                    result = new StompJmsBytesMessage();
             }
         }
         if (result == null) {

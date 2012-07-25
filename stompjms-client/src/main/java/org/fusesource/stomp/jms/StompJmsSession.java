@@ -10,6 +10,8 @@
 
 package org.fusesource.stomp.jms;
 
+//import org.apache.activemq.apollo.filter.FilterException;
+//import org.apache.activemq.apollo.selector.SelectorParser;
 import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtbuf.ByteArrayOutputStream;
 import org.fusesource.stomp.codec.StompFrame;
@@ -57,19 +59,101 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         this.forceAsyncSend = forceAsyncSend;
     }
 
-    protected StompChannel getChannel() throws JMSException {
-        if(this.channel == null) {
-            this.channel = this.connection.createChannel(this);
+    /////////////////////////////////////////////////////////////////////////
+    //
+    // Session methods
+    //
+    /////////////////////////////////////////////////////////////////////////
+
+    /**
+     * @return acknowledgeMode
+     * @throws JMSException
+     * @see javax.jms.Session#getAcknowledgeMode()
+     */
+    public int getAcknowledgeMode() throws JMSException {
+        checkClosed();
+        return this.acknowledgementMode;
+    }
+
+    /**
+     * @return true if transacted
+     * @throws JMSException
+     * @see javax.jms.Session#getTransacted()
+     */
+    public boolean getTransacted() throws JMSException {
+        checkClosed();
+        return this.acknowledgementMode == Session.SESSION_TRANSACTED;
+    }
+
+    /**
+     * @return the Sesion messageListener
+     * @throws JMSException
+     * @see javax.jms.Session#getMessageListener()
+     */
+    public MessageListener getMessageListener() throws JMSException {
+        checkClosed();
+        return this.messageListener;
+    }
+
+    /**
+     * @param listener
+     * @throws JMSException
+     * @see javax.jms.Session#setMessageListener(javax.jms.MessageListener)
+     */
+    public void setMessageListener(MessageListener listener) throws JMSException {
+        checkClosed();
+        this.messageListener = listener;
+    }
+
+    /**
+     * @throws JMSException
+     * @see javax.jms.Session#recover()
+     */
+    public void recover() throws JMSException {
+        checkClosed();
+        if (getTransacted()) {
+            throw new javax.jms.IllegalStateException("Cannot call recover() on a transacted session");
         }
-        return this.channel;
+        // TODO: re-deliver all un-acked client-ack messages.
     }
 
-    public boolean isForceAsyncSend() {
-        return forceAsyncSend;
+    /**
+     * @throws JMSException
+     * @see javax.jms.Session#commit()
+     */
+    public void commit() throws JMSException {
+        checkClosed();
+        if (!getTransacted()) {
+            throw new javax.jms.IllegalStateException("Not a transacted session");
+        }
+        for (StompJmsMessageConsumer c : consumers.values()) {
+            c.commit();
+        }
+        getChannel().commitTransaction(currentTransactionId);
+        this.currentTransactionId = getChannel().startTransaction();
     }
 
-    public void setForceAsyncSend(boolean forceAsyncSend) {
-        this.forceAsyncSend = forceAsyncSend;
+    /**
+     * @throws JMSException
+     * @see javax.jms.Session#rollback()
+     */
+    public void rollback() throws JMSException {
+        checkClosed();
+        if (!getTransacted()) {
+            throw new javax.jms.IllegalStateException("Not a transacted session");
+        }
+        for (StompJmsMessageConsumer c : consumers.values()) {
+            c.rollback();
+        }
+        getChannel().rollbackTransaction(currentTransactionId);
+        this.currentTransactionId = getChannel().startTransaction();
+    }
+
+    /**
+     * @see javax.jms.Session#run()
+     */
+    public void run() {
+        // TODO Auto-generated method stub
     }
 
     /**
@@ -87,53 +171,11 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         }
     }
 
-    /**
-     * @throws JMSException
-     * @see javax.jms.Session#commit()
-     */
-    public void commit() throws JMSException {
-        checkClosed();
-        if (!getTransacted()) {
-            throw new javax.jms.IllegalStateException("Not a transacted session");
-        }
-        getChannel().commitTransaction(currentTransactionId);
-        this.currentTransactionId = getChannel().startTransaction();
-    }
-
-    /**
-     * @param destination
-     * @return QueueBrowser
-     * @throws JMSException
-     * @see javax.jms.Session#createBrowser(javax.jms.Queue)
-     */
-    public QueueBrowser createBrowser(Queue destination) throws JMSException {
-        checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
-        StompJmsQueueBrowser result = new StompJmsQueueBrowser(this, getChannel().nextId(), dest, "");
-        return result;
-    }
-
-    /**
-     * @param queue
-     * @param messageSelector
-     * @return QueueBrowser
-     * @throws JMSException
-     * @see javax.jms.Session#createBrowser(javax.jms.Queue, java.lang.String)
-     */
-    public QueueBrowser createBrowser(Queue queue, String messageSelector) throws JMSException {
-        checkClosed();
-        throw new JMSException("Not supported by STOMP protocol");
-    }
-
-    /**
-     * @return BytesMessage
-     * @throws IllegalStateException
-     * @see javax.jms.Session#createBytesMessage()
-     */
-    public BytesMessage createBytesMessage() throws IllegalStateException {
-        checkClosed();
-        return new StompJmsBytesMessage();
-    }
+    /////////////////////////////////////////////////////////////////////////
+    //
+    // Consumer creation
+    //
+    /////////////////////////////////////////////////////////////////////////
 
     /**
      * @param destination
@@ -143,6 +185,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public MessageConsumer createConsumer(Destination destination) throws JMSException {
         checkClosed();
+        checkDestination(destination);
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
         StompJmsMessageConsumer result = new StompJmsMessageConsumer(getChannel().nextId(), this, dest, "");
         result.init();
@@ -159,6 +202,8 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public MessageConsumer createConsumer(Destination destination, String messageSelector) throws JMSException {
         checkClosed();
+        checkDestination(destination);
+        messageSelector = checkSelector(messageSelector);
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
         StompJmsMessageConsumer result = new StompJmsMessageConsumer(getChannel().nextId(), this, dest,
                 messageSelector);
@@ -178,10 +223,108 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public MessageConsumer createConsumer(Destination destination, String messageSelector, boolean NoLocal)
             throws JMSException {
         checkClosed();
+        checkDestination(destination);
+        messageSelector = checkSelector(messageSelector);
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
         StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(getChannel().nextId(), this, dest, NoLocal,
                 messageSelector);
         result.init();
+        return result;
+    }
+
+    /**
+     * @param queue
+     * @return QueueRecevier
+     * @throws JMSException
+     * @see javax.jms.QueueSession#createReceiver(javax.jms.Queue)
+     */
+    public QueueReceiver createReceiver(Queue queue) throws JMSException {
+        checkClosed();
+        checkDestination(queue);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, queue);
+        StompJmsQueueReceiver result = new StompJmsQueueReceiver(getChannel().nextId(), this, dest, "");
+        result.init();
+        return result;
+    }
+
+    /**
+     * @param queue
+     * @param messageSelector
+     * @return QueueReceiver
+     * @throws JMSException
+     * @see javax.jms.QueueSession#createReceiver(javax.jms.Queue,
+     *      java.lang.String)
+     */
+    public QueueReceiver createReceiver(Queue queue, String messageSelector) throws JMSException {
+        checkClosed();
+        checkDestination(queue);
+        messageSelector = checkSelector(messageSelector);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, queue);
+        StompJmsQueueReceiver result = new StompJmsQueueReceiver(getChannel().nextId(), this, dest, messageSelector);
+        result.init();
+        return result;
+    }
+
+    /**
+     * @param destination
+     * @return QueueBrowser
+     * @throws JMSException
+     * @see javax.jms.Session#createBrowser(javax.jms.Queue)
+     */
+    public QueueBrowser createBrowser(Queue destination) throws JMSException {
+        checkClosed();
+        checkDestination(destination);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
+        StompJmsQueueBrowser result = new StompJmsQueueBrowser(this, getChannel().nextId(), dest, "");
+        return result;
+    }
+
+    /**
+     * @param destination
+     * @param messageSelector
+     * @return QueueBrowser
+     * @throws JMSException
+     * @see javax.jms.Session#createBrowser(javax.jms.Queue, java.lang.String)
+     */
+    public QueueBrowser createBrowser(Queue destination, String messageSelector) throws JMSException {
+        checkClosed();
+        checkDestination(destination);
+        messageSelector = checkSelector(messageSelector);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
+        StompJmsQueueBrowser result = new StompJmsQueueBrowser(this, getChannel().nextId(), dest, messageSelector);
+        return result;
+    }
+
+    /**
+     * @param topic
+     * @return TopicSubscriber
+     * @throws JMSException
+     * @see javax.jms.TopicSession#createSubscriber(javax.jms.Topic)
+     */
+    public TopicSubscriber createSubscriber(Topic topic) throws JMSException {
+        checkClosed();
+        checkDestination(topic);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, topic);
+        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(getChannel().nextId(), this, dest, false, "");
+        result.init();
+        return result;
+    }
+
+    /**
+     * @param topic
+     * @param messageSelector
+     * @param noLocal
+     * @return TopicSubscriber
+     * @throws JMSException
+     * @see javax.jms.TopicSession#createSubscriber(javax.jms.Topic,
+     *      java.lang.String, boolean)
+     */
+    public TopicSubscriber createSubscriber(Topic topic, String messageSelector, boolean noLocal) throws JMSException {
+        checkClosed();
+        checkDestination(topic);
+        messageSelector = checkSelector(messageSelector);
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, topic);
+        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(getChannel().nextId(), this, dest, noLocal, messageSelector);
         return result;
     }
 
@@ -195,6 +338,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public TopicSubscriber createDurableSubscriber(Topic topic, String name) throws JMSException {
         checkClosed();
+        checkDestination(topic);
         AsciiBuffer id = StompFrame.encodeHeader(this.connection.getClientID() + ":" + name);
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, topic);
         StompJmsTopicSubscriber result = new StompJmsDurableTopicSubscriber(id, this, dest, false, "");
@@ -215,213 +359,12 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public TopicSubscriber createDurableSubscriber(Topic topic, String name, String messageSelector, boolean noLocal)
             throws JMSException {
         checkClosed();
+        checkDestination(topic);
+        messageSelector = checkSelector(messageSelector);
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, topic);
         StompJmsTopicSubscriber result = new StompJmsDurableTopicSubscriber(getChannel().nextId(), this, dest, noLocal,messageSelector);
         result.init();
         return result;
-    }
-
-    /**
-     * @return MapMessage
-     * @throws IllegalStateException
-     * @see javax.jms.Session#createMapMessage()
-     */
-    public MapMessage createMapMessage() throws IllegalStateException {
-        checkClosed();
-        return new StompJmsMapMessage();
-    }
-
-    /**
-     * @return Message
-     * @throws IllegalStateException
-     * @see javax.jms.Session#createMessage()
-     */
-    public Message createMessage() throws IllegalStateException {
-        checkClosed();
-        return new StompJmsMessage();
-    }
-
-    /**
-     * @return ObjectMessage
-     * @throws IllegalStateException
-     * @see javax.jms.Session#createObjectMessage()
-     */
-    public ObjectMessage createObjectMessage() throws IllegalStateException {
-        checkClosed();
-        return new StompJmsObjectMessage();
-    }
-
-    /**
-     * @param object
-     * @return ObjectMessage
-     * @throws JMSException
-     * @see javax.jms.Session#createObjectMessage(java.io.Serializable)
-     */
-    public ObjectMessage createObjectMessage(Serializable object) throws JMSException {
-        checkClosed();
-        ObjectMessage result = createObjectMessage();
-        result.setObject(object);
-        return result;
-    }
-
-    /**
-     * @param destination
-     * @return MessageProducer
-     * @throws JMSException
-     * @see javax.jms.Session#createProducer(javax.jms.Destination)
-     */
-    public MessageProducer createProducer(Destination destination) throws JMSException {
-        checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
-        StompJmsMessageProducer result = new StompJmsMessageProducer(this, dest);
-        add(result);
-        return result;
-    }
-
-    /**
-     * @param queueName
-     * @return Queue
-     * @throws JMSException
-     * @see javax.jms.Session#createQueue(java.lang.String)
-     */
-    public Queue createQueue(String queueName) throws JMSException {
-        checkClosed();
-        return new StompJmsQueue(connection, queueName);
-    }
-
-    /**
-     * @return StreamMessage
-     * @throws JMSException
-     * @see javax.jms.Session#createStreamMessage()
-     */
-    public StreamMessage createStreamMessage() throws JMSException {
-        checkClosed();
-        return new StompJmsStreamMessage();
-    }
-
-    /**
-     * @return TemporaryQueue
-     * @throws JMSException
-     * @see javax.jms.Session#createTemporaryQueue()
-     */
-    public TemporaryQueue createTemporaryQueue() throws JMSException {
-        checkClosed();
-        return new StompJmsTempQueue(connection, UUID.randomUUID().toString());
-    }
-
-    /**
-     * @return TemporaryTopic
-     * @throws JMSException
-     * @see javax.jms.Session#createTemporaryTopic()
-     */
-    public TemporaryTopic createTemporaryTopic() throws JMSException {
-        checkClosed();
-        return new StompJmsTempTopic(connection, UUID.randomUUID().toString());
-    }
-
-    /**
-     * @return TextMessage
-     * @throws JMSException
-     * @see javax.jms.Session#createTextMessage()
-     */
-    public TextMessage createTextMessage() throws JMSException {
-        checkClosed();
-        return new StompJmsTextMessage();
-    }
-
-    /**
-     * @param text
-     * @return TextMessage
-     * @throws JMSException
-     * @see javax.jms.Session#createTextMessage(java.lang.String)
-     */
-    public TextMessage createTextMessage(String text) throws JMSException {
-        checkClosed();
-        StompJmsTextMessage result = new StompJmsTextMessage();
-        result.setText(text);
-        return result;
-    }
-
-    /**
-     * @param topicName
-     * @return Topic
-     * @throws JMSException
-     * @see javax.jms.Session#createTopic(java.lang.String)
-     */
-    public Topic createTopic(String topicName) throws JMSException {
-        checkClosed();
-        return new StompJmsTopic(connection, topicName);
-    }
-
-    /**
-     * @return acknowledgeMode
-     * @throws JMSException
-     * @see javax.jms.Session#getAcknowledgeMode()
-     */
-    public int getAcknowledgeMode() throws JMSException {
-        checkClosed();
-        return this.acknowledgementMode;
-    }
-
-    /**
-     * @return the Sesion messageListener
-     * @throws JMSException
-     * @see javax.jms.Session#getMessageListener()
-     */
-    public MessageListener getMessageListener() throws JMSException {
-        checkClosed();
-        return this.messageListener;
-    }
-
-    /**
-     * @return true if transacted
-     * @throws JMSException
-     * @see javax.jms.Session#getTransacted()
-     */
-    public boolean getTransacted() throws JMSException {
-        checkClosed();
-        return this.acknowledgementMode == Session.SESSION_TRANSACTED;
-    }
-
-    /**
-     * @throws JMSException
-     * @see javax.jms.Session#recover()
-     */
-    public void recover() throws JMSException {
-        checkClosed();
-    }
-
-    /**
-     * @throws JMSException
-     * @see javax.jms.Session#rollback()
-     */
-    public void rollback() throws JMSException {
-        checkClosed();
-        if (!getTransacted()) {
-            throw new javax.jms.IllegalStateException("Not a transacted session");
-        }
-        for (StompJmsMessageConsumer c : consumers.values()) {
-            c.rollback(this.currentTransactionId);
-        }
-        getChannel().rollbackTransaction(currentTransactionId);
-        this.currentTransactionId = getChannel().startTransaction();
-    }
-
-    /**
-     * @see javax.jms.Session#run()
-     */
-    public void run() {
-        // TODO Auto-generated method stub
-    }
-
-    /**
-     * @param listener
-     * @throws JMSException
-     * @see javax.jms.Session#setMessageListener(javax.jms.MessageListener)
-     */
-    public void setMessageListener(MessageListener listener) throws JMSException {
-        checkClosed();
-        this.messageListener = listener;
     }
 
     /**
@@ -440,33 +383,23 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
 
     }
 
-    /**
-     * @param queue
-     * @return QueueRecevier
-     * @throws JMSException
-     * @see javax.jms.QueueSession#createReceiver(javax.jms.Queue)
-     */
-    public QueueReceiver createReceiver(Queue queue) throws JMSException {
-        checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, queue);
-        StompJmsQueueReceiver result = new StompJmsQueueReceiver(getChannel().nextId(), this, dest, "");
-        result.init();
-        return result;
-    }
+    /////////////////////////////////////////////////////////////////////////
+    //
+    // Producer creation
+    //
+    /////////////////////////////////////////////////////////////////////////
 
     /**
-     * @param queue
-     * @param messageSelector
-     * @return QueueReceiver
+     * @param destination
+     * @return MessageProducer
      * @throws JMSException
-     * @see javax.jms.QueueSession#createReceiver(javax.jms.Queue,
-     *      java.lang.String)
+     * @see javax.jms.Session#createProducer(javax.jms.Destination)
      */
-    public QueueReceiver createReceiver(Queue queue, String messageSelector) throws JMSException {
+    public MessageProducer createProducer(Destination destination) throws JMSException {
         checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, queue);
-        StompJmsQueueReceiver result = new StompJmsQueueReceiver(getChannel().nextId(), this, dest, messageSelector);
-        result.init();
+        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, destination);
+        StompJmsMessageProducer result = new StompJmsMessageProducer(this, dest);
+        add(result);
         return result;
     }
 
@@ -497,35 +430,149 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         return result;
     }
 
+    /////////////////////////////////////////////////////////////////////////
+    //
+    // Message creation
+    //
+    /////////////////////////////////////////////////////////////////////////
+
     /**
-     * @param topic
-     * @return TopicSubscriber
-     * @throws JMSException
-     * @see javax.jms.TopicSession#createSubscriber(javax.jms.Topic)
+     * @return BytesMessage
+     * @throws IllegalStateException
+     * @see javax.jms.Session#createBytesMessage()
      */
-    public TopicSubscriber createSubscriber(Topic topic) throws JMSException {
+    public BytesMessage createBytesMessage() throws IllegalStateException {
         checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, topic);
-        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(getChannel().nextId(), this, dest, false, "");
-        result.init();
+        return init(new StompJmsBytesMessage());
+    }
+
+    /**
+     * @return MapMessage
+     * @throws IllegalStateException
+     * @see javax.jms.Session#createMapMessage()
+     */
+    public MapMessage createMapMessage() throws IllegalStateException {
+        checkClosed();
+        return init(new StompJmsMapMessage());
+    }
+
+    /**
+     * @return Message
+     * @throws IllegalStateException
+     * @see javax.jms.Session#createMessage()
+     */
+    public Message createMessage() throws IllegalStateException {
+        checkClosed();
+        return init(new StompJmsMessage());
+    }
+
+    /**
+     * @return ObjectMessage
+     * @throws IllegalStateException
+     * @see javax.jms.Session#createObjectMessage()
+     */
+    public ObjectMessage createObjectMessage() throws IllegalStateException {
+        checkClosed();
+        return init(new StompJmsObjectMessage());
+    }
+
+    /**
+     * @param object
+     * @return ObjectMessage
+     * @throws JMSException
+     * @see javax.jms.Session#createObjectMessage(java.io.Serializable)
+     */
+    public ObjectMessage createObjectMessage(Serializable object) throws JMSException {
+        ObjectMessage result = createObjectMessage();
+        result.setObject(object);
         return result;
     }
 
     /**
-     * @param topic
-     * @param messageSelector
-     * @param noLocal
-     * @return TopicSubscriber
+     * @return StreamMessage
      * @throws JMSException
-     * @see javax.jms.TopicSession#createSubscriber(javax.jms.Topic,
-     *      java.lang.String, boolean)
+     * @see javax.jms.Session#createStreamMessage()
      */
-    public TopicSubscriber createSubscriber(Topic topic, String messageSelector, boolean noLocal) throws JMSException {
+    public StreamMessage createStreamMessage() throws JMSException {
         checkClosed();
-        StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, topic);
-        StompJmsTopicSubscriber result = new StompJmsTopicSubscriber(getChannel().nextId(), this, dest, noLocal, messageSelector);
+        return init(new StompJmsStreamMessage());
+    }
+
+    /**
+     * @return TextMessage
+     * @throws JMSException
+     * @see javax.jms.Session#createTextMessage()
+     */
+    public TextMessage createTextMessage() throws JMSException {
+        checkClosed();
+        return init(new StompJmsTextMessage());
+    }
+
+    /**
+     * @param text
+     * @return TextMessage
+     * @throws JMSException
+     * @see javax.jms.Session#createTextMessage(java.lang.String)
+     */
+    public TextMessage createTextMessage(String text) throws JMSException {
+        TextMessage result = createTextMessage();
+        result.setText(text);
         return result;
     }
+
+    /////////////////////////////////////////////////////////////////////////
+    //
+    // Destination creation
+    //
+    /////////////////////////////////////////////////////////////////////////
+
+    /**
+     * @param queueName
+     * @return Queue
+     * @throws JMSException
+     * @see javax.jms.Session#createQueue(java.lang.String)
+     */
+    public Queue createQueue(String queueName) throws JMSException {
+        checkClosed();
+        return new StompJmsQueue(connection, queueName);
+    }
+
+    /**
+     * @return TemporaryQueue
+     * @throws JMSException
+     * @see javax.jms.Session#createTemporaryQueue()
+     */
+    public TemporaryQueue createTemporaryQueue() throws JMSException {
+        checkClosed();
+        return new StompJmsTempQueue(connection, UUID.randomUUID().toString());
+    }
+
+    /**
+     * @return TemporaryTopic
+     * @throws JMSException
+     * @see javax.jms.Session#createTemporaryTopic()
+     */
+    public TemporaryTopic createTemporaryTopic() throws JMSException {
+        checkClosed();
+        return new StompJmsTempTopic(connection, UUID.randomUUID().toString());
+    }
+
+    /**
+     * @param topicName
+     * @return Topic
+     * @throws JMSException
+     * @see javax.jms.Session#createTopic(java.lang.String)
+     */
+    public Topic createTopic(String topicName) throws JMSException {
+        checkClosed();
+        return new StompJmsTopic(connection, topicName);
+    }
+
+    /////////////////////////////////////////////////////////////////////////
+    //
+    // Impl methods
+    //
+    /////////////////////////////////////////////////////////////////////////
 
     protected void add(StompJmsMessageConsumer consumer) throws JMSException {
         this.consumers.put(consumer.getId(), consumer);
@@ -617,7 +664,29 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         }
     }
 
+    public static String checkSelector(String selector) throws InvalidSelectorException {
+        if( selector!=null ) {
+            if( selector.trim().length() ==0 ) {
+                return null;
+            }
+// TODO: validate the selector syntax using the apollo selector module once it's been released.
+//            try {
+//                SelectorParser.parse(selector);
+//            } catch (FilterException e) {
+//                throw new InvalidSelectorException(e.getMessage());
+//            }
+        }
+        return selector;
+    }
+    public static void checkDestination(Destination dest) throws InvalidDestinationException {
+        if( dest==null ) {
+            throw new InvalidDestinationException("Destination cannot be null");
+        }
+    }
+
+
     public void onMessage(StompJmsMessage message) {
+        message.setConnection(connection);
         if (started.get()) {
             dispatch(message);
         } else {
@@ -639,6 +708,22 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
                 consumer.start();
             }
         }
+    }
+
+
+    protected StompChannel getChannel() throws JMSException {
+        if(this.channel == null) {
+            this.channel = this.connection.createChannel(this);
+        }
+        return this.channel;
+    }
+
+    public boolean isForceAsyncSend() {
+        return forceAsyncSend;
+    }
+
+    public void setForceAsyncSend(boolean forceAsyncSend) {
+        this.forceAsyncSend = forceAsyncSend;
     }
 
     protected void stop() throws JMSException {
@@ -692,10 +777,19 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             session = connection.getChannel().sessionId();
         }
         AsciiBuffer id = ascii(Long.toString(nextMessageSwquence++));
-        ByteArrayOutputStream out = new ByteArrayOutputStream(session.length() + 1 + id.length());
+        ByteArrayOutputStream out = new ByteArrayOutputStream(3+session.length() + 1 + id.length());
+        out.write('I');
+        out.write('D');
+        out.write(':');
         out.write(session);
         out.write('-');
         out.write(id);
         return out.toBuffer().ascii();
     }
+
+    private <T extends StompJmsMessage> T init(T message) {
+        message.setConnection(connection);
+        return message;
+    }
+
 }
