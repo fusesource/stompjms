@@ -40,7 +40,7 @@ public class StompJmsTopic extends StompJmsDestination implements Topic {
      * @see javax.jms.Topic#getTopicName()
      */
     public String getTopicName() {
-        return getPhysicalName();
+        return getName();
     }
 
 }

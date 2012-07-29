@@ -105,5 +105,7 @@ public interface Constants {
     final AsciiBuffer TRUE = ascii("true");
     final AsciiBuffer FALSE = ascii("false");
     final AsciiBuffer END = ascii("end");
+    final AsciiBuffer HOST_ID = ascii("host-id");
+    final AsciiBuffer SERVER = ascii("server");
 
 }

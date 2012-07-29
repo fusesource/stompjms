@@ -222,7 +222,7 @@ public class StompChannel {
             frame.headerMap().putAll(headers);
         }
         try {
-            if( autoAckSubscriptions.get() > 0 ) {
+            if( !destination.isTopic() && autoAckSubscriptions.get() > 0 ) {
                 // have to do async to avoid deadlocks.
                 sendFrame(frame);
             } else {
@@ -500,5 +500,29 @@ public class StompChannel {
 
     public AsciiBuffer nextId() {
         return connection.nextId();
+    }
+
+    public String getConnectedHostId() {
+        return getConnectedHeader(HOST_ID);
+    }
+
+    public String getServerAndVersion() {
+        return getConnectedHeader(SERVER);
+    }
+
+    public String getConnectedSessionId() {
+        return getConnectedHeader(SESSION);
+    }
+
+    private String getConnectedHeader(AsciiBuffer header) {
+        final StompFrame frame = connection.connectedFrame();
+        String rc = null;
+        if( frame != null ) {
+            final AsciiBuffer host = frame.getHeader(header);
+            if( host !=null ) {
+                rc = host.toString();
+            }
+        }
+        return rc;
     }
 }

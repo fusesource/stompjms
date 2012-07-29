@@ -266,7 +266,7 @@ public class StompJmsMessage implements javax.jms.Message {
         }
     }
 
-    private StompJmsDestination getDestinationHeader(AsciiBuffer key) throws InvalidDestinationException {
+    private StompJmsDestination getDestinationHeader(AsciiBuffer key) throws JMSException {
         AsciiBuffer buffer = getHeaderMap().get(key);
         if( buffer == null ) {
             return null;
@@ -368,7 +368,7 @@ public class StompJmsMessage implements javax.jms.Message {
         }
     }
 
-    public Destination getJMSReplyTo() throws InvalidDestinationException {
+    public Destination getJMSReplyTo() throws JMSException {
         return getStompJmsReplyTo();
     }
 
@@ -380,15 +380,15 @@ public class StompJmsMessage implements javax.jms.Message {
         setDestinationHeader(REPLY_TO, destination);
     }
 
-    public StompJmsDestination getStompJmsReplyTo() throws InvalidDestinationException {
+    public StompJmsDestination getStompJmsReplyTo() throws JMSException {
         return getDestinationHeader(REPLY_TO);
     }
 
-    public Destination getJMSDestination() throws InvalidDestinationException {
+    public Destination getJMSDestination() throws JMSException {
         return getStompJmsDestination();
     }
 
-    public StompJmsDestination getStompJmsDestination() throws InvalidDestinationException {
+    public StompJmsDestination getStompJmsDestination() throws JMSException {
         return getDestinationHeader(DESTINATION);
     }
 

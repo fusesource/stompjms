@@ -39,7 +39,7 @@ public class StompJmsQueue extends StompJmsDestination implements Queue {
      * @see javax.jms.Queue#getQueueName()
      */
     public String getQueueName() {
-        return getPhysicalName();
+        return getName();
     }
 
 }

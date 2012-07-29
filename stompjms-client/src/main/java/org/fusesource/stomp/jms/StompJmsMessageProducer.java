@@ -212,7 +212,7 @@ public class StompJmsMessageProducer implements MessageProducer {
         }
         if (!this.flexibleDestination && !destination.equals(this.destination)) {
             throw new UnsupportedOperationException("This producer can only send messages to: "
-                    + this.destination.getPhysicalName());
+                    + this.destination.getName());
         }
         this.destination = StompJmsMessageTransformation.transformDestination(session.connection, destination);
     }

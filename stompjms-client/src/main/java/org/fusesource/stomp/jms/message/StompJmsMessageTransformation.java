@@ -45,9 +45,9 @@ public final class StompJmsMessageTransformation {
 
             } else {
                 if (destination instanceof TemporaryQueue) {
-                    result = new StompJmsTempQueue(connection, ((Queue) destination).getQueueName());
+                    result = new StompJmsTempQueue(connection.getQueuePrefix(), ((TemporaryQueue) destination).getQueueName());
                 } else if (destination instanceof TemporaryTopic) {
-                    result = new StompJmsTempTopic(connection, ((Topic) destination).getTopicName());
+                    result = new StompJmsTempTopic(connection.getTopicPrefix(), ((TemporaryTopic) destination).getTopicName());
                 } else if (destination instanceof Queue) {
                     result = new StompJmsQueue(connection, ((Queue) destination).getQueueName());
                 } else if (destination instanceof Topic) {

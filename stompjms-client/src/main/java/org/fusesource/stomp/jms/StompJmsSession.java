@@ -544,7 +544,13 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public TemporaryQueue createTemporaryQueue() throws JMSException {
         checkClosed();
-        return new StompJmsTempQueue(connection, UUID.randomUUID().toString());
+        if(connection.isConnnectedToApolloServer) {
+            return new StompJmsTempQueue(connection.queuePrefix, createApolloTempDestName());
+        }
+        if( connection.tempQueuePrefix!=null ) {
+            return new StompJmsTempQueue(connection.tempQueuePrefix, UUID.randomUUID().toString());
+        }
+        return null;
     }
 
     /**
@@ -554,7 +560,22 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public TemporaryTopic createTemporaryTopic() throws JMSException {
         checkClosed();
-        return new StompJmsTempTopic(connection, UUID.randomUUID().toString());
+        if(connection.isConnnectedToApolloServer) {
+            return new StompJmsTempTopic(connection.topicPrefix, createApolloTempDestName());
+        }
+        if( connection.tempQueuePrefix!=null ) {
+            return new StompJmsTempTopic(connection.tempTopicPrefix, UUID.randomUUID().toString());
+        }
+        return null;
+    }
+
+    private String createApolloTempDestName() throws JMSException {
+        String host = getChannel().getConnectedHostId();
+        if( host == null ) {
+            host = connection.brokerURI.getHost();
+        }
+        final String sessionId = getChannel().getConnectedSessionId();
+        return "temp."+ host +"."+ sessionId +"."+ UUID.randomUUID().toString();
     }
 
     /**

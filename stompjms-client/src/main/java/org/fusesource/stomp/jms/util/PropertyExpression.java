@@ -45,7 +45,7 @@ public class PropertyExpression {
                         return null;
                     }
                     return dest.toString();
-                } catch (InvalidDestinationException e) {
+                } catch (JMSException e) {
                     return null;
                 }
             }
@@ -59,7 +59,7 @@ public class PropertyExpression {
                         return null;
                     }
                     return dest.toString();
-                } catch (InvalidDestinationException e) {
+                } catch (JMSException e) {
                     return null;
                 }
             }

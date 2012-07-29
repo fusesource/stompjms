@@ -18,25 +18,15 @@ import javax.jms.TemporaryQueue;
  */
 public class StompJmsTempQueue extends StompJmsDestination implements TemporaryQueue {
 
-    private final StompJmsConnection connection;
-
-    /**
-     * Constructor
-     *
-     * @param name
-     */
-    public StompJmsTempQueue(StompJmsConnection connection, String name) {
-        super(connection.tempQueuePrefix, name);
-        this.connection = connection;
-        this.topic = false;
+    public StompJmsTempQueue(String prefix, String name) {
+        super(prefix, name);
     }
 
     /**
      * @see javax.jms.TemporaryQueue#delete()
      */
     public void delete() {
-        // TODO Auto-generated method stub
-
+        // TODO: stomp does not really have a way to delete destinations.. :(
     }
 
     /**
@@ -44,6 +34,6 @@ public class StompJmsTempQueue extends StompJmsDestination implements TemporaryQ
      * @see javax.jms.Queue#getQueueName()
      */
     public String getQueueName() {
-        return getPhysicalName();
+        return getName();
     }
 }

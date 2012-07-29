@@ -38,11 +38,12 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     boolean forceAsyncSend;
     boolean omitHost;
 
-    private final URI brokerURI;
-    private final URI localURI;
-    private final String userName;
-    private final String password;
-    private StompChannel channel;
+    final URI brokerURI;
+    final URI localURI;
+    final String userName;
+    final String password;
+    StompChannel channel;
+    boolean isConnnectedToApolloServer;
 
     /**
      * @param brokerURI
@@ -342,6 +343,8 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
             rc = channel;
         }
         rc.connect();
+        String sv = rc.getServerAndVersion();
+        isConnnectedToApolloServer = sv!=null && sv.startsWith("apache-apollo/");
         return rc;
     }
 
@@ -442,4 +445,27 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     public void setOmitHost(boolean omitHost) {
         this.omitHost = omitHost;
     }
+
+    StompJmsTempQueue isTempQueue(String value) throws JMSException {
+        connect();
+        if( isConnnectedToApolloServer && value.startsWith(queuePrefix+"temp.")) {
+            return new StompJmsTempQueue(queuePrefix, value.substring(queuePrefix.length()));
+        }
+        if( tempQueuePrefix!=null && value.startsWith(tempQueuePrefix) ) {
+            return new StompJmsTempQueue(tempQueuePrefix, value.substring(tempQueuePrefix.length()));
+        }
+        return null;
+    }
+
+    StompJmsTempTopic isTempTopic(String value) throws JMSException {
+        connect();
+        if( isConnnectedToApolloServer && value.startsWith(topicPrefix+"temp.")) {
+            return new StompJmsTempTopic(topicPrefix, value.substring(topicPrefix.length()));
+        }
+        if( tempTopicPrefix!=null && value.startsWith(tempTopicPrefix) ) {
+            return new StompJmsTempTopic(tempTopicPrefix, value.substring(tempTopicPrefix.length()));
+        }
+        return null;
+    }
+
 }

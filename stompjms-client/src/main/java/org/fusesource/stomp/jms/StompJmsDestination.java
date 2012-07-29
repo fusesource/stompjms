@@ -15,6 +15,7 @@ import org.fusesource.stomp.codec.StompFrame;
 import org.fusesource.stomp.jms.jndi.JNDIStorable;
 
 import javax.jms.InvalidDestinationException;
+import javax.jms.JMSException;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -29,7 +30,7 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
         Comparable<StompJmsDestination> {
 
     protected transient String prefix;
-    protected transient String physicalName;
+    protected transient String name;
     protected transient boolean topic;
     protected transient boolean temporary;
     protected transient int hashValue;
@@ -45,12 +46,12 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
 
     public StompJmsDestination(String prefix, String name) {
         this.prefix = prefix;
-        setPhysicalName(name);
+        setName(name);
     }
 
     public String toString() {
         if (toString == null) {
-            toString = getPrefix() + getPhysicalName();
+            toString = getPrefix() + getName();
         }
         return toString;
     }
@@ -72,12 +73,12 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
     /**
      * @return name of destination
      */
-    public String getPhysicalName() {
-        return this.physicalName;
+    public String getName() {
+        return this.name;
     }
 
-    private void setPhysicalName(String physicalName) {
-        this.physicalName = physicalName;
+    private void setName(String name) {
+        this.name = name;
         this.toString = null;
         this.buffer = null;
 
@@ -110,7 +111,7 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
     @Override
     protected void buildFromProperties(Map<String, String> props) {
         setPrefix(getProperty(props, "prefix", ""));
-        setPhysicalName(getProperty(props, "name", ""));
+        setName(getProperty(props, "name", ""));
         Boolean bool = Boolean.valueOf(getProperty(props, "topic", Boolean.TRUE.toString()));
         this.topic = bool.booleanValue();
         bool = Boolean.valueOf(getProperty(props, "temporary", Boolean.FALSE.toString()));
@@ -123,7 +124,7 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
     @Override
     protected void populateProperties(Map<String, String> props) {
         props.put("prefix", getPrefix());
-        props.put("name", getPhysicalName());
+        props.put("name", getName());
         props.put("topic", Boolean.toString(isTopic()));
         props.put("temporary", Boolean.toString(isTemporary()));
     }
@@ -137,7 +138,7 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
     public int compareTo(StompJmsDestination other) {
         if (other != null) {
             if (isTemporary() == other.isTemporary()) {
-                return getPhysicalName().compareTo(other.getPhysicalName());
+                return getName().compareTo(other.getName());
             }
             return -1;
         }
@@ -153,43 +154,49 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
         }
 
         StompJmsDestination d = (StompJmsDestination) o;
-        return getPhysicalName().equals(d.getPhysicalName());
+        return getName().equals(d.getName());
     }
 
     public int hashCode() {
         if (hashValue == 0) {
-            hashValue = getPhysicalName().hashCode();
+            hashValue = getName().hashCode();
         }
         return hashValue;
     }
 
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeUTF(getPrefix());
-        out.writeUTF(getPhysicalName());
+        out.writeUTF(getName());
         out.writeBoolean(isTopic());
         out.writeBoolean(isTemporary());
     }
 
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         setPrefix(in.readUTF());
-        setPhysicalName(in.readUTF());
+        setName(in.readUTF());
         this.topic = in.readBoolean();
         this.temporary = in.readBoolean();
     }
 
-    public static StompJmsDestination createDestination(StompJmsConnection connection, String name) throws InvalidDestinationException {
+    public static StompJmsDestination createDestination(StompJmsConnection connection, String name) throws JMSException {
 
-        if (connection.queuePrefix!=null && name.startsWith(connection.queuePrefix)) {
-            return new StompJmsQueue(connection, name.substring(connection.queuePrefix.length()));
-        } else if (connection.topicPrefix!=null && name.startsWith(connection.topicPrefix)) {
-            return new StompJmsTopic(connection, name.substring(connection.topicPrefix.length()));
-        } else if (connection.tempQueuePrefix!=null && name.startsWith(connection.tempQueuePrefix)) {
-            return new StompJmsTempQueue(connection, name.substring(connection.tempQueuePrefix.length()));
-        } else if (connection.tempTopicPrefix!=null && name.startsWith(connection.tempTopicPrefix)) {
-            return new StompJmsTempTopic(connection, name.substring(connection.tempTopicPrefix.length()));
-        } else {
-            return new StompJmsDestination("", name);
+        StompJmsDestination x = connection.isTempQueue(name);
+        if ( x !=null ) {
+            return x;
         }
+        x = connection.isTempTopic(name);
+        if ( x !=null ) {
+            return x;
+        }
+
+        if (name.startsWith(connection.topicPrefix)) {
+            return new StompJmsTopic(connection, name.substring(connection.topicPrefix.length()));
+        }
+
+        if (name.startsWith(connection.queuePrefix)) {
+            return new StompJmsQueue(connection, name.substring(connection.queuePrefix.length()));
+        }
+        return new StompJmsDestination("", name);
 
     }
 

@@ -18,29 +18,15 @@ import javax.jms.TemporaryTopic;
  */
 public class StompJmsTempTopic extends StompJmsDestination implements TemporaryTopic {
 
-    private final StompJmsConnection connection;
-
-    /**
-     * Constructor
-     *
-     * @param name
-     */
-    public StompJmsTempTopic(StompJmsConnection connection, String name) {
-        super(connection.tempTopicPrefix, name);
-        this.connection = connection;
-        this.topic = true;
-    }
-
-    protected String getType() {
-        return connection.tempTopicPrefix;
+    public StompJmsTempTopic(String prefix, String name) {
+        super(prefix, name);
     }
 
     /**
      * @see javax.jms.TemporaryTopic#delete()
      */
     public void delete() {
-        // TODO Auto-generated method stub
-
+        // TODO: stomp does not really have a way to delete destinations.. :(
     }
 
     /**
@@ -48,6 +34,6 @@ public class StompJmsTempTopic extends StompJmsDestination implements TemporaryT
      * @see javax.jms.Topic#getTopicName()
      */
     public String getTopicName() {
-        return getPhysicalName();
+        return getName();
     }
 }
