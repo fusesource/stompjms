@@ -25,6 +25,13 @@ public class StompJmsTopic extends StompJmsDestination implements Topic {
         this(connection.topicPrefix, name);
     }
 
+    public StompJmsTopic copy() {
+        final StompJmsTopic copy = new StompJmsTopic();
+        copy.setProperties(getProperties());
+        return copy;
+    }
+
+
     /**
      * Constructor
      *

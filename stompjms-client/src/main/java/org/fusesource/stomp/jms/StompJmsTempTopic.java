@@ -18,8 +18,17 @@ import javax.jms.TemporaryTopic;
  */
 public class StompJmsTempTopic extends StompJmsDestination implements TemporaryTopic {
 
+    public StompJmsTempTopic() {
+        this(null, null);
+    }
     public StompJmsTempTopic(String prefix, String name) {
         super(prefix, name);
+    }
+
+    public StompJmsTempTopic copy() {
+        final StompJmsTempTopic copy = new StompJmsTempTopic();
+        copy.setProperties(getProperties());
+        return copy;
     }
 
     /**

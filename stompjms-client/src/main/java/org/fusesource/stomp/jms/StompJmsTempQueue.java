@@ -18,8 +18,18 @@ import javax.jms.TemporaryQueue;
  */
 public class StompJmsTempQueue extends StompJmsDestination implements TemporaryQueue {
 
+    public StompJmsTempQueue() {
+        super(null, null);
+    }
+
     public StompJmsTempQueue(String prefix, String name) {
         super(prefix, name);
+    }
+
+    public StompJmsTempQueue copy() {
+        final StompJmsTempQueue copy = new StompJmsTempQueue();
+        copy.setProperties(getProperties());
+        return copy;
     }
 
     /**

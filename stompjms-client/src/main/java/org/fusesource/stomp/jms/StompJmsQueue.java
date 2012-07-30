@@ -25,6 +25,12 @@ public class StompJmsQueue extends StompJmsDestination implements Queue {
         this(connection.queuePrefix, name);
     }
 
+    public StompJmsQueue copy() {
+        final StompJmsQueue copy = new StompJmsQueue();
+        copy.setProperties(getProperties());
+        return copy;
+    }
+
     /**
      * Constructor
      *

@@ -49,6 +49,13 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
         setName(name);
     }
 
+    public StompJmsDestination copy() {
+        final StompJmsDestination copy = new StompJmsDestination();
+        copy.setProperties(getProperties());
+        return copy;
+    }
+
+
     public String toString() {
         if (toString == null) {
             toString = getPrefix() + getName();
@@ -212,4 +219,5 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
     public String getPhysicalName() {
         return getName();
     }
+
 }
