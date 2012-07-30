@@ -45,6 +45,8 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     StompChannel channel;
     boolean isConnnectedToApolloServer;
 
+    StompJmsPrefetch prefetch = new StompJmsPrefetch();
+
     /**
      * @param brokerURI
      * @param localURI
@@ -468,4 +470,11 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         return null;
     }
 
+    public StompJmsPrefetch getPrefetch() {
+        return prefetch;
+    }
+
+    public void setPrefetch(StompJmsPrefetch prefetch) {
+        this.prefetch = prefetch;
+    }
 }

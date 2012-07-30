@@ -11,6 +11,7 @@
 package org.fusesource.stomp.jms;
 
 import org.fusesource.hawtbuf.AsciiBuffer;
+import org.fusesource.hawtbuf.Buffer;
 import org.fusesource.hawtdispatch.CustomDispatchSource;
 import org.fusesource.hawtdispatch.Dispatch;
 import org.fusesource.hawtdispatch.OrderedEventAggregator;
@@ -21,11 +22,14 @@ import org.fusesource.stomp.jms.message.StompJmsMessage;
 
 import javax.jms.IllegalStateException;
 import javax.jms.*;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static org.fusesource.stomp.client.Constants.*;
 
 /**
  * implementation of a Jms Message Consumer
@@ -223,7 +227,31 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
     }
 
     StompJmsMessage ack(final StompJmsMessage message) {
-        if( message!=null && message.getAcknowledgeCallback()==null ) {
+        if( message!=null ) {
+            if( message.getAcknowledgeCallback()!=null ) {
+                // Message has been received by the app.. expand the credit window
+                // so that we receive more messages.
+                if( session.connection.isConnnectedToApolloServer ) {
+
+                    final Buffer content = message.getFrame().content();
+                    String credit = "1";
+                    if( content!=null ) {
+                        credit += ","+content.length();
+                    }
+
+                    StompFrame frame = new StompFrame();
+                    frame.action(ACK);
+                    frame.headerMap().put(SUBSCRIPTION, id);
+                    frame.headerMap().put(CREDIT, AsciiBuffer.ascii(credit));
+
+                    try {
+                        session.channel.sendFrame(frame);
+                    } catch (IOException ignore) {
+                    }
+                }
+                // don't actually ack yet.. client code does it.
+                return message;
+            }
             doAck(message);
         }
         return message;
@@ -280,7 +308,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
             session.getExecutor().execute(new Runnable() {
                 public void run() {
                     StompJmsMessage message;
-                    while( (message=messageQueue.dequeueNoWait()) !=null ) {
+                    while( session.isStarted() && (message=messageQueue.dequeueNoWait()) !=null ) {
                         try {
                             messageListener.onMessage(copy(message));
                             ack(message);

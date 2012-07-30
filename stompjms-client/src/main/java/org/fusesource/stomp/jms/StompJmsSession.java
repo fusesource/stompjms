@@ -51,6 +51,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     long consumerMessageBufferSize = 1024*64;
     LinkedBlockingQueue<StompJmsMessage> stoppedMessages = new LinkedBlockingQueue<StompJmsMessage>(10000);
     StompChannel channel;
+    StompJmsPrefetch prefetch;
 
     /**
      * Constructor
@@ -62,6 +63,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         this.connection = connection;
         this.acknowledgementMode = acknowledgementMode;
         this.forceAsyncSend = forceAsyncSend;
+        this.prefetch = new StompJmsPrefetch(connection.prefetch);
     }
 
     /////////////////////////////////////////////////////////////////////////
@@ -174,6 +176,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public void close() throws JMSException {
         if (closed.compareAndSet(false, true)) {
+            stop();
             this.connection.removeSession(this, channel);
             for (StompJmsMessageConsumer c : new ArrayList<StompJmsMessageConsumer>(this.consumers.values())) {
                 c.close();
@@ -620,6 +623,11 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             mode = CLIENT;
         }
 
+        StompJmsPrefetch subprefetch = null;
+        if( connection.isConnnectedToApolloServer && prefetch!=null && !prefetch.equals(StompJmsPrefetch.DEFAULT) ) {
+            subprefetch = prefetch;
+        }
+
         getChannel().subscribe(
                 consumer.getDestination(),
                 consumer.getId(),
@@ -627,6 +635,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
                 mode,
                 consumer.isDurableSubscription(),
                 consumer.isBrowser(),
+                subprefetch,
                 StompFrame.encodeHeaders(consumer.getDestination().getSubscribeHeaders())
         );
         if (started.get()) {
@@ -833,4 +842,11 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         return message;
     }
 
+    public StompJmsPrefetch getPrefetch() {
+        return prefetch;
+    }
+
+    public void setPrefetch(StompJmsPrefetch prefetch) {
+        this.prefetch = prefetch;
+    }
 }

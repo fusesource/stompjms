@@ -199,23 +199,27 @@ public class StompChannel {
         }
     }
 
-    public void subscribe(StompJmsDestination destination, AsciiBuffer consumerId, AsciiBuffer selector, AsciiBuffer ackMode, boolean persistent, boolean browser, Map<AsciiBuffer, AsciiBuffer> headers) throws JMSException {
+    public void subscribe(StompJmsDestination destination, AsciiBuffer consumerId, AsciiBuffer selector, AsciiBuffer ackMode, boolean persistent, boolean browser, StompJmsPrefetch prefetch, Map<AsciiBuffer, AsciiBuffer> headers) throws JMSException {
         StompFrame frame = new StompFrame();
         frame.action(SUBSCRIBE);
-        frame.headerMap().put(DESTINATION, destination.toBuffer());
-        frame.headerMap().put(ID, consumerId);
+        final Map<AsciiBuffer, AsciiBuffer> headerMap = frame.headerMap();
+        headerMap.put(DESTINATION, destination.toBuffer());
+        headerMap.put(ID, consumerId);
         if (selector != null && selector.trim().isEmpty() == false) {
-            frame.headerMap().put(SELECTOR, selector);
+            headerMap.put(SELECTOR, selector);
         }
-        frame.headerMap().put(ACK_MODE, ackMode);
+        headerMap.put(ACK_MODE, ackMode);
         if (persistent) {
-            frame.headerMap().put(PERSISTENT, TRUE);
+            headerMap.put(PERSISTENT, TRUE);
         }
         if (browser) {
-            frame.headerMap().put(BROWSER, TRUE);
+            headerMap.put(BROWSER, TRUE);
+        }
+        if ( prefetch!=null ) {
+            headerMap.put(CREDIT, AsciiBuffer.ascii(prefetch.getMaxMessages()+","+prefetch.getMaxBytes()));
         }
         if(headers!=null) {
-            frame.headerMap().putAll(headers);
+            headerMap.putAll(headers);
         }
         try {
             if( !destination.isTopic() && serverAckSubs.get() > 0 ) {
