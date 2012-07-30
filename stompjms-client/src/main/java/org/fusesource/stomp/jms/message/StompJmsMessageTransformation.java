@@ -73,7 +73,7 @@ public final class StompJmsMessageTransformation {
     public static StompJmsMessage transformMessage(StompJmsConnection connection, Message message)
             throws JMSException {
         if (message instanceof StompJmsMessage) {
-            return (StompJmsMessage) message;
+            return (StompJmsMessage) ((StompJmsMessage) message).copy();
 
         } else {
             StompJmsMessage activeMessage = null;

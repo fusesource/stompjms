@@ -153,11 +153,10 @@ public class StompChannel {
         }
     }
 
-    public void sendMessage(StompJmsMessage message, AsciiBuffer txid, boolean sync) throws JMSException {
+    public void sendMessage(StompJmsMessage copy, AsciiBuffer txid, boolean sync) throws JMSException {
         if( sync && serverAckSubs.get() >0 ) {
             throw new JMSException("Sync message sends not allowed when a subscription is using 'ack:auto'.  Causes deadlocks.");
         }
-        StompJmsMessage copy = message.copy();
         copy.onSend();
         StompFrame frame = copy.getFrame();
         frame.action(SEND);

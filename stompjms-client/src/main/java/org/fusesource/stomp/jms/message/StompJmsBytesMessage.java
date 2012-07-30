@@ -11,11 +11,14 @@
 package org.fusesource.stomp.jms.message;
 
 import org.fusesource.hawtbuf.Buffer;
+import org.fusesource.hawtbuf.ByteArrayInputStream;
 import org.fusesource.hawtbuf.DataByteArrayInputStream;
 import org.fusesource.hawtbuf.DataByteArrayOutputStream;
 import org.fusesource.stomp.jms.StompJmsExceptionSupport;
 
 import javax.jms.*;
+import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 
 
@@ -72,7 +75,7 @@ import java.io.IOException;
  */
 public class StompJmsBytesMessage extends StompJmsMessage implements BytesMessage {
     protected transient DataByteArrayOutputStream bytesOut;
-    protected transient DataByteArrayInputStream dataIn;
+    protected transient DataInputStream dataIn;
     protected transient int length;
 
     public JmsMsgType getMsgType() {
@@ -171,8 +174,13 @@ public class StompJmsBytesMessage extends StompJmsMessage implements BytesMessag
      */
     public byte readByte() throws JMSException {
         initializeReading();
-        return this.dataIn.readByte();
-
+        try {
+            return this.dataIn.readByte();
+        } catch (EOFException e) {
+            throw StompJmsExceptionSupport.createMessageEOFException(e);
+        } catch (IOException e) {
+            throw StompJmsExceptionSupport.create(e);
+        }
     }
 
     /**
@@ -738,7 +746,7 @@ public class StompJmsBytesMessage extends StompJmsMessage implements BytesMessag
             if (buffer==null) {
                 buffer = new Buffer(0);
             }
-            dataIn = new DataByteArrayInputStream(buffer);
+            dataIn = new DataInputStream(new ByteArrayInputStream(buffer));
             this.length = buffer.getLength();
         }
     }

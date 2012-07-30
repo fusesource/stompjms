@@ -11,12 +11,15 @@
 package org.fusesource.stomp.jms.message;
 
 import org.fusesource.hawtbuf.Buffer;
+import org.fusesource.hawtbuf.ByteArrayInputStream;
 import org.fusesource.hawtbuf.DataByteArrayInputStream;
 import org.fusesource.hawtbuf.DataByteArrayOutputStream;
 import org.fusesource.stomp.jms.StompJmsExceptionSupport;
 import org.fusesource.stomp.jms.util.MarshallingSupport;
 
 import javax.jms.*;
+import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 
@@ -99,7 +102,7 @@ import java.io.IOException;
 public class StompJmsStreamMessage extends StompJmsMessage implements StreamMessage {
 
     protected transient DataByteArrayOutputStream dataOut;
-    protected transient DataByteArrayInputStream dataIn;
+    protected transient DataInputStream dataIn;
     protected transient int remainingBytes = -1;
 
     public JmsMsgType getMsgType() {
@@ -1094,7 +1097,7 @@ public class StompJmsStreamMessage extends StompJmsMessage implements StreamMess
             if (buffer == null) {
                 buffer = new Buffer(new byte[]{}, 0, 0);
             }
-            this.dataIn = new DataByteArrayInputStream(buffer);
+            this.dataIn = new DataInputStream(new ByteArrayInputStream(buffer));
         }
     }
 

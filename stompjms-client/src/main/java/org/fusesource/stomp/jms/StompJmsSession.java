@@ -673,22 +673,30 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     protected void send(Destination dest, Message msg, int deliveryMode, int priority, long timeToLive)
             throws JMSException {
         StompJmsDestination destination = StompJmsMessageTransformation.transformDestination(connection, dest);
-        StompJmsMessage message = StompJmsMessageTransformation.transformMessage(connection, msg);
-        send(destination, message, deliveryMode, priority, timeToLive);
+        send(destination, msg, deliveryMode, priority, timeToLive);
     }
 
-    private void send(StompJmsDestination destination, StompJmsMessage message, int deliveryMode, int priority,
+    private void send(StompJmsDestination destination, Message original, int deliveryMode, int priority,
                       long timeToLive) throws JMSException {
-        message.setJMSDestination(destination);
-        message.setJMSDeliveryMode(deliveryMode);
-        message.setJMSPriority(priority);
+
+        original.setJMSDeliveryMode(deliveryMode);
+        original.setJMSPriority(priority);
         if (timeToLive > 0) {
             long timeStamp = System.currentTimeMillis();
-            message.setJMSTimestamp(timeStamp);
-            message.setJMSExpiration(System.currentTimeMillis() + timeToLive);
+            original.setJMSTimestamp(timeStamp);
+            original.setJMSExpiration(System.currentTimeMillis() + timeToLive);
         }
-        boolean sync = !forceAsyncSend && message.isPersistent() && !getTransacted();
-        
+        final AsciiBuffer msgId = getNextMessageId();
+        if( original instanceof StompJmsMessage ) {
+            ((StompJmsMessage)original).setMessageID(msgId);
+        } else {
+            original.setJMSMessageID(msgId.toString());
+        }
+
+        StompJmsMessage copy = StompJmsMessageTransformation.transformMessage(connection, original);
+        boolean sync = !forceAsyncSend && deliveryMode==DeliveryMode.PERSISTENT && !getTransacted();
+        copy.setJMSDestination(destination);
+
         // If we are doing transactions we HAVE to use the
         // session's channel since that's how the UOWs are being
         // delimited.  And if there are no consumers, then 
@@ -696,14 +704,13 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         // by slow consumers, so it's safe to us it too. 
         if( consumers.isEmpty() || getTransacted()) {
             StompChannel channel = getChannel();
-            message.setMessageID(getNextMessageId());
-            channel.sendMessage(message, currentTransactionId, sync);
+            channel.sendMessage(copy, currentTransactionId, sync);
         } else {
             // Non transacted session, with consumers.. they might end up
             // flow controlling the channel so lets publish the message
             // over the connection's main channel.
-            message.setMessageID(getNextMessageId());
-            this.connection.getChannel().sendMessage(message, currentTransactionId, sync);
+            copy.setMessageID(msgId);
+            this.connection.getChannel().sendMessage(copy, currentTransactionId, sync);
         }
         
     }
