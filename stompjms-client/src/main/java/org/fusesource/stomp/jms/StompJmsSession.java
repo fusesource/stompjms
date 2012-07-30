@@ -147,6 +147,13 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         }
         getChannel().rollbackTransaction(currentTransactionId);
         this.currentTransactionId = getChannel().startTransaction();
+        getExecutor().execute(new Runnable() {
+            public void run() {
+                for (StompJmsMessageConsumer c : consumers.values()) {
+                    c.drainMessageQueueToListener();
+                }
+            }
+        });
     }
 
     /**

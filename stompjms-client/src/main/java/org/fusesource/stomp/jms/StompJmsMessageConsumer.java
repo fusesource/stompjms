@@ -59,7 +59,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
         }
     }
 
-    protected StompJmsMessageConsumer(final AsciiBuffer id, StompJmsSession s, StompJmsDestination destination, String selector) {
+    protected StompJmsMessageConsumer(final AsciiBuffer id, StompJmsSession s, StompJmsDestination destination, String selector) throws JMSException {
         this.id = id;
         this.session = s;
         this.destination = destination;
@@ -83,7 +83,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
                 public AckCallbackFuture mergeEvents(AckCallbackFuture previous, AckCallbackFuture events) {
                     return events;
                 }
-            }, session.channel.connection.getDispatchQueue());
+            }, session.getChannel().connection.getDispatchQueue());
 
             ackSource.setEventHandler(new Task() {
                 public void run() {
@@ -160,7 +160,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
     public Message receive() throws JMSException {
         checkClosed();
         try {
-            return ack(this.messageQueue.dequeue(-1));
+            return copy(ack(this.messageQueue.dequeue(-1)));
         } catch (Exception e) {
             throw StompJmsExceptionSupport.create(e);
         }
@@ -175,7 +175,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
     public Message receive(long timeout) throws JMSException {
         checkClosed();
         try {
-            return ack(this.messageQueue.dequeue(timeout));
+            return copy(ack(this.messageQueue.dequeue(timeout)));
         } catch (InterruptedException e) {
             throw StompJmsExceptionSupport.create(e);
         }
@@ -188,7 +188,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
      */
     public Message receiveNoWait() throws JMSException {
         checkClosed();
-        Message result = ack(this.messageQueue.dequeueNoWait());
+        Message result = copy(ack(this.messageQueue.dequeueNoWait()));
         return result;
     }
 
@@ -209,6 +209,13 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
         if (this.closed.get()) {
             throw new IllegalStateException("The MessageProducer is closed");
         }
+    }
+
+    StompJmsMessage copy(final StompJmsMessage message) throws JMSException {
+        if( message == null ) {
+            return null;
+        }
+        return message.copy();
     }
 
     StompJmsMessage ack(final StompJmsMessage message) {
@@ -271,7 +278,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
                     StompJmsMessage message;
                     while( (message=messageQueue.dequeueNoWait()) !=null ) {
                         try {
-                            messageListener.onMessage(message);
+                            messageListener.onMessage(copy(message));
                             ack(message);
                         } catch (Exception e) {
                             session.connection.onException(e);
@@ -319,20 +326,26 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
 
     void rollback() {
         ((TxMessageQueue)this.messageQueue).rollback();
-        drainMessageQueueToListener();
     }
 
     void commit() {
         ((TxMessageQueue)this.messageQueue).commit();
     }
 
-    private void drainMessageQueueToListener() {
+    void drainMessageQueueToListener() {
         MessageListener listener = this.messageListener;
         if (listener != null) {
             if (!this.messageQueue.isEmpty()) {
                 List<StompJmsMessage> drain = this.messageQueue.removeAll();
                 for (StompJmsMessage m : drain) {
-                    listener.onMessage(m);
+                    final StompJmsMessage copy;
+                    try {
+                        copy = copy(m);
+                        listener.onMessage(copy);
+                        ack(m);
+                    } catch (Exception e) {
+                        session.connection.onException(e);
+                    }
                 }
                 drain.clear();
             }

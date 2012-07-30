@@ -42,6 +42,7 @@ public class TxMessageQueue extends MessageQueue {
                 list.addFirst(entry);
                 size += entry.size;
             }
+            removed.clear();
             this.notify();
         }
     }

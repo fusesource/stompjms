@@ -207,4 +207,9 @@ public class StompJmsDestination extends JNDIStorable implements Externalizable,
     public void setSubscribeHeaders(Map<String, String> subscribeHeaders) {
         this.subscribeHeaders = subscribeHeaders;
     }
+
+    @Deprecated
+    public String getPhysicalName() {
+        return getName();
+    }
 }
