@@ -28,11 +28,16 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.fusesource.hawtbuf.Buffer.ascii;
+import static org.fusesource.stomp.client.Constants.AUTO;
+import static org.fusesource.stomp.client.Constants.CLIENT;
 
 /**
  * JMS Session implementation
  */
 public class StompJmsSession implements Session, QueueSession, TopicSession, StompJmsMessageListener {
+
+    static final int SERVER_AUTO_ACKNOWLEDGE = -1;
+
     long nextMessageSwquence = 0;
     final StompJmsConnection connection;
     final int acknowledgementMode;
@@ -605,13 +610,21 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     protected void add(StompJmsMessageConsumer consumer) throws JMSException {
         this.consumers.put(consumer.getId(), consumer);
         if(consumer.ackSource == null) {
-            getChannel().autoAckSubscriptions.incrementAndGet();
+            getChannel().serverAckSubs.incrementAndGet();
         }
+
+        AsciiBuffer mode;
+        if (this.acknowledgementMode == StompJmsSession.SERVER_AUTO_ACKNOWLEDGE) {
+            mode = AUTO;
+        } else {
+            mode = CLIENT;
+        }
+
         getChannel().subscribe(
                 consumer.getDestination(),
                 consumer.getId(),
                 StompFrame.encodeHeader(consumer.getMessageSelector()),
-                this.acknowledgementMode != Session.AUTO_ACKNOWLEDGE,
+                mode,
                 consumer.isDurableSubscription(),
                 consumer.isBrowser(),
                 StompFrame.encodeHeaders(consumer.getDestination().getSubscribeHeaders())
@@ -627,7 +640,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         }
         this.consumers.remove(consumer.getId());
         if(consumer.ackSource == null) {
-            getChannel().autoAckSubscriptions.decrementAndGet();
+            getChannel().serverAckSubs.decrementAndGet();
         }
     }
 

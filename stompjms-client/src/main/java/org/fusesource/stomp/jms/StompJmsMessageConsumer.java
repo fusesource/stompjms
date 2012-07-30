@@ -16,6 +16,7 @@ import org.fusesource.hawtdispatch.Dispatch;
 import org.fusesource.hawtdispatch.OrderedEventAggregator;
 import org.fusesource.hawtdispatch.Task;
 import org.fusesource.stomp.client.Promise;
+import org.fusesource.stomp.codec.StompFrame;
 import org.fusesource.stomp.jms.message.StompJmsMessage;
 
 import javax.jms.IllegalStateException;
@@ -45,17 +46,13 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
 
     final CustomDispatchSource<AckCallbackFuture, AckCallbackFuture> ackSource;
 
-    class AckCallbackFuture extends Promise<Void> {
+    class AckCallbackFuture extends Promise<StompFrame> {
         AsciiBuffer id;
         private final AsciiBuffer tx;
 
         public AckCallbackFuture(AsciiBuffer id, AsciiBuffer tx) {
             this.id = id;
             this.tx = tx;
-        }
-
-        public void success() {
-            onSuccess(null);
         }
     }
 
@@ -71,7 +68,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
             this.messageQueue = new MessageQueue(session.consumerMessageBufferSize);
         }
 
-        if(  session.acknowledgementMode==Session.AUTO_ACKNOWLEDGE ) {
+        if(  session.acknowledgementMode==StompJmsSession.SERVER_AUTO_ACKNOWLEDGE ) {
             // Then the STOMP client does not need to issue acks to the server, we suspend
             // TCP reads to avoid memory overruns.
             ackSource = null;
@@ -91,15 +88,22 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
                     try {
                         switch( session.acknowledgementMode ) {
                             case Session.CLIENT_ACKNOWLEDGE:
-                                session.channel.ackMessage(id, ack.id, null, true);
+                                session.channel.ackMessage(id, ack.id, null, ack);
+                                break;
+                            case Session.AUTO_ACKNOWLEDGE:
+                                session.channel.ackMessage(id, ack.id, null, ack);
                                 break;
                             case Session.DUPS_OK_ACKNOWLEDGE:
-                            case Session.SESSION_TRANSACTED:
-                                session.channel.ackMessage(id, ack.id, ack.tx, false);
-                            case Session.AUTO_ACKNOWLEDGE:
+                                session.channel.ackMessage(id, ack.id, null, null);
+                                ack.onSuccess(null);
                                 break;
+                            case Session.SESSION_TRANSACTED:
+                                session.channel.ackMessage(id, ack.id, ack.tx, null);
+                                ack.onSuccess(null);
+                                break;
+                            case StompJmsSession.SERVER_AUTO_ACKNOWLEDGE:
+                                throw new IllegalStateException("This should never get called.");
                         }
-                        ack.success();
                     } catch (JMSException e) {
                         ack.onFailure(e);
                         session.connection.onException(e);

@@ -399,7 +399,6 @@ public class JMSConsumerTest extends JmsTestSupport {
         destination = createDestination("/queue/");
 
         HashMap<String, String> headers = new HashMap<String, String>();
-        headers.put("ack", "auto");
         headers.put("browser", "true");
         headers.put("browser-end", "false");
         headers.put("include-seq", "seq");

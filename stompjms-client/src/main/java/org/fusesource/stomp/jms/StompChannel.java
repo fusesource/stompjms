@@ -49,7 +49,7 @@ public class StompChannel {
     AtomicBoolean connected = new AtomicBoolean();
     AsciiBuffer sessionId;
     AtomicInteger writeBufferRemaining = new AtomicInteger();
-    AtomicInteger autoAckSubscriptions = new AtomicInteger();
+    AtomicInteger serverAckSubs = new AtomicInteger();
 
     public AsciiBuffer sessionId() {
         return sessionId;
@@ -154,7 +154,7 @@ public class StompChannel {
     }
 
     public void sendMessage(StompJmsMessage message, AsciiBuffer txid, boolean sync) throws JMSException {
-        if( sync && autoAckSubscriptions.get() >0 ) {
+        if( sync && serverAckSubs.get() >0 ) {
             throw new JMSException("Sync message sends not allowed when a subscription is using 'ack:auto'.  Causes deadlocks.");
         }
         StompJmsMessage copy = message.copy();
@@ -176,8 +176,8 @@ public class StompChannel {
         }
     }
 
-    public void ackMessage(AsciiBuffer consumerId, AsciiBuffer messageId, AsciiBuffer txid, Boolean sync) throws JMSException {
-        if( sync && autoAckSubscriptions.get() >0 ) {
+    public void ackMessage(AsciiBuffer consumerId, AsciiBuffer messageId, AsciiBuffer txid, Promise<StompFrame> callback) throws JMSException {
+        if( callback!=null && serverAckSubs.get() >0 ) {
             throw new JMSException("Sync acks not allowed when a subscription is using 'ack:auto'.  Causes deadlocks.");
         }
         connection.getDispatchQueue().assertExecuting();
@@ -189,8 +189,8 @@ public class StompChannel {
             frame.headerMap().put(TRANSACTION, txid);
         }
         try {
-            if(sync) {
-                sendRequest(frame);
+            if(callback!=null) {
+                sendRequest(frame, callback);
             } else {
                 sendFrame(frame);
             }
@@ -199,7 +199,7 @@ public class StompChannel {
         }
     }
 
-    public void subscribe(StompJmsDestination destination, AsciiBuffer consumerId, AsciiBuffer selector, boolean clientAck, boolean persistent, boolean browser, Map<AsciiBuffer, AsciiBuffer> headers) throws JMSException {
+    public void subscribe(StompJmsDestination destination, AsciiBuffer consumerId, AsciiBuffer selector, AsciiBuffer ackMode, boolean persistent, boolean browser, Map<AsciiBuffer, AsciiBuffer> headers) throws JMSException {
         StompFrame frame = new StompFrame();
         frame.action(SUBSCRIBE);
         frame.headerMap().put(DESTINATION, destination.toBuffer());
@@ -207,11 +207,7 @@ public class StompChannel {
         if (selector != null && selector.trim().isEmpty() == false) {
             frame.headerMap().put(SELECTOR, selector);
         }
-        if (clientAck) {
-            frame.headerMap().put(ACK_MODE, CLIENT);
-        } else {
-            frame.headerMap().put(ACK_MODE, AUTO);
-        }
+        frame.headerMap().put(ACK_MODE, ackMode);
         if (persistent) {
             frame.headerMap().put(PERSISTENT, TRUE);
         }
@@ -222,7 +218,7 @@ public class StompChannel {
             frame.headerMap().putAll(headers);
         }
         try {
-            if( !destination.isTopic() && autoAckSubscriptions.get() > 0 ) {
+            if( !destination.isTopic() && serverAckSubs.get() > 0 ) {
                 // have to do async to avoid deadlocks.
                 sendFrame(frame);
             } else {
@@ -267,7 +263,7 @@ public class StompChannel {
     }
 
     public void commitTransaction(AsciiBuffer txid) throws JMSException {
-        if( autoAckSubscriptions.get() >0 ) {
+        if( serverAckSubs.get() >0 ) {
             throw new JMSException("transactions not allowed when a subscription is using 'ack:auto'.  Causes deadlocks.");
         }
         StompFrame frame = new StompFrame();
@@ -283,7 +279,7 @@ public class StompChannel {
     }
 
     public void rollbackTransaction(AsciiBuffer txid) throws JMSException {
-        if( autoAckSubscriptions.get() >0 ) {
+        if( serverAckSubs.get() >0 ) {
             throw new JMSException("transactions not allowed when a subscription is using 'ack:auto'.  Causes deadlocks.");
         }
         StompFrame frame = new StompFrame();
@@ -341,14 +337,18 @@ public class StompChannel {
         }
     }
 
+    public void sendRequest(final StompFrame frame, final Promise<StompFrame> future) {
+        connection.getDispatchQueue().execute(new Task() {
+            public void run() {
+                connection.request(frame, future);
+            }
+        });
+    }
+
     public void sendRequest(final StompFrame frame) throws IOException {
         try {
             final Promise<StompFrame> future = new Promise<StompFrame>();
-            connection.getDispatchQueue().execute(new Task() {
-                public void run() {
-                    connection.request(frame, future);
-                }
-            });
+            sendRequest(frame, future);
             // Wait on the future so that we don't cause flow control
             // problems.
             future.await();
