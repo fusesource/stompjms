@@ -89,9 +89,9 @@ public class StompJmsMessage implements javax.jms.Message {
     }
 
     public StompJmsMessage copy() throws JMSException {
-        StompJmsMessage copy = new StompJmsMessage();
-        copy(copy);
-        return copy;
+        StompJmsMessage other = new StompJmsMessage();
+        other.copy(this);
+        return other;
     }
 
     public JmsMsgType getMsgType() {
@@ -106,16 +106,18 @@ public class StompJmsMessage implements javax.jms.Message {
         this.frame = frame;
     }
 
-    protected void copy(StompJmsMessage copy) {
-        copy.readOnlyBody = this.readOnlyBody;
-        copy.readOnlyProperties = this.readOnlyBody;
-        if (this.properties != null) {
-            copy.properties = new HashMap<String, Object>(this.properties);
+    protected void copy(StompJmsMessage other) {
+        this.readOnlyBody = other.readOnlyBody;
+        this.readOnlyProperties = other.readOnlyBody;
+        if (other.properties != null) {
+            this.properties = new HashMap<String, Object>(other.properties);
+        } else {
+            this.properties = null;
         }
-        copy.frame = frame.clone();
-        copy.acknowledgeCallback = this.acknowledgeCallback;
-        copy.transactionId = this.transactionId;
-        //don't copy redilveryCounter
+        this.frame = other.frame.clone();
+        this.acknowledgeCallback = other.acknowledgeCallback;
+        this.transactionId = other.transactionId;
+        this.redeliveryCounter = other.redeliveryCounter;
     }
 
     @Override

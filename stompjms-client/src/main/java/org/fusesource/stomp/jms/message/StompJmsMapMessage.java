@@ -87,14 +87,14 @@ public class StompJmsMapMessage extends StompJmsMessage implements MapMessage {
     }
 
     public StompJmsMessage copy() throws JMSException {
-        StompJmsMapMessage copy = new StompJmsMapMessage();
-        copy(copy);
-        return copy;
+        StompJmsMapMessage other = new StompJmsMapMessage();
+        other.copy(this);
+        return other;
     }
 
-    public void copy(StompJmsMapMessage copy) throws JMSException {
-        storeContent();
-        super.copy(copy);
+    public void copy(StompJmsMapMessage other) throws JMSException {
+        other.storeContent();
+        super.copy(other);
     }
 
 

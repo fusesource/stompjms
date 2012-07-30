@@ -31,14 +31,14 @@ public class StompJmsTextMessage extends StompJmsMessage implements TextMessage 
     }
 
     public StompJmsMessage copy() throws JMSException {
-        StompJmsTextMessage copy = new StompJmsTextMessage();
-        copy(copy);
-        return copy;
+        StompJmsTextMessage other = new StompJmsTextMessage();
+        other.copy(this);
+        return other;
     }
 
-    private void copy(StompJmsTextMessage copy) {
-        super.copy(copy);
-        copy.text = text;
+    private void copy(StompJmsTextMessage other) {
+        super.copy(other);
+        this.text = other.text;
     }
 
     public void setText(String text) throws MessageNotWriteableException {

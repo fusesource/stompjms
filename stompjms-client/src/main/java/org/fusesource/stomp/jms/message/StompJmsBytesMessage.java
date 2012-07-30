@@ -80,16 +80,16 @@ public class StompJmsBytesMessage extends StompJmsMessage implements BytesMessag
     }
 
     public StompJmsMessage copy() throws JMSException {
-        StompJmsBytesMessage copy = new StompJmsBytesMessage();
-        copy(copy);
-        return copy;
+        StompJmsBytesMessage other = new StompJmsBytesMessage();
+        other.copy(this);
+        return other;
     }
 
-    private void copy(StompJmsBytesMessage copy) throws JMSException {
-        storeContent();
-        super.copy(copy);
-        copy.bytesOut = null;
-        copy.dataIn = null;
+    private void copy(StompJmsBytesMessage other) throws JMSException {
+        other.storeContent();
+        super.copy(other);
+        this.bytesOut = null;
+        this.dataIn = null;
     }
 
 
@@ -733,8 +733,11 @@ public class StompJmsBytesMessage extends StompJmsMessage implements BytesMessag
 
     private void initializeReading() throws JMSException {
         checkWriteOnlyBody();
-        Buffer buffer = getContent();
-        if (dataIn == null && buffer != null) {
+        if (dataIn == null) {
+            Buffer buffer = getContent();
+            if (buffer==null) {
+                buffer = new Buffer(0);
+            }
             dataIn = new DataByteArrayInputStream(buffer);
             this.length = buffer.getLength();
         }

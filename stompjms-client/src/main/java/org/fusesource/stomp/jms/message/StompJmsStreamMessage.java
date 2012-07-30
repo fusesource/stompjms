@@ -107,16 +107,16 @@ public class StompJmsStreamMessage extends StompJmsMessage implements StreamMess
     }
 
     public StompJmsMessage copy() throws JMSException {
-        StompJmsStreamMessage copy = new StompJmsStreamMessage();
-        copy(copy);
-        return copy;
+        StompJmsStreamMessage other = new StompJmsStreamMessage();
+        other.copy(this);
+        return other;
     }
 
-    public void copy(StompJmsStreamMessage copy) throws JMSException {
-        storeContent();
-        super.copy(copy);
-        copy.dataOut = null;
-        copy.dataIn = null;
+    public void copy(StompJmsStreamMessage other) throws JMSException {
+        other.storeContent();
+        super.copy(other);
+        this.dataOut = null;
+        this.dataIn = null;
     }
 
     public void onSend() throws JMSException {

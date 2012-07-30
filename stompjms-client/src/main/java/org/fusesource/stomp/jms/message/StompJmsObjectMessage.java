@@ -52,15 +52,15 @@ public class StompJmsObjectMessage extends StompJmsMessage implements ObjectMess
     }
 
     public StompJmsMessage copy() throws JMSException {
-        StompJmsObjectMessage copy = new StompJmsObjectMessage();
-        copy(copy);
-        return copy;
+        StompJmsObjectMessage other = new StompJmsObjectMessage();
+        other.copy(this);
+        return other;
     }
 
-    private void copy(StompJmsObjectMessage copy) throws JMSException {
-        super.copy(copy);
-        storeContent();
-        copy.object = null;
+    private void copy(StompJmsObjectMessage other) throws JMSException {
+        other.storeContent();
+        super.copy(other);
+        this.object = null;
     }
 
     public void storeContent() throws JMSException {
