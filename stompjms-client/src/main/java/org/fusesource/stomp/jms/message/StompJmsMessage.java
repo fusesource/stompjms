@@ -49,6 +49,7 @@ public class StompJmsMessage implements javax.jms.Message {
         RESERVED_HEADER_NAMES.add(TRANSFORMATION);
         RESERVED_HEADER_NAMES.add(SUBSCRIPTION);
         RESERVED_HEADER_NAMES.add(CONTENT_LENGTH);
+        RESERVED_HEADER_NAMES.add(JMSX_DELIVERY_COUNT);
     }
 
     public static HashSet<AsciiBuffer> REVERSED_HEADER_NAMES = new HashSet<AsciiBuffer>();
@@ -82,7 +83,6 @@ public class StompJmsMessage implements javax.jms.Message {
     protected Map<String, Object> properties;
     protected AsciiBuffer transactionId;
     protected StompFrame frame = new StompFrame(MESSAGE);
-    protected int redeliveryCounter=0;
 
     public StompJmsMessage() {
         getHeaderMap().put(TRANSFORMATION, getMsgType().buffer);
@@ -117,7 +117,6 @@ public class StompJmsMessage implements javax.jms.Message {
         this.frame = other.frame.clone();
         this.acknowledgeCallback = other.acknowledgeCallback;
         this.transactionId = other.transactionId;
-        this.redeliveryCounter = other.redeliveryCounter;
     }
 
     @Override
@@ -411,7 +410,7 @@ public class StompJmsMessage implements javax.jms.Message {
     }
 
     public boolean isRedelivered() {
-        return redeliveryCounter > 0;
+        return getRedeliveryCounter() > 0;
     }
 
     public void setRedelivered(boolean redelivered) {
@@ -426,16 +425,16 @@ public class StompJmsMessage implements javax.jms.Message {
         }
     }
 
-    public void incrementRedeliveryCounter() {
-        redeliveryCounter++;
-    }
-
     public int getRedeliveryCounter() {
-        return redeliveryCounter;
+        AsciiBuffer value = getHeaderMap().get(JMSX_DELIVERY_COUNT);
+        if( value == null ) {
+            return 0;
+        }
+        return Integer.parseInt(value.toString());
     }
 
     public void setRedeliveryCounter(int deliveryCounter) {
-        this.redeliveryCounter = deliveryCounter;
+        getHeaderMap().put(JMSX_DELIVERY_COUNT, encodeHeader("" + deliveryCounter));
     }
 
     public boolean getJMSRedelivered() {

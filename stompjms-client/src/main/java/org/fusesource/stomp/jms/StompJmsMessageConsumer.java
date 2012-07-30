@@ -310,8 +310,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
                     StompJmsMessage message;
                     while( session.isStarted() && (message=messageQueue.dequeueNoWait()) !=null ) {
                         try {
-                            messageListener.onMessage(copy(message));
-                            ack(message);
+                            messageListener.onMessage(copy(ack(message)));
                         } catch (Exception e) {
                             session.connection.onException(e);
                         }
@@ -372,9 +371,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
                 for (StompJmsMessage m : drain) {
                     final StompJmsMessage copy;
                     try {
-                        copy = copy(m);
-                        listener.onMessage(copy);
-                        ack(m);
+                        listener.onMessage(copy(ack(m)));
                     } catch (Exception e) {
                         session.connection.onException(e);
                     }

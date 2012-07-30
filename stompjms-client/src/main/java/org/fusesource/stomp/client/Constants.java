@@ -108,6 +108,7 @@ public interface Constants {
     final AsciiBuffer HOST_ID = ascii("host-id");
     final AsciiBuffer SERVER = ascii("server");
     final AsciiBuffer CREDIT = ascii("credit");
+    final AsciiBuffer JMSX_DELIVERY_COUNT = ascii("JMSXDeliveryCount");
 
 
 }
