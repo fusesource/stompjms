@@ -10,8 +10,8 @@
 
 package org.fusesource.stomp.jms;
 
-//import org.apache.activemq.apollo.filter.FilterException;
-//import org.apache.activemq.apollo.selector.SelectorParser;
+import org.apache.activemq.apollo.filter.FilterException;
+import org.apache.activemq.apollo.selector.SelectorParser;
 import org.fusesource.hawtbuf.AsciiBuffer;
 import org.fusesource.hawtbuf.ByteArrayOutputStream;
 import org.fusesource.stomp.codec.StompFrame;
@@ -721,17 +721,38 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         }
     }
 
+    // This extra wrapping class around SelectorParser is used to avoid ClassNotFoundException
+    // if SelectorParser is not in the class path.
+    static class OptionalSectorParser {
+        public static void check(String selector) throws InvalidSelectorException {
+            try {
+                SelectorParser.parse(selector);
+            } catch (FilterException e) {
+                throw new InvalidSelectorException(e.getMessage());
+            }
+        }
+    }
+    static final OptionalSectorParser SELECTOR_PARSER;
+    static {
+        OptionalSectorParser parser;
+        try {
+            // lets verify it's working..
+            parser = new OptionalSectorParser();
+            parser.check("x=1");
+        } catch (Throwable e) {
+            parser = null;
+        }
+        SELECTOR_PARSER = parser;
+    }
+
     public static String checkSelector(String selector) throws InvalidSelectorException {
         if( selector!=null ) {
             if( selector.trim().length() ==0 ) {
                 return null;
             }
-// TODO: validate the selector syntax using the apollo selector module once it's been released.
-//            try {
-//                SelectorParser.parse(selector);
-//            } catch (FilterException e) {
-//                throw new InvalidSelectorException(e.getMessage());
-//            }
+            if( SELECTOR_PARSER !=null ) {
+                SELECTOR_PARSER.check(selector);
+            }
         }
         return selector;
     }
@@ -740,7 +761,6 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             throw new InvalidDestinationException("Destination cannot be null");
         }
     }
-
 
     public void onMessage(StompJmsMessage message) {
         message.setConnection(connection);

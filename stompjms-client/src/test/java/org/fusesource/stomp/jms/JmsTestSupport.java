@@ -13,12 +13,12 @@ package org.fusesource.stomp.jms;
 import org.apache.activemq.apollo.broker.Broker;
 import org.apache.activemq.apollo.broker.BrokerFactory;
 import org.apache.activemq.apollo.util.ServiceControl;
-import org.springframework.core.io.ClassPathResource;
 
 import javax.jms.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -102,8 +102,8 @@ public class JmsTestSupport extends CombinationTestSupport {
     }
 
     protected Broker createBroker() throws Exception {
-        ClassPathResource resource = new ClassPathResource(BROKER_CONFIG);
-        return BrokerFactory.createBroker(resource.getURI().toString());
+        URL resource = getClass().getClassLoader().getResource(BROKER_CONFIG);
+        return BrokerFactory.createBroker(resource.toURI().toString());
     }
 
     protected void setUp() throws Exception {
