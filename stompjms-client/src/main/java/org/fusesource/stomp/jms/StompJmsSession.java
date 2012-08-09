@@ -679,6 +679,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     private void send(StompJmsDestination destination, Message original, int deliveryMode, int priority,
                       long timeToLive) throws JMSException {
 
+        original.setJMSDestination(destination);
         original.setJMSDeliveryMode(deliveryMode);
         original.setJMSPriority(priority);
         if (timeToLive > 0) {
@@ -688,6 +689,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         }
         final AsciiBuffer msgId = getNextMessageId();
         if( original instanceof StompJmsMessage ) {
+            ((StompJmsMessage)original).setConnection(connection);
             ((StompJmsMessage)original).setMessageID(msgId);
         } else {
             original.setJMSMessageID(msgId.toString());
@@ -695,7 +697,6 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
 
         StompJmsMessage copy = StompJmsMessageTransformation.transformMessage(connection, original);
         boolean sync = !forceAsyncSend && deliveryMode==DeliveryMode.PERSISTENT && !getTransacted();
-        copy.setJMSDestination(destination);
 
         // If we are doing transactions we HAVE to use the
         // session's channel since that's how the UOWs are being

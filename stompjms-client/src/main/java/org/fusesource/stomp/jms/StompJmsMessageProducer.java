@@ -147,7 +147,13 @@ public class StompJmsMessageProducer implements MessageProducer {
      */
     public void send(Destination destination, Message message, int deliveryMode, int priority, long timeToLive)
             throws JMSException {
-        setDestination(destination);
+        if (destination == null) {
+            throw new InvalidDestinationException("Don't understand null destinations");
+        }
+        if (!this.flexibleDestination && !destination.equals(this.destination)) {
+            throw new UnsupportedOperationException("This producer can only send messages to: "
+                    + this.destination.getName());
+        }
         this.session.send(destination, message, deliveryMode, priority, timeToLive);
     }
 

@@ -117,6 +117,7 @@ public class StompJmsMessage implements javax.jms.Message {
         this.frame = other.frame.clone();
         this.acknowledgeCallback = other.acknowledgeCallback;
         this.transactionId = other.transactionId;
+        this.connection = other.connection;
     }
 
     @Override
