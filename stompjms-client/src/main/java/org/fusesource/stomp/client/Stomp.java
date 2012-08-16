@@ -114,14 +114,15 @@ public class Stomp {
                     sslContext = SSLContext.getInstance(SslTransport.protocol(scheme));
                 }
                 ssl.setSSLContext(sslContext);
-                if( blockingExecutor == null ) {
-                    blockingExecutor = Stomp.getBlockingThreadPool();
-                }
-                ssl.setBlockingExecutor(blockingExecutor);
                 transport = ssl;
             } else {
                 throw new Exception("Unsupported URI scheme '"+scheme+"'");
             }
+
+            if( blockingExecutor == null ) {
+                blockingExecutor = Stomp.getBlockingThreadPool();
+            }
+            transport.setBlockingExecutor(blockingExecutor);
 
             if(dispatchQueue == null) {
                 dispatchQueue = createQueue("stomp client");
