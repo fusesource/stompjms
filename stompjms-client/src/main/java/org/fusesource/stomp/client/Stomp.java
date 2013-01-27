@@ -159,7 +159,7 @@ public class Stomp {
                         frame.addHeader(PASSCODE, StompFrame.encodeHeader(passcode));
                     }
                     if (clientId != null) {
-                        frame.addHeader(CLIENT_ID, StompFrame.encodeHeader(passcode));
+                        frame.addHeader(CLIENT_ID, StompFrame.encodeHeader(clientId));
                     }
                     if( customHeaders!=null ) {
                         for (Object key : customHeaders.keySet()) {
