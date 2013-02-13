@@ -796,7 +796,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         return this.started.get();
     }
 
-    protected StompJmsConnection getConnection() {
+    public StompJmsConnection getConnection() {
         return this.connection;
     }
 
