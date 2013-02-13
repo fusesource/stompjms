@@ -34,6 +34,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.fusesource.stomp.client.Constants.*;
 
 public class StompChannel {
+
+    private static final StompServerAdaptor STOMP_SERVER_ADAPTORS[] = new StompServerAdaptor[]{
+        new ApolloServerAdaptor(),
+        new ActiveMQServerAdaptor(),
+        new StompServerAdaptor()
+    };
+
     static final long TIMEOUT = -1;
     String channelId;
     String userName;
@@ -50,6 +57,8 @@ public class StompChannel {
     AsciiBuffer sessionId;
     AtomicInteger writeBufferRemaining = new AtomicInteger();
     AtomicInteger serverAckSubs = new AtomicInteger();
+    StompServerAdaptor serverAdaptor;
+    String clientId;
 
     public AsciiBuffer sessionId() {
         return sessionId;
@@ -80,6 +89,7 @@ public class StompChannel {
                 stomp.setLogin(userName);
                 stomp.setPasscode(password);
                 stomp.setLocalURI(localURI);
+                stomp.setClientId(clientId);
                 stomp.connectCallback(future);
                 if( omitHost ) {
                     stomp.setHost(null);
@@ -106,6 +116,16 @@ public class StompChannel {
                     sessionId = new AsciiBuffer("id-"+UUID.randomUUID().toString());
                 }
                 started.set(true);
+
+                String sv = getServerAndVersion();
+                for( StompServerAdaptor adaptor : STOMP_SERVER_ADAPTORS) {
+                    if( adaptor.matchesServerAndVersion(sv) ) {
+                        serverAdaptor = adaptor;
+                        break;
+                    }
+                }
+                assert serverAdaptor!=null;
+
 
             } catch (Exception e) {
                 connected.set(false);
@@ -198,7 +218,7 @@ public class StompChannel {
         }
     }
 
-    public void subscribe(StompJmsDestination destination, AsciiBuffer consumerId, AsciiBuffer selector, AsciiBuffer ackMode, boolean persistent, boolean browser, StompJmsPrefetch prefetch, Map<AsciiBuffer, AsciiBuffer> headers) throws JMSException {
+    public void subscribe(StompJmsDestination destination, AsciiBuffer consumerId, AsciiBuffer selector, AsciiBuffer ackMode, boolean noLocal, boolean persistent, boolean browser, StompJmsPrefetch prefetch, Map<AsciiBuffer, AsciiBuffer> headers) throws JMSException {
         StompFrame frame = new StompFrame();
         frame.action(SUBSCRIBE);
         final Map<AsciiBuffer, AsciiBuffer> headerMap = frame.headerMap();
@@ -208,14 +228,8 @@ public class StompChannel {
             headerMap.put(SELECTOR, selector);
         }
         headerMap.put(ACK_MODE, ackMode);
-        if (persistent) {
-            headerMap.put(PERSISTENT, TRUE);
-        }
-        if (browser) {
-            headerMap.put(BROWSER, TRUE);
-        }
         if ( prefetch!=null ) {
-            headerMap.put(CREDIT, AsciiBuffer.ascii(prefetch.getMaxMessages()+","+prefetch.getMaxBytes()));
+            serverAdaptor.addSubscribeHeaders(headerMap, persistent, browser, noLocal, prefetch);
         }
         if(headers!=null) {
             headerMap.putAll(headers);
@@ -527,5 +541,17 @@ public class StompChannel {
             }
         }
         return rc;
+    }
+
+    public StompServerAdaptor getServerAdaptor() {
+        return serverAdaptor;
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
     }
 }

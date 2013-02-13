@@ -36,7 +36,7 @@ public class StompJmsTopicSubscriber extends StompJmsMessageConsumer implements 
     }
 
     /**
-     * @return noLocak flag
+     * @return noLocal flag
      * @throws IllegalStateException
      * @see javax.jms.TopicSubscriber#getNoLocal()
      */

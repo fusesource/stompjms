@@ -43,7 +43,6 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     final String userName;
     final String password;
     StompChannel channel;
-    boolean isConnnectedToApolloServer;
 
     StompJmsPrefetch prefetch = new StompJmsPrefetch();
 
@@ -330,6 +329,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         rc.setLocalURI(localURI);
         rc.setUserName(userName);
         rc.setPassword(password);
+        rc.setClientId(clientId);
         rc.setOmitHost(omitHost);
         rc.setExceptionListener(this.exceptionListener);
         rc.setChannelId(clientId + "-" + clientNumber++);
@@ -345,8 +345,6 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
             rc = channel;
         }
         rc.connect();
-        String sv = rc.getServerAndVersion();
-        isConnnectedToApolloServer = sv!=null && sv.startsWith("apache-apollo/");
         return rc;
     }
 
@@ -450,24 +448,16 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
 
     StompJmsTempQueue isTempQueue(String value) throws JMSException {
         connect();
-        if( isConnnectedToApolloServer && value.startsWith(queuePrefix+"temp.")) {
-            return new StompJmsTempQueue(queuePrefix, value.substring(queuePrefix.length()));
-        }
-        if( tempQueuePrefix!=null && value.startsWith(tempQueuePrefix) ) {
-            return new StompJmsTempQueue(tempQueuePrefix, value.substring(tempQueuePrefix.length()));
-        }
-        return null;
+        return serverAdaptor().isTempQueue(this, value);
+    }
+
+    StompServerAdaptor serverAdaptor() throws JMSException {
+        return getChannel().getServerAdaptor();
     }
 
     StompJmsTempTopic isTempTopic(String value) throws JMSException {
         connect();
-        if( isConnnectedToApolloServer && value.startsWith(topicPrefix+"temp.")) {
-            return new StompJmsTempTopic(topicPrefix, value.substring(topicPrefix.length()));
-        }
-        if( tempTopicPrefix!=null && value.startsWith(tempTopicPrefix) ) {
-            return new StompJmsTempTopic(tempTopicPrefix, value.substring(tempTopicPrefix.length()));
-        }
-        return null;
+        return serverAdaptor().isTempTopic(this, value);
     }
 
     public StompJmsPrefetch getPrefetch() {

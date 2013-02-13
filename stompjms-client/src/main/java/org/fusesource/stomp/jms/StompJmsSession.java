@@ -52,6 +52,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     LinkedBlockingQueue<StompJmsMessage> stoppedMessages = new LinkedBlockingQueue<StompJmsMessage>(10000);
     StompChannel channel;
     StompJmsPrefetch prefetch;
+    StompServerAdaptor serverAdaptor;
 
     /**
      * Constructor
@@ -559,13 +560,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public TemporaryQueue createTemporaryQueue() throws JMSException {
         checkClosed();
-        if(connection.isConnnectedToApolloServer) {
-            return new StompJmsTempQueue(connection.queuePrefix, createApolloTempDestName());
-        }
-        if( connection.tempQueuePrefix!=null ) {
-            return new StompJmsTempQueue(connection.tempQueuePrefix, UUID.randomUUID().toString());
-        }
-        return null;
+        return serverAdaptor.createTemporaryQueue(this);
     }
 
     /**
@@ -575,22 +570,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public TemporaryTopic createTemporaryTopic() throws JMSException {
         checkClosed();
-        if(connection.isConnnectedToApolloServer) {
-            return new StompJmsTempTopic(connection.topicPrefix, createApolloTempDestName());
-        }
-        if( connection.tempQueuePrefix!=null ) {
-            return new StompJmsTempTopic(connection.tempTopicPrefix, UUID.randomUUID().toString());
-        }
-        return null;
-    }
-
-    private String createApolloTempDestName() throws JMSException {
-        String host = getChannel().getConnectedHostId();
-        if( host == null ) {
-            host = connection.brokerURI.getHost();
-        }
-        final String sessionId = getChannel().getConnectedSessionId();
-        return "temp."+ host +"."+ sessionId +"."+ UUID.randomUUID().toString();
+        return serverAdaptor.createTemporaryTopic(this);
     }
 
     /**
@@ -623,19 +603,15 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             mode = CLIENT;
         }
 
-        StompJmsPrefetch subprefetch = null;
-        if( connection.isConnnectedToApolloServer && prefetch!=null && !prefetch.equals(StompJmsPrefetch.DEFAULT) ) {
-            subprefetch = prefetch;
-        }
-
         getChannel().subscribe(
                 consumer.getDestination(),
                 consumer.getId(),
                 StompFrame.encodeHeader(consumer.getMessageSelector()),
                 mode,
+                consumer.getNoLocal(),
                 consumer.isDurableSubscription(),
                 consumer.isBrowser(),
-                subprefetch,
+                prefetch,
                 StompFrame.encodeHeaders(consumer.getDestination().getSubscribeHeaders())
         );
         if (started.get()) {
@@ -792,6 +768,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     protected StompChannel getChannel() throws JMSException {
         if(this.channel == null) {
             this.channel = this.connection.createChannel(this);
+            this.serverAdaptor = this.channel.getServerAdaptor();
         }
         return this.channel;
     }

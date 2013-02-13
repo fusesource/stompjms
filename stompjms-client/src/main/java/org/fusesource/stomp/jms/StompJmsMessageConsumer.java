@@ -231,19 +231,8 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
             if( message.getAcknowledgeCallback()!=null ) {
                 // Message has been received by the app.. expand the credit window
                 // so that we receive more messages.
-                if( session.connection.isConnnectedToApolloServer ) {
-
-                    final Buffer content = message.getFrame().content();
-                    String credit = "1";
-                    if( content!=null ) {
-                        credit += ","+content.length();
-                    }
-
-                    StompFrame frame = new StompFrame();
-                    frame.action(ACK);
-                    frame.headerMap().put(SUBSCRIPTION, id);
-                    frame.headerMap().put(CREDIT, AsciiBuffer.ascii(credit));
-
+                StompFrame frame = session.serverAdaptor.createCreditFrame(this, message.getFrame());
+                if( frame != null ) {
                     try {
                         session.channel.sendFrame(frame);
                     } catch (IOException ignore) {
@@ -383,5 +372,9 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
 
     protected int getMessageQueueSize() {
         return this.messageQueue.size();
+    }
+
+    public boolean getNoLocal() throws IllegalStateException {
+        return false;
     }
 }

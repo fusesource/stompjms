@@ -14,8 +14,6 @@ package org.fusesource.stomp.jms;
  */
 public class StompJmsPrefetch {
 
-    static final StompJmsPrefetch DEFAULT = new StompJmsPrefetch();
-
     int maxMessages = 1;
     long maxBytes = 64*1024;
 
