@@ -875,7 +875,7 @@ public class StompJmsMessage implements javax.jms.Message {
         return getHeaderMap().get(SUBSCRIPTION);
     }
 
-    private Map<AsciiBuffer, AsciiBuffer> getHeaderMap() {
+    protected Map<AsciiBuffer, AsciiBuffer> getHeaderMap() {
         return this.frame.headerMap(REVERSED_HEADER_NAMES);
     }
 

@@ -18,6 +18,8 @@ import javax.jms.MessageNotWriteableException;
 import javax.jms.TextMessage;
 import java.io.UnsupportedEncodingException;
 
+import static org.fusesource.stomp.client.Constants.TRANSFORMATION;
+
 
 public class StompJmsTextMessage extends StompJmsMessage implements TextMessage {
     protected String text;
@@ -63,6 +65,7 @@ public class StompJmsTextMessage extends StompJmsMessage implements TextMessage 
             } else {
                 setContent(new Buffer(text.getBytes("UTF-8")));
             }
+            getHeaderMap().put(TRANSFORMATION, getMsgType().buffer);
         } catch (UnsupportedEncodingException e) {
             throw StompJmsExceptionSupport.create(e.getMessage(), e);
         }
