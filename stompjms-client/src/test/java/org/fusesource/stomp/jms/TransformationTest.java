@@ -10,9 +10,12 @@
 package org.fusesource.stomp.jms;
 
 import junit.framework.TestCase;
+import org.fusesource.hawtbuf.AsciiBuffer;
+import org.fusesource.hawtbuf.Buffer;
 import org.fusesource.stomp.codec.StompFrame;
 import org.fusesource.stomp.jms.message.StompJmsMessage;
 import org.fusesource.stomp.jms.message.StompJmsTextMessage;
+import org.fusesource.stomp.jms.util.StompTranslator;
 
 import static org.fusesource.stomp.client.Constants.TRANSFORMATION;
 
@@ -25,5 +28,17 @@ public class TransformationTest extends TestCase {
          StompFrame frame = msg.getFrame();
          assertEquals(StompJmsMessage.JmsMsgType.TEXT.toString(), frame.getHeader(TRANSFORMATION).toString());
      }
+
+    public void testParse() throws Exception {
+
+        StompFrame frame = new StompFrame();
+        frame.addHeader(new AsciiBuffer("content-type"), new AsciiBuffer("application/json"));
+        frame.content(new Buffer("test".getBytes("UTF-8")));
+
+        StompJmsMessage msg = StompTranslator.convert(frame);
+
+        assertEquals("test", ((StompJmsTextMessage)msg).getText());
+
+    }
 
 }

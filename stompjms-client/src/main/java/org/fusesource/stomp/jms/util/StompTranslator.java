@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.Map;
 
+import static org.fusesource.stomp.client.Constants.CONTENT_TYPE;
 import static org.fusesource.stomp.client.Constants.TRANSFORMATION;
 
 /**
@@ -96,6 +97,14 @@ public class StompTranslator {
                     break;
                 default:
                     result = new StompJmsBytesMessage();
+            }
+        } else {
+            AsciiBuffer contentType = frame.getHeader(CONTENT_TYPE);
+            //TODO add more cases
+            if (contentType != null && contentType.ascii().toString().startsWith("text") ||
+                    contentType.ascii().toString().endsWith("json") ||
+                    contentType.ascii().toString().endsWith("xml")) {
+                result = new StompJmsTextMessage();
             }
         }
         if (result == null) {
