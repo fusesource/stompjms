@@ -48,8 +48,8 @@
   <inceptionYear>2010</inceptionYear>
   
   <issueManagement>
-    <system>assembla</system>
-    <url>http://www.assembla.com/spaces/stompjms/support/tickets</url>
+    <system>github</system>
+    <url>https://github.com/fusesource/stompjms/issues</url>
   </issueManagement>
   
   <mailingLists>
