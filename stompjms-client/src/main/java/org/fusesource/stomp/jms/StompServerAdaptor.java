@@ -18,9 +18,8 @@ import javax.jms.TemporaryTopic;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.fusesource.stomp.client.Constants.BROWSER;
-import static org.fusesource.stomp.client.Constants.PERSISTENT;
-import static org.fusesource.stomp.client.Constants.TRUE;
+import static org.fusesource.stomp.client.Constants.*;
+import static org.fusesource.stomp.client.Constants.ID;
 
 /**
  *
@@ -73,5 +72,15 @@ public class StompServerAdaptor {
         if (persistent) {
             throw new JMSException("Server does not durable subscriptions over STOMP");
         }
+    }
+
+    public StompFrame createUnsubscribeFrame(AsciiBuffer consumerId, boolean persistent) throws JMSException {
+        if (persistent) {
+            throw new JMSException("Server does not support un-subscribing durable subscriptions over STOMP");
+        }
+        StompFrame frame = new StompFrame();
+        frame.action(UNSUBSCRIBE);
+        frame.headerMap().put(ID, consumerId);
+        return frame;
     }
 }

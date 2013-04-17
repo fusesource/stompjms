@@ -250,12 +250,7 @@ public class StompChannel {
     }
 
     public void unsubscribe(AsciiBuffer consumerId, boolean persistent) throws JMSException {
-        StompFrame frame = new StompFrame();
-        frame.action(UNSUBSCRIBE);
-        frame.headerMap().put(ID, consumerId);
-        if (persistent) {
-            frame.headerMap().put(PERSISTENT, TRUE);
-        }
+        StompFrame frame = serverAdaptor.createUnsubscribeFrame(consumerId, persistent);
         try {
             sendFrame(frame);
         } catch (IOException e) {

@@ -378,7 +378,13 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         checkDestination(topic);
         messageSelector = checkSelector(messageSelector);
         StompJmsDestination dest = StompJmsMessageTransformation.transformDestination(connection, topic);
-        StompJmsTopicSubscriber result = new StompJmsDurableTopicSubscriber(getChannel().nextId(), this, dest, noLocal,messageSelector);
+        AsciiBuffer id;
+        if( name !=null ) {
+            id = StompFrame.encodeHeader(name);
+        } else {
+            id = getChannel().nextId();
+        }
+        StompJmsTopicSubscriber result = new StompJmsDurableTopicSubscriber(id, this, dest, noLocal,messageSelector);
         result.init();
         return result;
     }
@@ -390,13 +396,12 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public void unsubscribe(String name) throws JMSException {
         checkClosed();
-        AsciiBuffer id = StompFrame.encodeHeader(this.connection.getClientID() + ":" + name);
+        AsciiBuffer id = StompFrame.encodeHeader(name);
         StompJmsMessageConsumer consumer = this.consumers.remove(id);
         if (consumer != null) {
             consumer.close();
         }
         getChannel().unsubscribe(id, true);
-
     }
 
     /////////////////////////////////////////////////////////////////////////

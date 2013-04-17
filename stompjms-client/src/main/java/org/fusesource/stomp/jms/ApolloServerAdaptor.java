@@ -96,9 +96,19 @@ public class ApolloServerAdaptor extends StompServerAdaptor {
         if (browser) {
             headerMap.put(BROWSER, TRUE);
         }
-        super.addSubscribeHeaders(headerMap, persistent, browser, noLocal, prefetch);
         if( !prefetch.equals(DEFAULT_PREFETCH) ){
             headerMap.put(CREDIT, AsciiBuffer.ascii(prefetch.getMaxMessages()+","+prefetch.getMaxBytes()));
         }
+    }
+
+    @Override
+    public StompFrame createUnsubscribeFrame(AsciiBuffer consumerId, boolean persistent) throws JMSException {
+        StompFrame frame = new StompFrame();
+        frame.action(UNSUBSCRIBE);
+        frame.headerMap().put(ID, consumerId);
+        if (persistent) {
+            frame.headerMap().put(PERSISTENT, TRUE);
+        }
+        return frame;
     }
 }
