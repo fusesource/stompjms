@@ -11,7 +11,6 @@
 package org.fusesource.stomp.jms;
 
 import org.fusesource.hawtbuf.AsciiBuffer;
-import org.fusesource.hawtbuf.Buffer;
 import org.fusesource.hawtdispatch.CustomDispatchSource;
 import org.fusesource.hawtdispatch.Dispatch;
 import org.fusesource.hawtdispatch.OrderedEventAggregator;
@@ -28,8 +27,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import static org.fusesource.stomp.client.Constants.*;
 
 /**
  * implementation of a Jms Message Consumer
@@ -231,7 +228,7 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
             if( message.getAcknowledgeCallback()!=null ) {
                 // Message has been received by the app.. expand the credit window
                 // so that we receive more messages.
-                StompFrame frame = session.serverAdaptor.createCreditFrame(this, message.getFrame());
+                StompFrame frame = session.channel.serverAdaptor.createCreditFrame(this, message.getFrame());
                 if( frame != null ) {
                     try {
                         session.channel.sendFrame(frame);
