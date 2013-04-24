@@ -23,7 +23,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -52,7 +51,6 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     LinkedBlockingQueue<StompJmsMessage> stoppedMessages = new LinkedBlockingQueue<StompJmsMessage>(10000);
     StompChannel channel;
     StompJmsPrefetch prefetch;
-    StompServerAdaptor serverAdaptor;
 
     /**
      * Constructor
@@ -565,7 +563,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public TemporaryQueue createTemporaryQueue() throws JMSException {
         checkClosed();
-        return serverAdaptor.createTemporaryQueue(this);
+        return getChannel().getServerAdaptor().createTemporaryQueue(this);
     }
 
     /**
@@ -575,7 +573,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
      */
     public TemporaryTopic createTemporaryTopic() throws JMSException {
         checkClosed();
-        return serverAdaptor.createTemporaryTopic(this);
+        return getChannel().getServerAdaptor().createTemporaryTopic(this);
     }
 
     /**
@@ -773,7 +771,6 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     protected StompChannel getChannel() throws JMSException {
         if(this.channel == null) {
             this.channel = this.connection.createChannel(this);
-            this.serverAdaptor = this.channel.getServerAdaptor();
         }
         return this.channel;
     }
