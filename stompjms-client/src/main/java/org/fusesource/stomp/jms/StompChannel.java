@@ -376,6 +376,7 @@ public class StompChannel {
         if (action.startsWith(MESSAGE)) {
             try {
                 StompJmsMessage msg = StompTranslator.convert(frame);
+                msg.setFrame(frame);
                 msg.setReadOnlyBody(true);
                 msg.setReadOnlyProperties(true);
                 StompJmsMessageListener l = this.listener;

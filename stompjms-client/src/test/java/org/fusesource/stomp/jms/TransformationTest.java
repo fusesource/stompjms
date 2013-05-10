@@ -36,6 +36,7 @@ public class TransformationTest extends TestCase {
         frame.content(new Buffer("test".getBytes("UTF-8")));
 
         StompJmsMessage msg = StompTranslator.convert(frame);
+        msg.setFrame(frame);
 
         assertEquals("test", ((StompJmsTextMessage)msg).getText());
 

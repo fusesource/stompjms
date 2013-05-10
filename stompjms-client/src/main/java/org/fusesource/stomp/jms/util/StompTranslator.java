@@ -70,48 +70,39 @@ public class StompTranslator {
 
     public static StompJmsMessage convert(StompFrame frame) throws JMSException {
         Map<AsciiBuffer, AsciiBuffer> headers = frame.headerMap(StompJmsMessage.REVERSED_HEADER_NAMES);
-        StompJmsMessage result = null;
         AsciiBuffer type = headers.get(TRANSFORMATION);
         if (type != null) {
             switch (StompJmsMessage.JmsMsgType.valueOf(type.toString())) {
                 case BYTES:
-                    result = new StompJmsBytesMessage();
-                    break;
+                    return new StompJmsBytesMessage();
                 case TEXT:
-                    result = new StompJmsTextMessage();
-                    break;
+                    return new StompJmsTextMessage();
                 case TEXT_NULL:
-                    result = new StompJmsTextMessage();
-                    break;
+                    return new StompJmsTextMessage();
                 case MAP:
-                    result = new StompJmsMapMessage();
-                    break;
+                    return new StompJmsMapMessage();
                 case OBJECT:
-                    result = new StompJmsObjectMessage();
-                    break;
+                    return new StompJmsObjectMessage();
                 case STREAM:
-                    result = new StompJmsStreamMessage();
-                    break;
+                    return new StompJmsStreamMessage();
                 case MESSAGE:
-                    result = new StompJmsMessage();
-                    break;
+                    return new StompJmsMessage();
                 default:
-                    result = new StompJmsBytesMessage();
-            }
-        } else {
-            AsciiBuffer contentType = frame.getHeader(CONTENT_TYPE);
-            //TODO add more cases
-            if (contentType != null && contentType.ascii().toString().startsWith("text") ||
-                    contentType.ascii().toString().endsWith("json") ||
-                    contentType.ascii().toString().endsWith("xml")) {
-                result = new StompJmsTextMessage();
             }
         }
-        if (result == null) {
-            result = new StompJmsMessage();
+
+        //TODO add more cases
+        type = headers.get(CONTENT_TYPE);
+        if (type != null ) {
+            String contentType = type.ascii().toString();
+            if( contentType.startsWith("text") ||
+                contentType.endsWith("json") ||
+                contentType.endsWith("xml")) {
+                return new StompJmsTextMessage();
+            }
         }
-        result.setFrame(frame);
-        return result;
+
+        return new StompJmsBytesMessage();
     }
 
     static public String toString(AsciiBuffer buffer) {
