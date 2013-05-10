@@ -658,6 +658,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     private void send(StompJmsDestination destination, Message original, int deliveryMode, int priority,
                       long timeToLive) throws JMSException {
 
+        original.setJMSDestination(destination);
         original.setJMSDeliveryMode(deliveryMode);
         original.setJMSPriority(priority);
         if (timeToLive > 0) {
@@ -674,7 +675,6 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         }
 
         StompJmsMessage copy = StompJmsMessageTransformation.transformMessage(connection, original);
-        copy.setJMSDestination(destination);
         boolean sync = !forceAsyncSend && deliveryMode==DeliveryMode.PERSISTENT && !getTransacted();
 
         // If we are doing transactions we HAVE to use the
