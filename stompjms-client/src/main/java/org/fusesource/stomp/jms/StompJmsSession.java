@@ -658,7 +658,6 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     private void send(StompJmsDestination destination, Message original, int deliveryMode, int priority,
                       long timeToLive) throws JMSException {
 
-        original.setJMSDestination(destination);
         original.setJMSDeliveryMode(deliveryMode);
         original.setJMSPriority(priority);
         if (timeToLive > 0) {
@@ -667,14 +666,21 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             original.setJMSExpiration(System.currentTimeMillis() + timeToLive);
         }
         final AsciiBuffer msgId = getNextMessageId();
-        if( original instanceof StompJmsMessage ) {
+        boolean nativeMessage = original instanceof StompJmsMessage;
+        if(nativeMessage) {
             ((StompJmsMessage)original).setConnection(connection);
             ((StompJmsMessage)original).setMessageID(msgId);
+            original.setJMSDestination(destination);
         } else {
             original.setJMSMessageID(msgId.toString());
         }
 
         StompJmsMessage copy = StompJmsMessageTransformation.transformMessage(connection, original);
+
+        if( !nativeMessage ) {
+            copy.setJMSDestination(destination);
+        }
+
         boolean sync = !forceAsyncSend && deliveryMode==DeliveryMode.PERSISTENT && !getTransacted();
 
         // If we are doing transactions we HAVE to use the
