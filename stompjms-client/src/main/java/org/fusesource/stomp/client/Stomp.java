@@ -112,6 +112,7 @@ public class Stomp {
                 SslTransport ssl = new SslTransport();
                 if( sslContext == null ) {
                     sslContext = SSLContext.getInstance(SslTransport.protocol(scheme));
+                    sslContext.init (null, null, null);
                 }
                 ssl.setSSLContext(sslContext);
                 transport = ssl;
