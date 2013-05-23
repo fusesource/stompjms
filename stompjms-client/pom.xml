@@ -22,7 +22,7 @@
   
   <groupId>org.fusesource.stompjms</groupId>
   <artifactId>stompjms-client</artifactId>
-  <version>1.16</version>
+  <version>1.16-bop-patch</version>
   <packaging>bundle</packaging>
   
   <name>${project.artifactId}</name>
