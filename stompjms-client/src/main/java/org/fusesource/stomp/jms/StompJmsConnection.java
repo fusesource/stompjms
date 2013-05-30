@@ -351,6 +351,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     }
 
     protected StompChannel createChannel(StompJmsSession s) throws JMSException {
+        checkClosed();
         StompChannel rc;
         synchronized (this) {
             if(channel != null) {
