@@ -13,9 +13,11 @@ package org.fusesource.stomp.jms.util;
 import java.beans.*;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -144,7 +146,7 @@ public class PropertyUtil {
      * @throws Exception
      */
     public static Map<String, String> getProperties(Object object) throws Exception {
-        Map<String, String> props = new HashMap<String, String>();
+        Map<String, String> props = new LinkedHashMap<String, String>();
         BeanInfo beanInfo = Introspector.getBeanInfo(object.getClass());
         Object[] NULL_ARG = {};
         PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
@@ -152,12 +154,37 @@ public class PropertyUtil {
             for (int i = 0; i < propertyDescriptors.length; i++) {
                 PropertyDescriptor pd = propertyDescriptors[i];
                 if (pd.getReadMethod() != null && !pd.getName().equals("class") && !pd.getName().equals("properties") && !pd.getName().equals("reference")) {
-                    props.put(pd.getName(), ("" + pd.getReadMethod().invoke(object, NULL_ARG)));
+                    Object value = pd.getReadMethod().invoke(object, NULL_ARG);
+                    if( value != null ) {
+                        if( value instanceof Boolean || value instanceof Number || value instanceof String  || value instanceof URI || value instanceof URL) {
+                            props.put(pd.getName(), ("" + value));
+                        } else {
+                            Map<String, String> inner = getProperties(value);
+                            for (Map.Entry<String, String> entry : inner.entrySet()) {
+                                props.put(pd.getName()+"."+entry.getKey(), entry.getValue());
+                            }
+                        }
+                    }
                 }
             }
         }
         return props;
     }
+
+    public static Object getProperty(Object object, String name) throws Exception {
+        BeanInfo beanInfo = Introspector.getBeanInfo(object.getClass());
+        PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
+        if (propertyDescriptors != null) {
+            for (int i = 0; i < propertyDescriptors.length; i++) {
+                PropertyDescriptor pd = propertyDescriptors[i];
+                if (pd.getReadMethod() != null && pd.getName().equals(name) ) {
+                    return pd.getReadMethod().invoke(object);
+                }
+            }
+        }
+        return null;
+    }
+
 
     /**
      * Set a property
@@ -167,8 +194,18 @@ public class PropertyUtil {
      * @param value
      * @return true if set
      */
-    public static boolean setProperty(Object target, String name, Object value) {
+    public static boolean setProperty(Object target, String name, Object value){
+
         try {
+
+            int dotPos = name.indexOf(".");
+            while( dotPos >= 0 ) {
+                String getterName = name.substring(0, dotPos);
+                target = getProperty(target, getterName);
+                name = name.substring(dotPos + 1);
+                dotPos = name.indexOf(".");
+            }
+
             Class<? extends Object> clazz = target.getClass();
             Method setter = findSetterMethod(clazz, name);
             if (setter == null) {
