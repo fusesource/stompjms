@@ -28,10 +28,12 @@ import java.net.URI;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.fusesource.stomp.client.Constants.*;
+import static org.fusesource.hawtdispatch.Dispatch.*;
 
 public class StompChannel {
 
@@ -59,6 +61,7 @@ public class StompChannel {
     AtomicInteger serverAckSubs = new AtomicInteger();
     StompServerAdaptor serverAdaptor;
     String clientId;
+    private long disconnectTimeout = 10000;
 
     public AsciiBuffer sessionId() {
         return sessionId;
@@ -143,8 +146,7 @@ public class StompChannel {
             final CountDownLatch cd = new CountDownLatch(1);
             started.set(false);
 
-            // Request a DISCONNECT so that we can ensure the socket
-            // is flushed out.
+            // Request a DISCONNECT so that we can try to flush the socket out.
             connection.getDispatchQueue().execute(new Task(){
                 public void run() {
                     StompFrame frame = new StompFrame(DISCONNECT);
@@ -153,22 +155,19 @@ public class StompChannel {
                             onSuccess(null);
                         }
                         public void onSuccess(StompFrame value) {
-                            // Then finally clean up the connection/socket.
-                            connection.close(new Runnable() {
-                                public void run() {
-                                    cd.countDown();
-                                }
-                            });
+                            cd.countDown();
                         }
                     });
                 }
             });
 
-            // Wait for the socket to shutdown.
+            // Wait for the disconnect to finish..
             try {
-                cd.await();
+                cd.await(getDisconnectTimeout(), TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 throw new JMSException("Interrupted");
+            } finally {
+                connection.close(NOOP);
             }
         }
     }
@@ -549,5 +548,13 @@ public class StompChannel {
 
     public void setClientId(String clientId) {
         this.clientId = clientId;
+    }
+
+    public long getDisconnectTimeout() {
+        return disconnectTimeout;
+    }
+
+    public void setDisconnectTimeout(long disconnectTimeout) {
+        this.disconnectTimeout = disconnectTimeout;
     }
 }

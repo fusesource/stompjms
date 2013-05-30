@@ -176,7 +176,6 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public void close() throws JMSException {
         if (closed.compareAndSet(false, true)) {
             stop();
-            this.connection.removeSession(this, channel);
             for (StompJmsMessageConsumer c : new ArrayList<StompJmsMessageConsumer>(this.consumers.values())) {
                 c.close();
             }
