@@ -176,7 +176,6 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
     public void close() throws JMSException {
         if (closed.compareAndSet(false, true)) {
             stop();
-            this.connection.removeSession(this, channel);
             for (StompJmsMessageConsumer c : new ArrayList<StompJmsMessageConsumer>(this.consumers.values())) {
                 c.close();
             }
@@ -666,15 +665,21 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             original.setJMSExpiration(System.currentTimeMillis() + timeToLive);
         }
         final AsciiBuffer msgId = getNextMessageId();
-        if( original instanceof StompJmsMessage ) {
+        boolean nativeMessage = original instanceof StompJmsMessage;
+        if(nativeMessage) {
             ((StompJmsMessage)original).setConnection(connection);
             ((StompJmsMessage)original).setMessageID(msgId);
+            original.setJMSDestination(destination);
         } else {
             original.setJMSMessageID(msgId.toString());
         }
 
         StompJmsMessage copy = StompJmsMessageTransformation.transformMessage(connection, original);
-        copy.setJMSDestination(destination);
+
+        if( !nativeMessage ) {
+            copy.setJMSDestination(destination);
+        }
+
         boolean sync = !forceAsyncSend && deliveryMode==DeliveryMode.PERSISTENT && !getTransacted();
 
         // If we are doing transactions we HAVE to use the
@@ -769,6 +774,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
 
 
     protected StompChannel getChannel() throws JMSException {
+        checkClosed();
         if(this.channel == null) {
             this.channel = this.connection.createChannel(this);
         }

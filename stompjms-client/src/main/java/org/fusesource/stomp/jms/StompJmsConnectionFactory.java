@@ -36,6 +36,8 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
     String topicPrefix = "/topic/";
     String tempQueuePrefix = "/temp-queue/";
     String tempTopicPrefix = "/temp-topic/";
+    long disconnectTimeout = 10000;
+    StompJmsPrefetch prefetch = new StompJmsPrefetch();
 
     /**
      * Constructor
@@ -287,5 +289,21 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
 
     public void setTopicPrefix(String topicPrefix) {
         this.topicPrefix = topicPrefix;
+    }
+
+    public long getDisconnectTimeout() {
+        return disconnectTimeout;
+    }
+
+    public void setDisconnectTimeout(long disconnectTimeout) {
+        this.disconnectTimeout = disconnectTimeout;
+    }
+
+    public StompJmsPrefetch getPrefetch() {
+        return prefetch;
+    }
+
+    public void setPrefetch(StompJmsPrefetch prefetch) {
+        this.prefetch = prefetch;
     }
 }

@@ -167,10 +167,10 @@ public class CallbackConnection {
     }
 
     public void close(final Runnable onComplete) {
+        failRequests(new ClosedChannelException());
         this.transport.stop(new Task() {
             public void run() {
                 if( onComplete!=null ) {
-                    failRequests(new ClosedChannelException());
                     onComplete.run();
                 }
             }

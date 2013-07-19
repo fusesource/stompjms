@@ -43,6 +43,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     final String userName;
     final String password;
     StompChannel channel;
+    long disconnectTimeout = 10000;
 
     StompJmsPrefetch prefetch = new StompJmsPrefetch();
 
@@ -331,6 +332,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         rc.setPassword(password);
         rc.setClientId(clientId);
         rc.setOmitHost(omitHost);
+        rc.setDisconnectTimeout(disconnectTimeout);
         rc.setExceptionListener(this.exceptionListener);
         rc.setChannelId(clientId + "-" + clientNumber++);
         return rc;
@@ -349,6 +351,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     }
 
     protected StompChannel createChannel(StompJmsSession s) throws JMSException {
+        checkClosed();
         StompChannel rc;
         synchronized (this) {
             if(channel != null) {
@@ -466,5 +469,13 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
 
     public void setPrefetch(StompJmsPrefetch prefetch) {
         this.prefetch = prefetch;
+    }
+
+    public long getDisconnectTimeout() {
+        return disconnectTimeout;
+    }
+
+    public void setDisconnectTimeout(long disconnectTimeout) {
+        this.disconnectTimeout = disconnectTimeout;
     }
 }

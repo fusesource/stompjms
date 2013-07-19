@@ -85,21 +85,27 @@ public class StompJmsMessageConsumer implements MessageConsumer, StompJmsMessage
 
             ackSource.setEventHandler(new Task() {
                 public void run() {
+                    StompChannel channel = session.channel;
                     AckCallbackFuture ack = ackSource.getData();
+                    if( channel == null ) {
+                        ack.onFailure(new JMSException("Consumer closed"));
+                        // The consumer must have been closed.  We can't ack.
+                        return;
+                    }
                     try {
                         switch( session.acknowledgementMode ) {
                             case Session.CLIENT_ACKNOWLEDGE:
-                                session.channel.ackMessage(id, ack.id, null, ack);
+                                channel.ackMessage(id, ack.id, null, ack);
                                 break;
                             case Session.AUTO_ACKNOWLEDGE:
-                                session.channel.ackMessage(id, ack.id, null, ack);
+                                channel.ackMessage(id, ack.id, null, ack);
                                 break;
                             case Session.DUPS_OK_ACKNOWLEDGE:
-                                session.channel.ackMessage(id, ack.id, null, null);
+                                channel.ackMessage(id, ack.id, null, null);
                                 ack.onSuccess(null);
                                 break;
                             case Session.SESSION_TRANSACTED:
-                                session.channel.ackMessage(id, ack.id, ack.tx, null);
+                                channel.ackMessage(id, ack.id, ack.tx, null);
                                 ack.onSuccess(null);
                                 break;
                             case StompJmsSession.SERVER_AUTO_ACKNOWLEDGE:
