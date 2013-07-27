@@ -82,11 +82,11 @@ public class StompChannel {
         return copy;
     }
 
+    CountDownLatch connectedLatch = new CountDownLatch(1);
+
     public void connect() throws JMSException {
         if (this.connected.compareAndSet(false, true)) {
-
             try {
-
                 final Promise<CallbackConnection> future = new Promise<CallbackConnection>();
                 Stomp stomp = new Stomp(brokerURI);
                 stomp.setLogin(userName);
@@ -129,11 +129,17 @@ public class StompChannel {
                 }
                 assert serverAdaptor!=null;
 
-
             } catch (Exception e) {
                 connected.set(false);
                 throw StompJmsExceptionSupport.create(e);
+            } finally {
+                connectedLatch.countDown();
             }
+        }
+        try {
+            connectedLatch.await();
+        } catch (InterruptedException e) {
+            throw StompJmsExceptionSupport.create(e);
         }
     }
 
