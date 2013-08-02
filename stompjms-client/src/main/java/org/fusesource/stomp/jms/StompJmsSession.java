@@ -774,8 +774,8 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
 
 
     protected StompChannel getChannel() throws JMSException {
-        checkClosed();
         if(this.channel == null) {
+            checkClosed();
             this.channel = this.connection.createChannel(this);
         }
         return this.channel;
