@@ -23,6 +23,7 @@ import org.fusesource.stomp.jms.util.StompTranslator;
 
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
@@ -47,6 +48,7 @@ public class StompChannel {
     String channelId;
     String userName;
     String password;
+    SSLContext sslContext;
     String ackMode;
     boolean omitHost;
     URI brokerURI;
@@ -79,6 +81,7 @@ public class StompChannel {
         copy.password = this.password;
         copy.ackMode = this.ackMode;
         copy.omitHost = this.omitHost;
+        copy.sslContext = this.sslContext;
         return copy;
     }
 
@@ -93,6 +96,7 @@ public class StompChannel {
                 stomp.setPasscode(password);
                 stomp.setLocalURI(localURI);
                 stomp.setClientId(clientId);
+                stomp.setSslContext(sslContext);
                 stomp.connectCallback(future);
                 if( omitHost ) {
                     stomp.setHost(null);
@@ -562,5 +566,13 @@ public class StompChannel {
 
     public void setDisconnectTimeout(long disconnectTimeout) {
         this.disconnectTimeout = disconnectTimeout;
+    }
+
+    public SSLContext getSslContext() {
+        return sslContext;
+    }
+
+    public void setSslContext(SSLContext sslContext) {
+        this.sslContext = sslContext;
     }
 }

@@ -12,6 +12,7 @@ package org.fusesource.stomp.jms;
 
 import javax.jms.*;
 import javax.jms.IllegalStateException;
+import javax.net.ssl.SSLContext;
 import java.net.URI;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -42,6 +43,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     final URI localURI;
     final String userName;
     final String password;
+    final SSLContext sslContext;
     StompChannel channel;
     long disconnectTimeout = 10000;
 
@@ -54,11 +56,12 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
      * @param password
      * @throws JMSException
      */
-    protected StompJmsConnection(URI brokerURI, URI localURI, String userName, String password) throws JMSException {
+    protected StompJmsConnection(URI brokerURI, URI localURI, String userName, String password, SSLContext sslContext) throws JMSException {
         this.brokerURI = brokerURI;
         this.localURI = localURI;
         this.userName = userName;
         this.password = password;
+        this.sslContext = sslContext;
     }
 
     /**
@@ -332,6 +335,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         rc.setPassword(password);
         rc.setClientId(clientId);
         rc.setOmitHost(omitHost);
+        rc.setSslContext(sslContext);
         rc.setDisconnectTimeout(disconnectTimeout);
         rc.setExceptionListener(this.exceptionListener);
         rc.setChannelId(clientId + "-" + clientNumber++);

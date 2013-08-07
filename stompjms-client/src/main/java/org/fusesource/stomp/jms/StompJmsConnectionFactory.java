@@ -15,6 +15,7 @@ import org.fusesource.stomp.jms.jndi.JNDIStorable;
 import org.fusesource.stomp.jms.util.PropertyUtil;
 
 import javax.jms.*;
+import javax.net.ssl.SSLContext;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
     private URI localURI;
     private String username;
     private String password;
+    private SSLContext sslContext;
     boolean forceAsyncSend;
     boolean omitHost;
     String queuePrefix = "/queue/";
@@ -105,7 +107,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      */
     public TopicConnection createTopicConnection(String userName, String password) throws JMSException {
         try {
-            StompJmsTopicConnection result = new StompJmsTopicConnection(this.brokerURI, this.localURI, userName, password);
+            StompJmsTopicConnection result = new StompJmsTopicConnection(this.brokerURI, this.localURI, userName, password, sslContext);
             PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
             return result;
         } catch (Exception e) {
@@ -131,7 +133,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      */
     public Connection createConnection(String userName, String password) throws JMSException {
         try {
-            StompJmsConnection result = new StompJmsConnection(this.brokerURI, this.localURI, userName, password);
+            StompJmsConnection result = new StompJmsConnection(this.brokerURI, this.localURI, userName, password, sslContext);
             PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
             return result;
         } catch (Exception e) {
@@ -157,7 +159,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      */
     public QueueConnection createQueueConnection(String userName, String password) throws JMSException {
         try {
-            StompJmsQueueConnection result = new StompJmsQueueConnection(this.brokerURI, this.localURI, userName, password);
+            StompJmsQueueConnection result = new StompJmsQueueConnection(this.brokerURI, this.localURI, userName, password, sslContext);
             PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
             return result;
         } catch (Exception e) {
@@ -305,5 +307,13 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
 
     public void setPrefetch(StompJmsPrefetch prefetch) {
         this.prefetch = prefetch;
+    }
+
+    public SSLContext getSslContext() {
+        return sslContext;
+    }
+
+    public void setSslContext(SSLContext sslContext) {
+        this.sslContext = sslContext;
     }
 }
