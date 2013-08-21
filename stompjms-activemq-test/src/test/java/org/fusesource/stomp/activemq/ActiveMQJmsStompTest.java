@@ -19,12 +19,14 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
-import junit.framework.TestCase;
-
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.TransportConnector;
 import org.fusesource.stomp.jms.StompJmsConnectionFactory;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * <p>
@@ -32,13 +34,12 @@ import org.junit.Assert;
  *
  * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
  */
-public class ActiveMQJmsStompTest extends TestCase {
+public class ActiveMQJmsStompTest {
     BrokerService broker;
     int port;
 
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
+    @Before
+    public void setUp() throws Exception {
         broker = new BrokerService();
         broker.setPersistent(false);
         TransportConnector connector = broker.addConnector("stomp://0.0.0.0:0");
@@ -47,11 +48,10 @@ public class ActiveMQJmsStompTest extends TestCase {
         port = connector.getConnectUri().getPort();
     }
 
-    @Override
-    protected void tearDown() throws Exception {
+    @After
+    public void tearDown() throws Exception {
         broker.stop();
         broker.waitUntilStopped();
-        super.tearDown();
     }
 
     protected ConnectionFactory createConnectionFactory() throws Exception {
@@ -60,6 +60,7 @@ public class ActiveMQJmsStompTest extends TestCase {
         return result;
     }
 
+	@Test
 	public void testDurableSubs() throws Exception {
         Connection connection1 = createConnectionFactory().createConnection();
         connection1.setClientID("client1");
@@ -91,6 +92,8 @@ public class ActiveMQJmsStompTest extends TestCase {
         connection2.close();
     }
 
+	@Test
+	@Ignore("Test added as support for AMQ-4493 - chained request/replies over ActiveMQ. The test *will* fail as of 2013-08-21")
 	public void testChainedRequestReply() throws Exception {
 		final String firstTopic = "mytopic";
 		final String secondTopic = "secondtopic";
@@ -164,9 +167,10 @@ public class ActiveMQJmsStompTest extends TestCase {
         connectionIntermediate.close();
         connectionFinal.close();
 	}
+	
     private void assertTextMessageReceived(final String expected, final MessageConsumer sub) throws JMSException {
         Message msg = sub.receive(1000*5);
-        assertNotNull("A message was not received.", msg);
-        assertEquals(expected, ((TextMessage)msg).getText());
+        Assert.assertNotNull("A message was not received.", msg);
+        Assert.assertEquals(expected, ((TextMessage)msg).getText());
     }
 }
