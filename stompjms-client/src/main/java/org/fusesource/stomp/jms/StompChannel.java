@@ -10,31 +10,54 @@
 
 package org.fusesource.stomp.jms;
 
-import org.fusesource.hawtbuf.AsciiBuffer;
-import org.fusesource.hawtdispatch.Task;
-import org.fusesource.stomp.client.CallbackConnection;
-import org.fusesource.stomp.client.ProtocolException;
-import org.fusesource.stomp.client.Stomp;
-import org.fusesource.stomp.codec.StompFrame;
-import org.fusesource.stomp.client.Callback;
-import org.fusesource.stomp.client.Promise;
-import org.fusesource.stomp.jms.message.StompJmsMessage;
-import org.fusesource.stomp.jms.util.StompTranslator;
+import static org.fusesource.hawtdispatch.Dispatch.NOOP;
+import static org.fusesource.stomp.client.Constants.ABORT;
+import static org.fusesource.stomp.client.Constants.ACK;
+import static org.fusesource.stomp.client.Constants.ACK_MODE;
+import static org.fusesource.stomp.client.Constants.BEGIN;
+import static org.fusesource.stomp.client.Constants.COMMIT;
+import static org.fusesource.stomp.client.Constants.CONTENT_LENGTH;
+import static org.fusesource.stomp.client.Constants.DESTINATION;
+import static org.fusesource.stomp.client.Constants.DISCONNECT;
+import static org.fusesource.stomp.client.Constants.HOST_ID;
+import static org.fusesource.stomp.client.Constants.ID;
+import static org.fusesource.stomp.client.Constants.MESSAGE;
+import static org.fusesource.stomp.client.Constants.MESSAGE_ID;
+import static org.fusesource.stomp.client.Constants.NEWLINE;
+import static org.fusesource.stomp.client.Constants.SELECTOR;
+import static org.fusesource.stomp.client.Constants.SEND;
+import static org.fusesource.stomp.client.Constants.SERVER;
+import static org.fusesource.stomp.client.Constants.SESSION;
+import static org.fusesource.stomp.client.Constants.SUBSCRIBE;
+import static org.fusesource.stomp.client.Constants.SUBSCRIPTION;
+import static org.fusesource.stomp.client.Constants.TRANSACTION;
 
-import javax.jms.ExceptionListener;
-import javax.jms.JMSException;
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.fusesource.stomp.client.Constants.*;
-import static org.fusesource.hawtdispatch.Dispatch.*;
+import javax.jms.ExceptionListener;
+import javax.jms.JMSException;
+import javax.net.ssl.SSLContext;
+
+import org.fusesource.hawtbuf.AsciiBuffer;
+import org.fusesource.hawtdispatch.Task;
+import org.fusesource.stomp.client.Callback;
+import org.fusesource.stomp.client.CallbackConnection;
+import org.fusesource.stomp.client.Promise;
+import org.fusesource.stomp.client.ProtocolException;
+import org.fusesource.stomp.client.Stomp;
+import org.fusesource.stomp.codec.StompFrame;
+import org.fusesource.stomp.jms.message.StompJmsMessage;
+import org.fusesource.stomp.jms.util.StompTranslator;
 
 public class StompChannel {
 
@@ -64,6 +87,7 @@ public class StompChannel {
     StompServerAdaptor serverAdaptor;
     String clientId;
     private long disconnectTimeout = 10000;
+    ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
 
     public AsciiBuffer sessionId() {
         return sessionId;
@@ -87,10 +111,20 @@ public class StompChannel {
 
     CountDownLatch connectedLatch = new CountDownLatch(1);
 
+	private ScheduledFuture<?> heartBeatFuture;
+
     public void connect() throws JMSException {
         if (this.connected.compareAndSet(false, true)) {
             try {
-                final Promise<CallbackConnection> future = new Promise<CallbackConnection>();
+                final Promise<CallbackConnection> future = new Promise<CallbackConnection>() {
+
+					@Override
+					public void onSuccess(final CallbackConnection value) {
+						rescheduleHeartBeat();
+						super.onSuccess(value);
+					}
+
+                };
                 Stomp stomp = new Stomp(brokerURI);
                 stomp.setLogin(userName);
                 stomp.setPasscode(password);
@@ -105,12 +139,15 @@ public class StompChannel {
                 connection = future.await();
                 writeBufferRemaining.set(connection.transport().getProtocolCodec().getWriteBufferSize());
                 connection.getDispatchQueue().execute(new Task() {
-                    public void run() {
+                    @Override
+					public void run() {
                         connection.receive(new Callback<StompFrame>() {
-                            public void onFailure(Throwable value) {
+                            @Override
+							public void onFailure(final Throwable value) {
                                 handleException(value);
                             }
-                            public void onSuccess(StompFrame value) {
+                            @Override
+							public void onSuccess(final StompFrame value) {
                                 onFrame(value);
                             }
                         });
@@ -158,19 +195,22 @@ public class StompChannel {
 
             // Request a DISCONNECT so that we can try to flush the socket out.
             connection.getDispatchQueue().execute(new Task(){
-                public void run() {
+                @Override
+				public void run() {
                     StompFrame frame = new StompFrame(DISCONNECT);
                     connection.request(frame, new Callback<StompFrame>(){
-                        public void onFailure(Throwable value) {
+                        @Override
+						public void onFailure(final Throwable value) {
                             onSuccess(null);
                         }
-                        public void onSuccess(StompFrame value) {
+                        @Override
+						public void onSuccess(final StompFrame value) {
                             cd.countDown();
                         }
                     });
                 }
             });
-
+            stopHeartbeats();
             // Wait for the disconnect to finish..
             try {
                 cd.await(getDisconnectTimeout(), TimeUnit.MILLISECONDS);
@@ -182,7 +222,7 @@ public class StompChannel {
         }
     }
 
-    public void sendMessage(StompJmsMessage copy, AsciiBuffer txid, boolean sync) throws JMSException {
+    public void sendMessage(final StompJmsMessage copy, final AsciiBuffer txid, final boolean sync) throws JMSException {
         if( sync && serverAckSubs.get() >0 ) {
             throw new JMSException("Sync message sends not allowed when a subscription is using 'ack:auto'.  Causes deadlocks.");
         }
@@ -199,12 +239,13 @@ public class StompChannel {
             } else {
                 sendFrame(frame);
             }
+            rescheduleHeartBeat();
         } catch (IOException e) {
             throw StompJmsExceptionSupport.create(e);
         }
     }
 
-    public void ackMessage(AsciiBuffer consumerId, AsciiBuffer messageId, AsciiBuffer txid, Promise<StompFrame> callback) throws JMSException {
+    public void ackMessage(final AsciiBuffer consumerId, final AsciiBuffer messageId, final AsciiBuffer txid, final Promise<StompFrame> callback) throws JMSException {
         if( callback!=null && serverAckSubs.get() >0 ) {
             throw new JMSException("Sync acks not allowed when a subscription is using 'ack:auto'.  Causes deadlocks.");
         }
@@ -227,7 +268,7 @@ public class StompChannel {
         }
     }
 
-    public void subscribe(StompJmsDestination destination, AsciiBuffer consumerId, AsciiBuffer selector, AsciiBuffer ackMode, boolean noLocal, boolean persistent, boolean browser, StompJmsPrefetch prefetch, Map<AsciiBuffer, AsciiBuffer> headers) throws JMSException {
+    public void subscribe(final StompJmsDestination destination, final AsciiBuffer consumerId, final AsciiBuffer selector, final AsciiBuffer ackMode, final boolean noLocal, final boolean persistent, final boolean browser, final StompJmsPrefetch prefetch, final Map<AsciiBuffer, AsciiBuffer> headers) throws JMSException {
         StompFrame frame = new StompFrame();
         frame.action(SUBSCRIBE);
         final Map<AsciiBuffer, AsciiBuffer> headerMap = frame.headerMap();
@@ -258,7 +299,7 @@ public class StompChannel {
         }
     }
 
-    public void unsubscribe(AsciiBuffer consumerId, boolean persistent) throws JMSException {
+    public void unsubscribe(final AsciiBuffer consumerId, final boolean persistent) throws JMSException {
         StompFrame frame = serverAdaptor.createUnsubscribeFrame(consumerId, persistent);
         try {
             sendFrame(frame);
@@ -283,7 +324,7 @@ public class StompChannel {
         return txid;
     }
 
-    public void commitTransaction(AsciiBuffer txid) throws JMSException {
+    public void commitTransaction(final AsciiBuffer txid) throws JMSException {
         if( serverAckSubs.get() >0 ) {
             throw new JMSException("transactions not allowed when a subscription is using 'ack:auto'.  Causes deadlocks.");
         }
@@ -299,7 +340,7 @@ public class StompChannel {
         }
     }
 
-    public void rollbackTransaction(AsciiBuffer txid) throws JMSException {
+    public void rollbackTransaction(final AsciiBuffer txid) throws JMSException {
         if( serverAckSubs.get() >0 ) {
             throw new JMSException("transactions not allowed when a subscription is using 'ack:auto'.  Causes deadlocks.");
         }
@@ -322,14 +363,17 @@ public class StompChannel {
             if( writeBufferRemaining.getAndAdd(-size) > 0 ) {
                 // just send it without blocking...
                 connection.getDispatchQueue().execute(new Task() {
-                    public void run() {
+                    @Override
+					public void run() {
                         connection.send(frame, new Callback<Void>(){
-                            public void onFailure(Throwable value) {
+                            @Override
+							public void onFailure(final Throwable value) {
                                 handleException(value);
                             }
                             @Override
-                            public void onSuccess(Void value) {
+                            public void onSuccess(final Void value) {
                                 writeBufferRemaining.getAndAdd(size);
+                                rescheduleHeartBeat();
                             }
                         });
                     }
@@ -339,13 +383,15 @@ public class StompChannel {
                 // so that we don't blow out our memory buffers.
                 final Promise<Void> future = new Promise<Void>() {
                     @Override
-                    public void onSuccess(Void value) {
+                    public void onSuccess(final Void value) {
                         writeBufferRemaining.getAndAdd(size);
+                        rescheduleHeartBeat();
                         super.onSuccess(value);
                     }
                 };
                 connection.getDispatchQueue().execute(new Task() {
-                    public void run() {
+                    @Override
+					public void run() {
                         connection.send(frame, future);
                     }
                 });
@@ -360,7 +406,8 @@ public class StompChannel {
 
     public void sendRequest(final StompFrame frame, final Promise<StompFrame> future) {
         connection.getDispatchQueue().execute(new Task() {
-            public void run() {
+            @Override
+			public void run() {
                 connection.request(frame, future);
             }
         });
@@ -380,7 +427,7 @@ public class StompChannel {
         }
     }
 
-    public void onFrame(StompFrame frame) {
+    public void onFrame(final StompFrame frame) {
         AsciiBuffer action = frame.action();
         if (action.startsWith(MESSAGE)) {
             try {
@@ -410,7 +457,7 @@ public class StompChannel {
     /**
      * @param channelId the channelId to set
      */
-    public void setChannelId(String channelId) {
+    public void setChannelId(final String channelId) {
         this.channelId = channelId;
     }
 
@@ -424,7 +471,7 @@ public class StompChannel {
     /**
      * @param userName the userName to set
      */
-    public void setUserName(String userName) {
+    public void setUserName(final String userName) {
         this.userName = userName;
     }
 
@@ -438,7 +485,7 @@ public class StompChannel {
     /**
      * @param password the password to set
      */
-    public void setPassword(String password) {
+    public void setPassword(final String password) {
         this.password = password;
     }
 
@@ -452,7 +499,7 @@ public class StompChannel {
     /**
      * @param ackMode the ackMode to set
      */
-    public void setAckMode(String ackMode) {
+    public void setAckMode(final String ackMode) {
         this.ackMode = ackMode;
     }
 
@@ -466,7 +513,7 @@ public class StompChannel {
     /**
      * @param brokerURI the brokerURI to set
      */
-    public void setBrokerURI(URI brokerURI) {
+    public void setBrokerURI(final URI brokerURI) {
         this.brokerURI = brokerURI;
     }
 
@@ -480,15 +527,15 @@ public class StompChannel {
     /**
      * @param localURI the localURI to set
      */
-    public void setLocalURI(URI localURI) {
+    public void setLocalURI(final URI localURI) {
         this.localURI = localURI;
     }
-    
+
     public boolean isOmitHost() {
         return omitHost;
     }
 
-    public void setOmitHost(boolean omitHost) {
+    public void setOmitHost(final boolean omitHost) {
         this.omitHost = omitHost;
     }
     /**
@@ -501,15 +548,15 @@ public class StompChannel {
     /**
      * @param listener the listener to set
      */
-    public void setListener(StompJmsMessageListener listener) {
+    public void setListener(final StompJmsMessageListener listener) {
         this.listener = listener;
     }
 
-    public void setExceptionListener(ExceptionListener listener) {
+    public void setExceptionListener(final ExceptionListener listener) {
         this.exceptionListener = listener;
     }
 
-    private void handleException(Throwable e) {
+    private void handleException(final Throwable e) {
         ExceptionListener l = this.exceptionListener;
         if (l != null) {
             l.onException(StompJmsExceptionSupport.create(e));
@@ -536,7 +583,7 @@ public class StompChannel {
         return getConnectedHeader(SESSION);
     }
 
-    private String getConnectedHeader(AsciiBuffer header) {
+    private String getConnectedHeader(final AsciiBuffer header) {
         final StompFrame frame = connection.connectedFrame();
         String rc = null;
         if( frame != null ) {
@@ -556,7 +603,7 @@ public class StompChannel {
         return clientId;
     }
 
-    public void setClientId(String clientId) {
+    public void setClientId(final String clientId) {
         this.clientId = clientId;
     }
 
@@ -564,7 +611,7 @@ public class StompChannel {
         return disconnectTimeout;
     }
 
-    public void setDisconnectTimeout(long disconnectTimeout) {
+    public void setDisconnectTimeout(final long disconnectTimeout) {
         this.disconnectTimeout = disconnectTimeout;
     }
 
@@ -572,7 +619,35 @@ public class StompChannel {
         return sslContext;
     }
 
-    public void setSslContext(SSLContext sslContext) {
+    public void setSslContext(final SSLContext sslContext) {
         this.sslContext = sslContext;
+    }
+
+    private void rescheduleHeartBeat() {
+    	stopHeartbeats();
+    	heartBeatFuture = scheduledThreadPoolExecutor.schedule(new Callable<Void>() {
+			public Void call() throws Exception {
+				StompFrame heartbeatFrame = new StompFrame(SEND);
+				heartbeatFrame.addHeader(DESTINATION, AsciiBuffer.ascii(channelId));
+				heartbeatFrame.content(NEWLINE);
+				heartbeatFrame.addContentLengthHeader();
+				sendFrame(heartbeatFrame);
+				rescheduleHeartBeat();
+				return null;
+			}
+		},
+		getSendInterval(Stomp.HEARTBEAT_INTERVAL),
+		TimeUnit.MILLISECONDS);
+    }
+
+    private long getSendInterval(final String heartbeatInterval) {
+    	return Long.parseLong(heartbeatInterval.split(",")[0]);
+	}
+
+	private void stopHeartbeats() {
+    	if (null != heartBeatFuture && !(heartBeatFuture.isCancelled() || heartBeatFuture.isDone())) {
+    		heartBeatFuture.cancel(false);
+    		heartBeatFuture = null;
+    	}
     }
 }

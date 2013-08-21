@@ -10,9 +10,9 @@
 
 package org.fusesource.stomp.client;
 
-import org.fusesource.hawtbuf.AsciiBuffer;
-
 import static org.fusesource.hawtbuf.Buffer.ascii;
+
+import org.fusesource.hawtbuf.AsciiBuffer;
 
 /**
  * <p>
@@ -64,6 +64,7 @@ public interface Constants {
     final AsciiBuffer CONTENT_TYPE = ascii("content-type");
     final AsciiBuffer TRANSFORMATION = ascii("transformation");
     final AsciiBuffer TRANSFORMATION_ERROR = ascii("transformation-error");
+    final AsciiBuffer HEARTBEAT = ascii("heart-beat");
 
     /**
      * This header is used to instruct ActiveMQ to construct the message
