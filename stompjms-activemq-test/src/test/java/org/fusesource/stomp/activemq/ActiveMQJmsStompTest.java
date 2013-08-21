@@ -74,7 +74,7 @@ public class ActiveMQJmsStompTest extends TestCase {
         MessageProducer producer = session2.createProducer(session2.createTopic("mytopic"));
 
         producer.send(session2.createTextMessage("1"));
-        // Disconnect teh durable sub..
+        // Disconnect the durable sub..
         connection1.close();
         producer.send(session2.createTextMessage("2"));
 

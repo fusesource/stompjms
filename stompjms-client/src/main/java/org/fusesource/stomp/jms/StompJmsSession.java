@@ -594,7 +594,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
 
     protected void add(StompJmsMessageConsumer consumer) throws JMSException {
         this.consumers.put(consumer.getId(), consumer);
-        if(consumer.ackSource == null) {
+        if(consumer.tcpFlowControl()) {
             getChannel().serverAckSubs.incrementAndGet();
         }
 
@@ -626,7 +626,7 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             getChannel().unsubscribe(consumer.getId(), false);
         }
         this.consumers.remove(consumer.getId());
-        if(consumer.ackSource == null) {
+        if(consumer.tcpFlowControl()) {
             getChannel().serverAckSubs.decrementAndGet();
         }
     }
@@ -774,8 +774,8 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
 
 
     protected StompChannel getChannel() throws JMSException {
-        checkClosed();
         if(this.channel == null) {
+            checkClosed();
             this.channel = this.connection.createChannel(this);
         }
         return this.channel;

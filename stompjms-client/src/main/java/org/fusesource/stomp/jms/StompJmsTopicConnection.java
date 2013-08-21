@@ -10,6 +10,7 @@
 package org.fusesource.stomp.jms;
 
 import javax.jms.*;
+import javax.net.ssl.SSLContext;
 import java.net.URI;
 
 /**
@@ -17,8 +18,8 @@ import java.net.URI;
  */
 public class StompJmsTopicConnection extends StompJmsConnection {
 
-    public StompJmsTopicConnection(URI brokerURI, URI localURI, String userName, String password) throws JMSException {
-        super(brokerURI, localURI, userName, password);
+    public StompJmsTopicConnection(URI brokerURI, URI localURI, String userName, String password, SSLContext sslContext) throws JMSException {
+        super(brokerURI, localURI, userName, password, sslContext);
     }
 
     @Override

@@ -23,6 +23,7 @@ import org.fusesource.stomp.jms.util.StompTranslator;
 
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
@@ -47,6 +48,7 @@ public class StompChannel {
     String channelId;
     String userName;
     String password;
+    SSLContext sslContext;
     String ackMode;
     boolean omitHost;
     URI brokerURI;
@@ -79,20 +81,22 @@ public class StompChannel {
         copy.password = this.password;
         copy.ackMode = this.ackMode;
         copy.omitHost = this.omitHost;
+        copy.sslContext = this.sslContext;
         return copy;
     }
 
+    CountDownLatch connectedLatch = new CountDownLatch(1);
+
     public void connect() throws JMSException {
         if (this.connected.compareAndSet(false, true)) {
-
             try {
-
                 final Promise<CallbackConnection> future = new Promise<CallbackConnection>();
                 Stomp stomp = new Stomp(brokerURI);
                 stomp.setLogin(userName);
                 stomp.setPasscode(password);
                 stomp.setLocalURI(localURI);
                 stomp.setClientId(clientId);
+                stomp.setSslContext(sslContext);
                 stomp.connectCallback(future);
                 if( omitHost ) {
                     stomp.setHost(null);
@@ -129,11 +133,17 @@ public class StompChannel {
                 }
                 assert serverAdaptor!=null;
 
-
             } catch (Exception e) {
                 connected.set(false);
                 throw StompJmsExceptionSupport.create(e);
+            } finally {
+                connectedLatch.countDown();
             }
+        }
+        try {
+            connectedLatch.await();
+        } catch (InterruptedException e) {
+            throw StompJmsExceptionSupport.create(e);
         }
     }
 
@@ -556,5 +566,13 @@ public class StompChannel {
 
     public void setDisconnectTimeout(long disconnectTimeout) {
         this.disconnectTimeout = disconnectTimeout;
+    }
+
+    public SSLContext getSslContext() {
+        return sslContext;
+    }
+
+    public void setSslContext(SSLContext sslContext) {
+        this.sslContext = sslContext;
     }
 }
