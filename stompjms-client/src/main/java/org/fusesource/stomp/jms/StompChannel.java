@@ -633,8 +633,8 @@ public class StompChannel {
     	return Long.parseLong(heartbeatInterval.split(",")[0]);
 	}
 
-	private void stopHeartbeats() {
-    	if (null != heartBeatFuture) {
+	private synchronized void stopHeartbeats() {
+    	if (null != heartBeatFuture && !(heartBeatFuture.isCancelled() || heartBeatFuture.isDone())) {
     		heartBeatFuture.cancel(false);
     		heartBeatFuture = null;
     	}
