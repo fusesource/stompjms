@@ -634,7 +634,7 @@ public class StompChannel {
 	}
 
 	private void stopHeartbeats() {
-    	if (null != heartBeatFuture && !(heartBeatFuture.isCancelled() || heartBeatFuture.isDone())) {
+    	if (null != heartBeatFuture) {
     		heartBeatFuture.cancel(false);
     		heartBeatFuture = null;
     	}
