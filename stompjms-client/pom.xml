@@ -17,12 +17,12 @@
   <parent>
     <groupId>org.fusesource.stompjms</groupId>
     <artifactId>stompjms-project</artifactId>
-    <version>1.18-SNAPSHOT</version>
+    <version>1.18</version>
   </parent>
   
   <groupId>org.fusesource.stompjms</groupId>
   <artifactId>stompjms-client</artifactId>
-  <version>1.18-SNAPSHOT</version>
+  <version>1.18</version>
   <packaging>bundle</packaging>
   
   <name>${project.artifactId}</name>
