@@ -38,7 +38,7 @@
     <junit-version>4.7</junit-version>
     <slf4j-version>1.6.1</slf4j-version>
     <hawtbuf-version>1.9</hawtbuf-version>
-    <hawtdispatch-version>1.16</hawtdispatch-version>
+    <hawtdispatch-version>1.18</hawtdispatch-version>
     <apollo-version>1.6</apollo-version>
     <activemq-version>5.8.0</activemq-version>
     <mvnplugins-version>1.15</mvnplugins-version>
