@@ -154,7 +154,7 @@ public class StompJmsMessageProducer implements MessageProducer {
             throw new UnsupportedOperationException("This producer can only send messages to: "
                     + this.destination.getName());
         }
-        this.session.send(destination, message, deliveryMode, priority, timeToLive);
+        this.session.send(destination, message, deliveryMode, priority, timeToLive, disableMessageId);
     }
 
     /**

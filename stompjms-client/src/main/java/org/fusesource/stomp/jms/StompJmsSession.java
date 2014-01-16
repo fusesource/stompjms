@@ -648,14 +648,14 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
         this.connection.onException(ex);
     }
 
-    protected void send(Destination dest, Message msg, int deliveryMode, int priority, long timeToLive)
+    protected void send(Destination dest, Message msg, int deliveryMode, int priority, long timeToLive, boolean disableMsgId)
             throws JMSException {
         StompJmsDestination destination = StompJmsMessageTransformation.transformDestination(connection, dest);
-        send(destination, msg, deliveryMode, priority, timeToLive);
+        send(destination, msg, deliveryMode, priority, timeToLive, disableMsgId);
     }
 
     private void send(StompJmsDestination destination, Message original, int deliveryMode, int priority,
-                      long timeToLive) throws JMSException {
+                      long timeToLive, boolean disableMsgId) throws JMSException {
 
         original.setJMSDeliveryMode(deliveryMode);
         original.setJMSPriority(priority);
@@ -664,14 +664,22 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             original.setJMSTimestamp(timeStamp);
             original.setJMSExpiration(System.currentTimeMillis() + timeToLive);
         }
-        final AsciiBuffer msgId = getNextMessageId();
+
+        AsciiBuffer msgId = null;
+        if( !disableMsgId ) {
+            msgId = getNextMessageId();
+        }
         boolean nativeMessage = original instanceof StompJmsMessage;
         if(nativeMessage) {
             ((StompJmsMessage)original).setConnection(connection);
-            ((StompJmsMessage)original).setMessageID(msgId);
+            if( !disableMsgId ) {
+                ((StompJmsMessage)original).setMessageID(msgId);
+            }
             original.setJMSDestination(destination);
         } else {
-            original.setJMSMessageID(msgId.toString());
+            if( !disableMsgId ) {
+                original.setJMSMessageID(msgId.toString());
+            }
         }
 
         StompJmsMessage copy = StompJmsMessageTransformation.transformMessage(connection, original);
@@ -694,7 +702,9 @@ public class StompJmsSession implements Session, QueueSession, TopicSession, Sto
             // Non transacted session, with consumers.. they might end up
             // flow controlling the channel so lets publish the message
             // over the connection's main channel.
-            copy.setMessageID(msgId);
+            if( !disableMsgId ) {
+                copy.setMessageID(msgId);
+            }
             this.connection.getChannel().sendMessage(copy, currentTransactionId, sync);
         }
         
