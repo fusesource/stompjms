@@ -10,6 +10,7 @@
 
 package org.fusesource.stomp.jms.util;
 
+import javax.net.ssl.SSLContext;
 import java.beans.*;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -158,6 +159,8 @@ public class PropertyUtil {
                     if( value != null ) {
                         if( value instanceof Boolean || value instanceof Number || value instanceof String  || value instanceof URI || value instanceof URL) {
                             props.put(pd.getName(), ("" + value));
+                        } else if(value instanceof SSLContext) {
+                            // ignore this one..
                         } else {
                             Map<String, String> inner = getProperties(value);
                             for (Map.Entry<String, String> entry : inner.entrySet()) {
