@@ -17,12 +17,12 @@
   <parent>
     <groupId>org.fusesource.stompjms</groupId>
     <artifactId>stompjms-project</artifactId>
-    <version>1.19-SNAPSHOT</version>
+    <version>1.19</version>
   </parent>
   
   <groupId>org.fusesource.stompjms</groupId>
   <artifactId>stompjms-activemq-test</artifactId>
-  <version>1.19-SNAPSHOT</version>
+  <version>1.19</version>
   
   <name>${project.artifactId}</name>
   <description>Tests the stompjms client against ActiveMQ</description>
@@ -32,7 +32,7 @@
     <dependency>
       <groupId>org.fusesource.stompjms</groupId>
       <artifactId>stompjms-client</artifactId>
-      <version>1.19-SNAPSHOT</version>
+      <version>1.19</version>
       <scope>test</scope>
     </dependency>
 
