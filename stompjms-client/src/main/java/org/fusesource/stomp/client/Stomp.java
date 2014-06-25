@@ -43,6 +43,7 @@ public class Stomp {
 
     private static final long KEEP_ALIVE = Long.parseLong(System.getProperty("stompjms.thread.keep_alive", ""+1000));
     private static final long STACK_SIZE = Long.parseLong(System.getProperty("stompjms.thread.stack_size", ""+1024*512));
+    public static final String HEARTBEAT_INTERVAL = System.getProperty("stompjms.heartbeat", "0,0");
 
     private static ThreadPoolExecutor blockingThreadPool;
     public synchronized static ThreadPoolExecutor getBlockingThreadPool() {
@@ -161,6 +162,7 @@ public class Stomp {
                     if (clientId != null) {
                         frame.addHeader(CLIENT_ID, StompFrame.encodeHeader(clientId));
                     }
+                    frame.addHeader(HEARTBEAT, StompFrame.encodeHeader(HEARTBEAT_INTERVAL));
                     if( customHeaders!=null ) {
                         for (Object key : customHeaders.keySet()) {
                             frame.addHeader(StompFrame.encodeHeader(key.toString()), StompFrame.encodeHeader(customHeaders.get(key).toString()));
