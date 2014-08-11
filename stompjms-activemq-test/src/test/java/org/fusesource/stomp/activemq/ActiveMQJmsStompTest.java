@@ -81,6 +81,38 @@ public class ActiveMQJmsStompTest extends TestCase {
         connection2.close();
     }
 
+    public void testQueueSendReceiveSingleConnection() throws Exception {
+
+        Connection connection1 = createConnectionFactory().createConnection();
+        connection1.setClientID("client1");
+        connection1.start();
+
+        Session session1 = connection1.createSession(false, Session.AUTO_ACKNOWLEDGE);
+
+        Queue q = session1.createQueue("myQueue");
+        MessageProducer producer = session1.createProducer(q);
+
+        producer.send(session1.createTextMessage("1"));
+
+        MessageConsumer consumer = session1.createConsumer(q);
+        assertTextMessageReceived("1", consumer);
+
+        connection1.close();
+
+        // verify it can't be consumed again
+
+        connection1 = createConnectionFactory().createConnection();
+        connection1.setClientID("client1");
+        connection1.start();
+
+        session1 = connection1.createSession(false, Session.AUTO_ACKNOWLEDGE);
+
+        consumer = session1.createConsumer(q);
+        assertNull(consumer.receive(1000));
+
+        connection1.close();
+    }
+
     private void assertTextMessageReceived(String expected, MessageConsumer sub) throws JMSException {
         Message msg = sub.receive(1000*5);
         assertNotNull("A message was not received.", msg);

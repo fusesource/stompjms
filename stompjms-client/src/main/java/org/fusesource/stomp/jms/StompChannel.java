@@ -208,7 +208,6 @@ public class StompChannel {
         if( callback!=null && serverAckSubs.get() >0 ) {
             throw new JMSException("Sync acks not allowed when a subscription is using 'ack:auto'.  Causes deadlocks.");
         }
-        connection.getDispatchQueue().assertExecuting();
         StompFrame frame = new StompFrame();
         frame.action(ACK);
         frame.headerMap().put(SUBSCRIPTION, consumerId);
