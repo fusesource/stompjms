@@ -10,20 +10,27 @@
 
 package org.fusesource.stomp.jms;
 
-import org.fusesource.hawtbuf.AsciiBuffer;
-import org.fusesource.hawtdispatch.Task;
-import org.fusesource.stomp.client.CallbackConnection;
-import org.fusesource.stomp.client.ProtocolException;
-import org.fusesource.stomp.client.Stomp;
-import org.fusesource.stomp.codec.StompFrame;
-import org.fusesource.stomp.client.Callback;
-import org.fusesource.stomp.client.Promise;
-import org.fusesource.stomp.jms.message.StompJmsMessage;
-import org.fusesource.stomp.jms.util.StompTranslator;
+import static org.fusesource.hawtdispatch.Dispatch.NOOP;
+import static org.fusesource.stomp.client.Constants.ABORT;
+import static org.fusesource.stomp.client.Constants.ACK;
+import static org.fusesource.stomp.client.Constants.ACK_MODE;
+import static org.fusesource.stomp.client.Constants.BEGIN;
+import static org.fusesource.stomp.client.Constants.COMMIT;
+import static org.fusesource.stomp.client.Constants.CONTENT_LENGTH;
+import static org.fusesource.stomp.client.Constants.DESTINATION;
+import static org.fusesource.stomp.client.Constants.DISCONNECT;
+import static org.fusesource.stomp.client.Constants.HOST_ID;
+import static org.fusesource.stomp.client.Constants.ID;
+import static org.fusesource.stomp.client.Constants.MESSAGE;
+import static org.fusesource.stomp.client.Constants.MESSAGE_ID;
+import static org.fusesource.stomp.client.Constants.SELECTOR;
+import static org.fusesource.stomp.client.Constants.SEND;
+import static org.fusesource.stomp.client.Constants.SERVER;
+import static org.fusesource.stomp.client.Constants.SESSION;
+import static org.fusesource.stomp.client.Constants.SUBSCRIBE;
+import static org.fusesource.stomp.client.Constants.SUBSCRIPTION;
+import static org.fusesource.stomp.client.Constants.TRANSACTION;
 
-import javax.jms.ExceptionListener;
-import javax.jms.JMSException;
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
@@ -33,14 +40,27 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.fusesource.stomp.client.Constants.*;
-import static org.fusesource.hawtdispatch.Dispatch.*;
+import javax.jms.ExceptionListener;
+import javax.jms.JMSException;
+import javax.net.ssl.SSLContext;
+
+import org.fusesource.hawtbuf.AsciiBuffer;
+import org.fusesource.hawtdispatch.Task;
+import org.fusesource.stomp.client.Callback;
+import org.fusesource.stomp.client.CallbackConnection;
+import org.fusesource.stomp.client.Promise;
+import org.fusesource.stomp.client.ProtocolException;
+import org.fusesource.stomp.client.Stomp;
+import org.fusesource.stomp.codec.StompFrame;
+import org.fusesource.stomp.jms.message.StompJmsMessage;
+import org.fusesource.stomp.jms.util.StompTranslator;
 
 public class StompChannel {
 
     private static final StompServerAdaptor STOMP_SERVER_ADAPTORS[] = new StompServerAdaptor[]{
         new ApolloServerAdaptor(),
         new ActiveMQServerAdaptor(),
+        new RabbitMQServerAdaptor(),
         new StompServerAdaptor()
     };
 
@@ -105,11 +125,14 @@ public class StompChannel {
                 connection = future.await();
                 writeBufferRemaining.set(connection.transport().getProtocolCodec().getWriteBufferSize());
                 connection.getDispatchQueue().execute(new Task() {
+                    @Override
                     public void run() {
                         connection.receive(new Callback<StompFrame>() {
+                            @Override
                             public void onFailure(Throwable value) {
                                 handleException(value);
                             }
+                            @Override
                             public void onSuccess(StompFrame value) {
                                 onFrame(value);
                             }
@@ -158,12 +181,15 @@ public class StompChannel {
 
             // Request a DISCONNECT so that we can try to flush the socket out.
             connection.getDispatchQueue().execute(new Task(){
+                @Override
                 public void run() {
                     StompFrame frame = new StompFrame(DISCONNECT);
                     connection.request(frame, new Callback<StompFrame>(){
+                        @Override
                         public void onFailure(Throwable value) {
                             onSuccess(null);
                         }
+                        @Override
                         public void onSuccess(StompFrame value) {
                             cd.countDown();
                         }
@@ -321,8 +347,10 @@ public class StompChannel {
             if( writeBufferRemaining.getAndAdd(-size) > 0 ) {
                 // just send it without blocking...
                 connection.getDispatchQueue().execute(new Task() {
+                    @Override
                     public void run() {
                         connection.send(frame, new Callback<Void>(){
+                            @Override
                             public void onFailure(Throwable value) {
                                 handleException(value);
                             }
@@ -344,6 +372,7 @@ public class StompChannel {
                     }
                 };
                 connection.getDispatchQueue().execute(new Task() {
+                    @Override
                     public void run() {
                         connection.send(frame, future);
                     }
@@ -359,6 +388,7 @@ public class StompChannel {
 
     public void sendRequest(final StompFrame frame, final Promise<StompFrame> future) {
         connection.getDispatchQueue().execute(new Task() {
+            @Override
             public void run() {
                 connection.request(frame, future);
             }
@@ -482,7 +512,7 @@ public class StompChannel {
     public void setLocalURI(URI localURI) {
         this.localURI = localURI;
     }
-    
+
     public boolean isOmitHost() {
         return omitHost;
     }
