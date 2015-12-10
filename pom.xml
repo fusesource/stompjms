@@ -86,20 +86,15 @@
   
   <distributionManagement>
     <repository>
-      <id>fusesource-nexus-staging</id>
-      <name>Fusesource Release Repository</name>
-      <url>http://repo.fusesource.com/nexus/service/local/staging/deploy/maven2</url>
+      <id>azar.repo.release</id>
+      <name>Azar Release Repository</name>
+      <url>https://nexus.evilraza.com/nexus/content/repositories/releases/</url>
     </repository>
     <snapshotRepository>
-      <id>fusesource-nexus-snapshots</id>
-      <name>Fusesource Nexus Snapshots</name>
-      <url>http://repo.fusesource.com/nexus/content/repositories/snapshots</url>
+      <id>azar.repo.snapshot</id>
+      <name>Azar Snapshot Repository</name>
+      <url>https://nexus.evilraza.com/nexus/content/repositories/snapshots/</url>
     </snapshotRepository>
-    <site>
-      <id>website.fusesource.org</id>
-      <name>website</name>
-      <url>dav:http://fusesource.com/forge/dav/${forge-project-id}/maven/${project.version}</url>
-    </site>
   </distributionManagement>
   
   <developers>
