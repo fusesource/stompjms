@@ -17,8 +17,8 @@ import java.net.URI;
  */
 public class StompJmsQueueConnection extends StompJmsConnection {
 
-    public StompJmsQueueConnection(URI brokerURI, URI localURI, String userName, String password) throws JMSException {
-        super(brokerURI, localURI, userName, password);
+    public StompJmsQueueConnection(URI brokerURI, URI localURI, String userName, String password, int connectTimeoutMs) throws JMSException {
+        super(brokerURI, localURI, userName, password, connectTimeoutMs);
     }
 
     @Override

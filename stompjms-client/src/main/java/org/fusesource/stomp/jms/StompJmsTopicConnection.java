@@ -17,8 +17,9 @@ import java.net.URI;
  */
 public class StompJmsTopicConnection extends StompJmsConnection {
 
-    public StompJmsTopicConnection(URI brokerURI, URI localURI, String userName, String password) throws JMSException {
-        super(brokerURI, localURI, userName, password);
+    public StompJmsTopicConnection(URI brokerURI, URI localURI, String userName, String password, int connectTimeoutMs)
+            throws JMSException {
+        super(brokerURI, localURI, userName, password, connectTimeoutMs);
     }
 
     @Override

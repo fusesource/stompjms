@@ -42,6 +42,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     final URI localURI;
     final String userName;
     final String password;
+    private final int connectTimeoutMs;
     StompChannel channel;
     long disconnectTimeout = 10000;
 
@@ -52,13 +53,16 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
      * @param localURI
      * @param userName
      * @param password
+     * @param connectTimeoutMs
      * @throws JMSException
      */
-    protected StompJmsConnection(URI brokerURI, URI localURI, String userName, String password) throws JMSException {
+    protected StompJmsConnection(URI brokerURI, URI localURI, String userName, String password, int connectTimeoutMs)
+            throws JMSException {
         this.brokerURI = brokerURI;
         this.localURI = localURI;
         this.userName = userName;
         this.password = password;
+        this.connectTimeoutMs = connectTimeoutMs;
     }
 
     /**
@@ -346,7 +350,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
             }
             rc = channel;
         }
-        rc.connect();
+        rc.connect(connectTimeoutMs);
         return rc;
     }
 
@@ -361,7 +365,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
                 rc = createChannel();
             }
         }
-        rc.connect();
+        rc.connect(connectTimeoutMs);
         rc.setListener(s);
         return rc;
     }

@@ -38,6 +38,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
     String tempTopicPrefix = "/temp-topic/";
     long disconnectTimeout = 10000;
     StompJmsPrefetch prefetch = new StompJmsPrefetch();
+    private int connectTimeoutMs;
 
     /**
      * Constructor
@@ -105,7 +106,8 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      */
     public TopicConnection createTopicConnection(String userName, String password) throws JMSException {
         try {
-            StompJmsTopicConnection result = new StompJmsTopicConnection(this.brokerURI, this.localURI, userName, password);
+            StompJmsTopicConnection result = new StompJmsTopicConnection(this.brokerURI, this.localURI, userName,
+                    password, connectTimeoutMs);
             PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
             return result;
         } catch (Exception e) {
@@ -131,7 +133,8 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      */
     public Connection createConnection(String userName, String password) throws JMSException {
         try {
-            StompJmsConnection result = new StompJmsConnection(this.brokerURI, this.localURI, userName, password);
+            StompJmsConnection result = new StompJmsConnection(this.brokerURI, this.localURI, userName, password,
+                    connectTimeoutMs);
             PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
             return result;
         } catch (Exception e) {
@@ -157,7 +160,8 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
      */
     public QueueConnection createQueueConnection(String userName, String password) throws JMSException {
         try {
-            StompJmsQueueConnection result = new StompJmsQueueConnection(this.brokerURI, this.localURI, userName, password);
+            StompJmsQueueConnection result = new StompJmsQueueConnection(this.brokerURI, this.localURI, userName,
+                    password, connectTimeoutMs);
             PropertyUtil.setProperties(result, PropertyUtil.getProperties(this));
             return result;
         } catch (Exception e) {
@@ -305,5 +309,9 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
 
     public void setPrefetch(StompJmsPrefetch prefetch) {
         this.prefetch = prefetch;
+    }
+
+    public void setConnectTimeoutMs(int connectTimeoutMs) {
+        this.connectTimeoutMs = connectTimeoutMs;
     }
 }
