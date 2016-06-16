@@ -194,10 +194,6 @@ public class StompFrame {
         write(out, true);
     }
 
-    public void addContentLengthHeader() {
-        addHeader(CONTENT_LENGTH, new AsciiBuffer(Integer.toString(content.length())));
-    }
-
     public int size() {
         int rc = action.length() + 1;
         if( headerList!=null ) {

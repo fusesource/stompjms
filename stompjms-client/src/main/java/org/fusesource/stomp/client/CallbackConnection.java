@@ -178,17 +178,10 @@ public class CallbackConnection {
     }
 
     public boolean offer(StompFrame frame) {
-        return this.offer(frame, true);
-    }
-
-    public boolean offer(StompFrame frame, boolean addContentLength) {
         getDispatchQueue().assertExecuting();
         if( this.transport.full() ) {
             return false;
         } else {
-            if( addContentLength && SEND.equals(frame.action()) ) {
-                frame.addContentLengthHeader();
-            }
             return this.transport.offer(frame);
         }
     }

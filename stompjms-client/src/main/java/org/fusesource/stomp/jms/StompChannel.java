@@ -53,6 +53,7 @@ import org.fusesource.stomp.client.ProtocolException;
 import org.fusesource.stomp.client.Stomp;
 import org.fusesource.stomp.codec.StompFrame;
 import org.fusesource.stomp.jms.message.StompJmsMessage;
+import org.fusesource.stomp.jms.message.StompJmsTextMessage;
 import org.fusesource.stomp.jms.util.StompTranslator;
 
 public class StompChannel {
@@ -215,7 +216,9 @@ public class StompChannel {
         copy.onSend();
         StompFrame frame = copy.getFrame();
         frame.action(SEND);
-        frame.headerMap().put(CONTENT_LENGTH, new AsciiBuffer(Integer.toString(frame.content().length)));
+        if (!(copy instanceof StompJmsTextMessage)) {
+            frame.headerMap().put(CONTENT_LENGTH, new AsciiBuffer(Integer.toString(frame.content().length)));
+        }
         if (txid != null) {
             frame.headerMap().put(TRANSACTION, txid);
         }
