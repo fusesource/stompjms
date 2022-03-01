@@ -34,6 +34,7 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
     private SSLContext sslContext;
     boolean forceAsyncSend;
     boolean omitHost;
+    String virtualHost;
     String queuePrefix = "/queue/";
     String topicPrefix = "/topic/";
     String tempQueuePrefix = "/temp-queue/";
@@ -260,6 +261,10 @@ public class StompJmsConnectionFactory extends JNDIStorable implements Connectio
     public void setOmitHost(boolean omitHost) {
         this.omitHost = omitHost;
     }
+
+    public String getVirtualHost() { return virtualHost; }
+
+    public void setVirtualHost(String virtualHost) { this.virtualHost = virtualHost; }
     
     public String getQueuePrefix() {
         return queuePrefix;

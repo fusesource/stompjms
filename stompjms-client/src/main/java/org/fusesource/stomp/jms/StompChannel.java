@@ -71,6 +71,7 @@ public class StompChannel {
     SSLContext sslContext;
     String ackMode;
     boolean omitHost;
+    String virtualHost;
     URI brokerURI;
     URI localURI;
     CallbackConnection connection;
@@ -102,6 +103,7 @@ public class StompChannel {
         copy.ackMode = this.ackMode;
         copy.omitHost = this.omitHost;
         copy.sslContext = this.sslContext;
+        copy.virtualHost = this.virtualHost;
         return copy;
     }
 
@@ -120,6 +122,9 @@ public class StompChannel {
                 stomp.connectCallback(future);
                 if( omitHost ) {
                     stomp.setHost(null);
+                }
+                if( virtualHost != null && !virtualHost.isEmpty()) {
+                    stomp.setHost(virtualHost);
                 }
 
                 connection = future.await();
@@ -604,4 +609,6 @@ public class StompChannel {
     public void setSslContext(SSLContext sslContext) {
         this.sslContext = sslContext;
     }
+
+    public void setVirtualHost(String virtualHost) { this.virtualHost = virtualHost; }
 }

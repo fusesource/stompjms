@@ -38,6 +38,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
 
     boolean forceAsyncSend;
     boolean omitHost;
+    String virtualHost;
 
     final URI brokerURI;
     final URI localURI;
@@ -335,6 +336,7 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
         rc.setPassword(password);
         rc.setClientId(clientId);
         rc.setOmitHost(omitHost);
+        rc.setVirtualHost(virtualHost);
         rc.setSslContext(sslContext);
         rc.setDisconnectTimeout(disconnectTimeout);
         rc.setExceptionListener(this.exceptionListener);
@@ -452,6 +454,10 @@ public class StompJmsConnection implements Connection, TopicConnection, QueueCon
     public void setOmitHost(boolean omitHost) {
         this.omitHost = omitHost;
     }
+
+    public String getVirtualHost() { return virtualHost; }
+
+    public void setVirtualHost(String virtualHost) { this.virtualHost = virtualHost; }
 
     StompJmsTempQueue isTempQueue(String value) throws JMSException {
         connect();
