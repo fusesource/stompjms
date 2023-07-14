@@ -12,4 +12,7 @@ Reference
 * [JMS 1.1 Specification](http://java.sun.com/products/jms/docs.html)
 * [STOMP 1.0 Specification](http://stomp.github.com/stomp-specification-1.0.html)
 
+Background
+----------
 
+This is a fork of the original stompjms library created by Rob Davies and Hiram Chirino.

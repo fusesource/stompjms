@@ -10,29 +10,22 @@
     in the license.txt file.
 
 -->
-
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  
   <parent>
-    <groupId>org.fusesource.stompjms</groupId>
+    <groupId>io.hyte.stompjms</groupId>
     <artifactId>stompjms-project</artifactId>
     <version>1.20-SNAPSHOT</version>
   </parent>
-  
-  <groupId>org.fusesource.stompjms</groupId>
   <artifactId>stompjms-activemq-test</artifactId>
-  <version>1.20-SNAPSHOT</version>
-  
   <name>${project.artifactId}</name>
   <description>Tests the stompjms client against ActiveMQ</description>
-  
   <dependencies>
 
     <dependency>
-      <groupId>org.fusesource.stompjms</groupId>
+      <groupId>io.hyte.stompjms</groupId>
       <artifactId>stompjms-client</artifactId>
-      <version>1.20-SNAPSHOT</version>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
 
